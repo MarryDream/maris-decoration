@@ -1,6 +1,7 @@
 package marrydream.marisdecoration.init;
 
 import marrydream.marisdecoration.block.TeakPlanks;
+import marrydream.marisdecoration.block.TeakSlabs;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.block.Block;
 import net.minecraft.item.BlockItem;
@@ -13,10 +14,12 @@ import net.minecraft.util.Identifier;
 
 public final class ModBlock {
     public static final TeakPlanks TEAK_PLANKS = register( new TeakPlanks(), TeakPlanks.ID, TeakPlanks.getItemSetting() ); // 奶茶
+    public static final TeakSlabs TEAK_SLAB = register( new TeakSlabs(), TeakSlabs.ID, TeakSlabs.getItemSetting() ); // 奶茶
 
     public static void init( ) {
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.BUILDING_BLOCKS ).register( content -> {
             content.addAfter( Items.CHERRY_BUTTON, ModBlock.TEAK_PLANKS );
+            content.addAfter( ModBlock.TEAK_PLANKS, ModBlock.TEAK_SLAB );
         } );
     }
 

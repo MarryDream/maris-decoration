@@ -2,10 +2,11 @@ package marrydream.marisdecoration.block;
 
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.minecraft.block.Block;
+import net.minecraft.block.SlabBlock;
 import net.minecraft.item.Item;
 
-public class TeakPlanks extends Block {
-    public final static String ID = "teak_planks";
+public class TeakSlabs extends SlabBlock {
+    public final static String ID = "teak_slab";
 
     public static Item.Settings getItemSetting( ) {
         return new Item.Settings();
@@ -17,7 +18,7 @@ public class TeakPlanks extends Block {
                 .strength( 2.0f );
     }
 
-    public TeakPlanks( ) {
-        super( TeakPlanks.getBlockSetting() );
+    public TeakSlabs( ) {
+        super( TeakSlabs.getBlockSetting() );
     }
 }
