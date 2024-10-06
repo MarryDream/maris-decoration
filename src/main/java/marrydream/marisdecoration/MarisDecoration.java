@@ -1,5 +1,6 @@
 package marrydream.marisdecoration;
 
+import marrydream.marisdecoration.init.ModBlock;
 import marrydream.marisdecoration.init.ModItem;
 import net.fabricmc.api.ModInitializer;
 
@@ -17,6 +18,7 @@ public class MarisDecoration implements ModInitializer {
     @Override
     public void onInitialize( ) {
         ModItem.init();
+        ModBlock.init();
         LOGGER.info( "Hello Fabric world! This is Mari" );
     }
 }
