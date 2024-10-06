@@ -11,11 +11,11 @@
             "entries": [
                 {
                     "type": "minecraft:item",
-                    "name": "maris-decoration:teak_planks"
+                    "name": "maris-decoration:steel_block"
                 }
             ],
             "rolls": 1.0
         }
     ],
-    "random_sequence": "maris-decoration:blocks/teak_planks"
+    "random_sequence": "maris-decoration:blocks/steel_block"
 }

@@ -1,4 +1,7 @@
 {
     "replace": false,
-    "values": []
+    "values": [
+        "maris-decoration:steel_block",
+        "maris-decoration:steel_slab"
+    ]
 }

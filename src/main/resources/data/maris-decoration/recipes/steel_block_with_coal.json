@@ -1,0 +1,19 @@
+{
+    "type": "minecraft:crafting_shapeless",
+    "ingredients": [
+        {
+            "item": "minecraft:iron_block"
+        },
+        {
+            "item": "minecraft:iron_block"
+        },
+        {
+            "item": "minecraft:coal"
+        }
+    ],
+    "result": {
+        "count": 2,
+        "item": "maris-decoration:steel_block"
+    },
+    "show_notification": true
+}

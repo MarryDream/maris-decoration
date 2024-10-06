@@ -3,5 +3,7 @@
     "item.maris-decoration.bubble_tea.tooltip": "蒲公英茶底的珍珠奶茶，经常被某人用来充饥",
     "item.maris-decoration.bubble_tea.effect.tooltip": "获得20s的急迫效果",
     "block.maris-decoration.teak_planks": "柚木木板",
-    "block.maris-decoration.teak_slab": "柚木台阶"
+    "block.maris-decoration.teak_slab": "柚木台阶",
+    "block.maris-decoration.steel_block": "钢块",
+    "block.maris-decoration.steel_slab": "钢台阶"
 }
