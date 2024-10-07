@@ -1,9 +1,6 @@
 package marrydream.marisdecoration.init;
 
-import marrydream.marisdecoration.block.SteelBlock;
-import marrydream.marisdecoration.block.SteelSlabs;
-import marrydream.marisdecoration.block.TeakPlanks;
-import marrydream.marisdecoration.block.TeakSlabs;
+import marrydream.marisdecoration.block.*;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.block.Block;
 import net.minecraft.item.BlockItem;
@@ -16,14 +13,17 @@ import net.minecraft.util.Identifier;
 
 public final class ModBlock {
     public static final TeakPlanks TEAK_PLANKS = register( new TeakPlanks(), TeakPlanks.ID, TeakPlanks.getItemSetting() ); // 柚木木板
-    public static final TeakSlabs TEAK_SLABS = register( new TeakSlabs(), TeakSlabs.ID, TeakSlabs.getItemSetting() ); // 柚木半砖
+    public static final TeakStairs TEAK_STAIRS = register( new TeakStairs( TEAK_PLANKS ), TeakStairs.ID, TeakStairs.getItemSetting() ); // 柚木半砖
+    public static final TeakSlabs TEAK_SLABS = register( new TeakSlabs( TEAK_PLANKS ), TeakSlabs.ID, TeakSlabs.getItemSetting() ); // 柚木半砖
     public static final SteelBlock STEEL_BLOCK = register( new SteelBlock(), SteelBlock.ID, SteelBlock.getItemSetting() ); // 钢块
-    public static final SteelSlabs STEEL_SLABS = register( new SteelSlabs(), SteelSlabs.ID, SteelSlabs.getItemSetting() ); // 钢半砖
+    public static final SteelSlabs STEEL_SLABS = register( new SteelSlabs( STEEL_BLOCK ), SteelSlabs.ID, SteelSlabs.getItemSetting() ); // 钢半砖
 
     public static void init( ) {
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.BUILDING_BLOCKS ).register( content -> {
             content.addAfter( Items.CHERRY_BUTTON, ModBlock.TEAK_PLANKS );
-            content.addAfter( ModBlock.TEAK_PLANKS, ModBlock.TEAK_SLABS );
+            content.addAfter( ModBlock.TEAK_PLANKS, ModBlock.TEAK_STAIRS );
+            content.addAfter( ModBlock.TEAK_STAIRS, ModBlock.TEAK_SLABS );
+
             content.addAfter( Items.LIGHT_WEIGHTED_PRESSURE_PLATE, ModBlock.STEEL_BLOCK );
             content.addAfter( ModBlock.STEEL_BLOCK, ModBlock.STEEL_SLABS );
         } );
@@ -34,7 +34,9 @@ public final class ModBlock {
         Identifier blockID = new Identifier( ModInfo.MOD_ID, id );
         // 注册这个物体
         Registry.register( Registries.BLOCK, blockID, block );
-        Registry.register( Registries.ITEM, blockID, new BlockItem( block, settings ) );
+        if ( settings != null ) {
+            Registry.register( Registries.ITEM, blockID, new BlockItem( block, new Item.Settings() ) );
+        }
         return block;
     }
 

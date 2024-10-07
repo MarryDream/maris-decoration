@@ -2,6 +2,7 @@
     "replace": false,
     "values": [
         "maris-decoration:teak_planks",
-        "maris-decoration:teak_slab"
+        "maris-decoration:teak_slab",
+        "maris-decoration:teak_stairs"
     ]
 }
