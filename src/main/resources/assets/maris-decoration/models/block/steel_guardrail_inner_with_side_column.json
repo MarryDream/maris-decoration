@@ -1,0 +1,8 @@
+{
+    "parent": "maris-decoration:block/inner_guardrails_with_side_column",
+    "textures": {
+        "bottom": "maris-decoration:block/steel_block",
+        "side": "maris-decoration:block/steel_block",
+        "top": "maris-decoration:block/steel_block"
+    }
+}

@@ -1,0 +1,18 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "building",
+    "key": {
+        "#": {
+            "item": "maris-decoration:steel_block"
+        }
+    },
+    "pattern": [
+        "###",
+        "# #"
+    ],
+    "result": {
+        "count": 32,
+        "item": "maris-decoration:steel_guardrail"
+    },
+    "show_notification": true
+}

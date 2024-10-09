@@ -3,8 +3,8 @@ package marrydream.marisdecoration.init;
 import marrydream.marisdecoration.block.*;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
-import net.minecraft.block.*;
-import net.minecraft.block.enums.Instrument;
+import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
+import net.minecraft.block.Block;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
@@ -21,6 +21,9 @@ public final class ModBlock {
     public static final TeakTrapdoor TEAK_TRAPDOOR = register( new TeakTrapdoor( TEAK_PLANKS ), TeakTrapdoor.ID, TeakTrapdoor.getItemSetting() ); // 柚木活板门
     public static final SteelBlock STEEL_BLOCK = register( new SteelBlock(), SteelBlock.ID, SteelBlock.getItemSetting() ); // 钢块
     public static final SteelSlabs STEEL_SLABS = register( new SteelSlabs( STEEL_BLOCK ), SteelSlabs.ID, SteelSlabs.getItemSetting() ); // 钢半砖
+    public static final GuardrailBlock STEEL_GUARDRAIL = register(
+            new GuardrailBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_BLOCK ).nonOpaque() ), "steel_guardrail", new Item.Settings()
+    );
 
     public static void init( ) {
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.BUILDING_BLOCKS ).register( content -> {
@@ -31,6 +34,7 @@ public final class ModBlock {
 
             content.addAfter( Items.LIGHT_WEIGHTED_PRESSURE_PLATE, ModBlock.STEEL_BLOCK );
             content.addAfter( ModBlock.STEEL_BLOCK, ModBlock.STEEL_SLABS );
+            content.addAfter( ModBlock.STEEL_SLABS, ModBlock.STEEL_GUARDRAIL );
         } );
 
         // 如果方块一些部分是透明的（例如玻璃、树苗、门）：
