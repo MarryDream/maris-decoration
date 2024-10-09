@@ -192,7 +192,6 @@ public class GuardrailBlock extends Block {
     public BlockState getPlacementState( ItemPlacementContext ctx ) {
         BlockPos blockPos = ctx.getBlockPos();
         BlockState blockState = this.getDefaultState().with( FACING, ctx.getHorizontalPlayerFacing() );
-        MarisDecoration.LOGGER.info( blockState.get( FACING ) + "" );
         return blockState.with( SHAPE, getGuardrailShape( blockState, ctx.getWorld(), blockPos ) );
     }
 
