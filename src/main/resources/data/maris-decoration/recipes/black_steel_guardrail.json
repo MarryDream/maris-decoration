@@ -5,15 +5,18 @@
     "key": {
         "#": {
             "item": "maris-decoration:steel_block"
+        },
+        "S": {
+            "item": "minecraft:black_wool"
         }
     },
     "pattern": [
-        "###",
+        "#S#",
         "# #"
     ],
     "result": {
         "count": 32,
-        "item": "maris-decoration:steel_guardrail"
+        "item": "maris-decoration:black_steel_guardrail"
     },
     "show_notification": true
 }

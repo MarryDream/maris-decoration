@@ -23,7 +23,10 @@ public final class ModBlock {
     public static final SteelSlabs STEEL_SLABS = register( new SteelSlabs( STEEL_BLOCK ), SteelSlabs.ID, SteelSlabs.getItemSetting() ); // 钢半砖
     public static final GuardrailBlock STEEL_GUARDRAIL = register(
             new GuardrailBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_BLOCK ).nonOpaque() ), "steel_guardrail", new Item.Settings()
-    );
+    ); // 钢护栏
+    public static final GuardrailBlock Black_STEEL_GUARDRAIL = register(
+            new GuardrailBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_BLOCK ).nonOpaque() ), "black_steel_guardrail", new Item.Settings()
+    ); // 黑色钢护栏
 
     public static void init( ) {
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.BUILDING_BLOCKS ).register( content -> {
@@ -35,6 +38,7 @@ public final class ModBlock {
             content.addAfter( Items.LIGHT_WEIGHTED_PRESSURE_PLATE, ModBlock.STEEL_BLOCK );
             content.addAfter( ModBlock.STEEL_BLOCK, ModBlock.STEEL_SLABS );
             content.addAfter( ModBlock.STEEL_SLABS, ModBlock.STEEL_GUARDRAIL );
+            content.addAfter( ModBlock.STEEL_GUARDRAIL, ModBlock.Black_STEEL_GUARDRAIL );
         } );
 
         // 如果方块一些部分是透明的（例如玻璃、树苗、门）：
