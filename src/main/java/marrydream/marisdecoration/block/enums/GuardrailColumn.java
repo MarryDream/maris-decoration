@@ -3,11 +3,11 @@ package marrydream.marisdecoration.block.enums;
 import net.minecraft.util.StringIdentifiable;
 
 public enum GuardrailColumn implements StringIdentifiable {
-    NONE( "none" ),
-    LEFT( "left" ),
-    RIGHT( "right" ),
-    CENTER( "center" ),
-    SIDE( "side" );
+    NONE( "none" ), // 仅 outer 存在
+    LEFT( "left" ), // 都存在
+    RIGHT( "right" ), // 都存在
+    CENTER( "center" ), // 仅 inner 存在
+    SIDE( "side" ); // 仅 outer 不存在
 
     private final String name;
 
