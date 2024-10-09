@@ -6,9 +6,12 @@ import net.minecraft.block.*;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ai.pathing.NavigationType;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.fluid.FluidState;
+import net.minecraft.fluid.Fluids;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.StateManager;
+import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.DirectionProperty;
 import net.minecraft.state.property.EnumProperty;
 import net.minecraft.util.ActionResult;
@@ -29,6 +32,7 @@ import net.minecraft.world.explosion.Explosion;
 public class GuardrailBlock extends Block {
     public static final DirectionProperty FACING = Properties.BASE_ORIENTATION; // 北、东、南、西
     public static final EnumProperty<GuardrailShape> SHAPE = Properties.GUARDRAIL_SHAPE; // 直线、内左、内右、外左、外右
+    public static final BooleanProperty WATERLOGGED = Properties.WATERLOGGED; // 是否含水
     // 符合上北下南左西右东的坐标系: x轴向右，z轴向下，y轴向上
 
     // 直线
@@ -96,6 +100,7 @@ public class GuardrailBlock extends Block {
                         .getDefaultState()
                         .with( FACING, Direction.NORTH )
                         .with( SHAPE, GuardrailShape.STRAIGHT )
+                        .with( WATERLOGGED, false ) // 默认不含水
         );
         this.baseBlock = baseBlockState.getBlock();
         this.baseBlockState = baseBlockState;
@@ -190,8 +195,11 @@ public class GuardrailBlock extends Block {
     @Override
     public BlockState getPlacementState( ItemPlacementContext ctx ) {
         BlockPos blockPos = ctx.getBlockPos();
+        FluidState fluidState = ctx.getWorld().getFluidState( blockPos );
         BlockState blockState = this.getDefaultState().with( FACING, ctx.getHorizontalPlayerFacing() );
-        return blockState.with( SHAPE, getGuardrailShape( blockState, ctx.getWorld(), blockPos ) );
+        return blockState
+                .with( SHAPE, getGuardrailShape( blockState, ctx.getWorld(), blockPos ) )
+                .with( WATERLOGGED, fluidState.getFluid() == Fluids.WATER );
     }
 
     // 获取旁边方块的更新状态
@@ -199,6 +207,11 @@ public class GuardrailBlock extends Block {
     public BlockState getStateForNeighborUpdate(
             BlockState state, Direction direction, BlockState neighborState, WorldAccess world, BlockPos pos, BlockPos neighborPos
     ) {
+        // 正确处理水流
+        if ( state.get( WATERLOGGED ) ) {
+            world.scheduleFluidTick( pos, Fluids.WATER, Fluids.WATER.getTickRate( world ) );
+        }
+
         boolean isHorizontal = direction.getAxis().isHorizontal();
         if ( isHorizontal ) {
             return state.with( SHAPE, getGuardrailShape( state, world, pos ) );
@@ -246,8 +259,8 @@ public class GuardrailBlock extends Block {
     }
 
     @Override
-    public VoxelShape getCameraCollisionShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
-        return this.getOutlineShape(state, world, pos, context);
+    public VoxelShape getCameraCollisionShape( BlockState state, BlockView world, BlockPos pos, ShapeContext context ) {
+        return this.getOutlineShape( state, world, pos, context );
     }
 
     // 旋转
@@ -298,10 +311,16 @@ public class GuardrailBlock extends Block {
         return super.mirror( state, mirror );
     }
 
-    // 注册状态属性
+    // 注册状态属性，让方块认识这些属性
     @Override
     protected void appendProperties( StateManager.Builder<Block, BlockState> builder ) {
-        builder.add( FACING, SHAPE );
+        builder.add( FACING, SHAPE, WATERLOGGED );
+    }
+
+    // 覆盖 getFluidState，这样方块含水后就会显示水
+    @Override
+    public FluidState getFluidState( BlockState state ) {
+        return state.get( WATERLOGGED ) ? Fluids.WATER.getStill( false ) : super.getFluidState( state );
     }
 
     // 实体不能尝试穿过
