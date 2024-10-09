@@ -36,41 +36,25 @@ public class GuardrailBlock extends Block {
     // 符合上北下南左西右东的坐标系: x轴向右，z轴向下，y轴向上
 
     // 直线
-    protected static final VoxelShape NORTH_STRAIGHT = Block.createCuboidShape( 0.0, 0.0, 0.0, 16.0, 16.0, 1.0 );
-    protected static final VoxelShape SOUTH_STRAIGHT = Block.createCuboidShape( 0.0, 0.0, 15.0, 16.0, 16.0, 16.0 );
-    protected static final VoxelShape WEST_STRAIGHT = Block.createCuboidShape( 0.0, 0.0, 0.0, 1.0, 16.0, 16.0 );
-    protected static final VoxelShape EAST_STRAIGHT = Block.createCuboidShape( 15.0, 0.0, 0.0, 16.0, 16.0, 16.0 );
+    protected static final VoxelShape[] NORTH_STRAIGHT = createShape( 0.0, 0.0, 0.0, 16.0, 16.0, 1.0, 24.0 );
+    protected static final VoxelShape[] SOUTH_STRAIGHT = createShape( 0.0, 0.0, 15.0, 16.0, 16.0, 16.0, 24.0 );
+    protected static final VoxelShape[] WEST_STRAIGHT = createShape( 0.0, 0.0, 0.0, 1.0, 16.0, 16.0, 24.0 );
+    protected static final VoxelShape[] EAST_STRAIGHT = createShape( 15.0, 0.0, 0.0, 16.0, 16.0, 16.0, 24.0 );
 
     // 外角柱
-    protected static final VoxelShape NORTH_WEST_OUTER = Block.createCuboidShape( 0.0, 0.0, 0.0, 1.0, 16.0, 1.0 );
-    protected static final VoxelShape SOUTH_WEST_OUTER = Block.createCuboidShape( 0.0, 0.0, 15.0, 1.0, 16.0, 16.0 );
-    protected static final VoxelShape NORTH_EAST_OUTER = Block.createCuboidShape( 15.0, 0.0, 0.0, 16.0, 16.0, 1.0 );
-    protected static final VoxelShape SOUTH_EAST_OUTER = Block.createCuboidShape( 15.0, 0.0, 15.0, 16.0, 16.0, 16.0 );
+    protected static final VoxelShape[] NORTH_WEST_OUTER = createShape( 0.0, 0.0, 0.0, 1.0, 16.0, 1.0, 24.0 );
+    protected static final VoxelShape[] SOUTH_WEST_OUTER = createShape( 0.0, 0.0, 15.0, 1.0, 16.0, 16.0, 24.0 );
+    protected static final VoxelShape[] NORTH_EAST_OUTER = createShape( 15.0, 0.0, 0.0, 16.0, 16.0, 1.0, 24.0 );
+    protected static final VoxelShape[] SOUTH_EAST_OUTER = createShape( 15.0, 0.0, 15.0, 16.0, 16.0, 16.0, 24.0 );
 
     // 内角
-    protected static final VoxelShape NORTH_WEST_INNER = VoxelShapes.union( NORTH_STRAIGHT, WEST_STRAIGHT );
-    protected static final VoxelShape SOUTH_WEST_INNER = VoxelShapes.union( SOUTH_STRAIGHT, WEST_STRAIGHT );
-    protected static final VoxelShape NORTH_EAST_INNER = VoxelShapes.union( NORTH_STRAIGHT, EAST_STRAIGHT );
-    protected static final VoxelShape SOUTH_EAST_INNER = VoxelShapes.union( SOUTH_STRAIGHT, EAST_STRAIGHT );
-
-    // 绘制围栏三条横线
-    private static VoxelShape composeStraightShape( double minX, double minZ, double maxX, double maxZ ) {
-        VoxelShape voxelShape = null;
-        double currentY = 5.0; // 当前划线高度
-        do {
-            VoxelShape line = Block.createCuboidShape( minX, currentY, minZ, maxX, currentY + 1.0, maxZ );
-            if ( voxelShape == null ) {
-                voxelShape = line;
-            } else {
-                voxelShape = VoxelShapes.union( voxelShape, line );
-            }
-            currentY += 5.0; // 每次划线高度增加 5
-        } while ( currentY <= 15.0 );
-        return voxelShape;
-    }
+    protected static final VoxelShape[] NORTH_WEST_INNER = createShape( NORTH_STRAIGHT, WEST_STRAIGHT );
+    protected static final VoxelShape[] SOUTH_WEST_INNER = createShape( SOUTH_STRAIGHT, WEST_STRAIGHT );
+    protected static final VoxelShape[] NORTH_EAST_INNER = createShape( NORTH_STRAIGHT, EAST_STRAIGHT );
+    protected static final VoxelShape[] SOUTH_EAST_INNER = createShape( SOUTH_STRAIGHT, EAST_STRAIGHT );
 
     // 12 种形状
-    protected static final VoxelShape[] ALL_SHAPES = new VoxelShape[]{
+    protected static final VoxelShape[][] ALL_SHAPES = new VoxelShape[][]{
             null,
             NORTH_WEST_OUTER,
             NORTH_EAST_OUTER,
@@ -106,6 +90,18 @@ public class GuardrailBlock extends Block {
         this.baseBlockState = baseBlockState;
     }
 
+    // 通过坐标创建外观碰撞体积与实体碰撞体积，返回 [外观碰撞体积, 实体碰撞体积]
+    protected static VoxelShape[] createShape( double minX, double minY, double minZ, double maxX, double maxY, double maxZ, double collisionHeight ) {
+        VoxelShape outlineShape = Block.createCuboidShape( minX, minY, minZ, maxX, maxY, maxZ );
+        VoxelShape collisionShape = Block.createCuboidShape( minX, minY, minZ, maxX, collisionHeight, maxZ );
+        return new VoxelShape[]{ outlineShape, collisionShape };
+    }
+
+    // 通过两个碰撞体积组创建新的碰撞体积
+    protected static VoxelShape[] createShape( VoxelShape[] unionShapeA, VoxelShape[] unionShapeB ) {
+        return new VoxelShape[]{ VoxelShapes.union( unionShapeA[0], unionShapeB[0] ), VoxelShapes.union( unionShapeA[1], unionShapeB[1] ) };
+    }
+
     // 具有侧面透明度
     @Override
     public boolean hasSidedTransparency( BlockState state ) {
@@ -115,7 +111,13 @@ public class GuardrailBlock extends Block {
     // 获取轮廓形状
     @Override
     public VoxelShape getOutlineShape( BlockState state, BlockView world, BlockPos pos, ShapeContext context ) {
-        return ALL_SHAPES[SHAPE_INDICES[this.getShapeIndexIndex( state )]];
+        return ALL_SHAPES[SHAPE_INDICES[this.getShapeIndexIndex( state )]][0];
+    }
+
+    // 获取对于玩家和生物的碰撞体积
+    @Override
+    public VoxelShape getCollisionShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
+        return ALL_SHAPES[SHAPE_INDICES[this.getShapeIndexIndex( state )]][1];
     }
 
     private int getShapeIndexIndex( BlockState state ) {
