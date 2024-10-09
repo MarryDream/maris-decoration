@@ -10,7 +10,7 @@ import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 
 public final class ModItem {
-    public static final BubbleTeaItem BUBBLE_TEA = register( new BubbleTeaItem(), BubbleTeaItem.ID ); // 奶茶
+    public static final BubbleTeaItem BUBBLE_TEA = register( BubbleTeaItem.ID, new BubbleTeaItem() ); // 奶茶
 
     public static void init( ) {
         // 向饮品食物组添加内容
@@ -19,7 +19,7 @@ public final class ModItem {
         } );
     }
 
-    public static <T extends Item> T register( T item, String id ) {
+    public static <T extends Item> T register( String id, T item ) {
         // 创建这个物体的标识符
         Identifier itemID = new Identifier( ModInfo.MOD_ID, id );
         // 注册这个物体

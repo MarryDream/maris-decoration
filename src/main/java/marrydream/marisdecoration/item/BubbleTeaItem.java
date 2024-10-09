@@ -29,9 +29,7 @@ public class BubbleTeaItem extends Item {
                 .statusEffect( new StatusEffectInstance( StatusEffects.HASTE, 20 * 20 ), 1.0f )
                 .build();
         // 返回配置项
-        return new Item.Settings()
-                .maxCount( 64 )
-                .food( foodComponent );
+        return new Item.Settings().food( foodComponent );
     }
 
     public BubbleTeaItem( ) {
