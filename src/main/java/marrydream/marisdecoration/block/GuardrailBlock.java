@@ -1,6 +1,5 @@
 package marrydream.marisdecoration.block;
 
-import marrydream.marisdecoration.MarisDecoration;
 import marrydream.marisdecoration.block.enums.GuardrailShape;
 import marrydream.marisdecoration.block.property.Properties;
 import net.minecraft.block.*;
