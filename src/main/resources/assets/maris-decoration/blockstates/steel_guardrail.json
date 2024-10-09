@@ -1,308 +1,92 @@
 {
     "variants": {
-        "facing=east,shape=inner_left,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_left_column",
+        "facing=east,shape=inner_left": {
+            "model": "maris-decoration:block/steel_guardrail_inner",
             "uvlock": true,
             "y": 270
         },
-        "facing=east,shape=inner_left,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_right_column",
-            "uvlock": true,
-            "y": 270
+        "facing=east,shape=inner_right": {
+            "model": "maris-decoration:block/steel_guardrail_inner"
         },
-        "facing=east,shape=inner_left,column=center": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_center_column",
-            "uvlock": true,
-            "y": 270
-        },
-        "facing=east,shape=inner_left,column=side": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_side_column",
-            "uvlock": true,
-            "y": 270
-        },
-        "facing=east,shape=inner_right,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_left_column"
-        },
-        "facing=east,shape=inner_right,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_right_column"
-        },
-        "facing=east,shape=inner_right,column=center": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_center_column"
-        },
-        "facing=east,shape=inner_right,column=side": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_side_column"
-        },
-        "facing=east,shape=outer_left,column=none": {
+        "facing=east,shape=outer_left": {
             "model": "maris-decoration:block/steel_guardrail_outer",
             "uvlock": true,
             "y": 270
         },
-        "facing=east,shape=outer_left,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_outer_with_column",
-            "uvlock": true,
-            "y": 270
-        },
-        "facing=east,shape=outer_left,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_outer_with_column",
-            "uvlock": true,
-            "y": 270
-        },
-        "facing=east,shape=outer_right,column=none": {
+        "facing=east,shape=outer_right": {
             "model": "maris-decoration:block/steel_guardrail_outer"
         },
-        "facing=east,shape=outer_right,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_outer_with_column"
+        "facing=east,shape=straight": {
+            "model": "maris-decoration:block/steel_guardrail"
         },
-        "facing=east,shape=outer_right,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_outer_with_column"
-        },
-        "facing=east,shape=straight,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_with_left_column"
-        },
-        "facing=east,shape=straight,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_with_right_column"
-        },
-        "facing=east,shape=straight,column=side": {
-            "model": "maris-decoration:block/steel_guardrail_with_side_column"
-        },
-        "facing=north,shape=inner_left,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_left_column",
+        "facing=north,shape=inner_left": {
+            "model": "maris-decoration:block/steel_guardrail_inner",
             "uvlock": true,
             "y": 180
         },
-        "facing=north,shape=inner_left,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_right_column",
-            "uvlock": true,
-            "y": 180
-        },
-        "facing=north,shape=inner_left,column=center": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_center_column",
-            "uvlock": true,
-            "y": 180
-        },
-        "facing=north,shape=inner_left,column=side": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_side_column",
-            "uvlock": true,
-            "y": 180
-        },
-        "facing=north,shape=inner_right,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_left_column",
+        "facing=north,shape=inner_right": {
+            "model": "maris-decoration:block/steel_guardrail_inner",
             "uvlock": true,
             "y": 270
         },
-        "facing=north,shape=inner_right,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_right_column",
-            "uvlock": true,
-            "y": 270
-        },
-        "facing=north,shape=inner_right,column=center": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_center_column",
-            "uvlock": true,
-            "y": 270
-        },
-        "facing=north,shape=inner_right,column=side": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_side_column",
-            "uvlock": true,
-            "y": 270
-        },
-        "facing=north,shape=outer_left,column=none": {
+        "facing=north,shape=outer_left": {
             "model": "maris-decoration:block/steel_guardrail_outer",
             "uvlock": true,
             "y": 180
         },
-        "facing=north,shape=outer_left,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_outer_with_column",
-            "uvlock": true,
-            "y": 180
-        },
-        "facing=north,shape=outer_left,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_outer_with_column",
-            "uvlock": true,
-            "y": 180
-        },
-        "facing=north,shape=outer_right,column=none": {
+        "facing=north,shape=outer_right": {
             "model": "maris-decoration:block/steel_guardrail_outer",
             "uvlock": true,
             "y": 270
         },
-        "facing=north,shape=outer_right,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_outer_with_column",
+        "facing=north,shape=straight": {
+            "model": "maris-decoration:block/steel_guardrail",
             "uvlock": true,
             "y": 270
         },
-        "facing=north,shape=outer_right,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_outer_with_column",
-            "uvlock": true,
-            "y": 270
+        "facing=south,shape=inner_left": {
+            "model": "maris-decoration:block/steel_guardrail_inner"
         },
-        "facing=north,shape=straight,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_with_left_column",
-            "uvlock": true,
-            "y": 270
-        },
-        "facing=north,shape=straight,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_with_right_column",
-            "uvlock": true,
-            "y": 270
-        },
-        "facing=north,shape=straight,column=side": {
-            "model": "maris-decoration:block/steel_guardrail_with_side_column",
-            "uvlock": true,
-            "y": 270
-        },
-        "facing=south,shape=inner_left,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_left_column"
-        },
-        "facing=south,shape=inner_left,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_right_column"
-        },
-        "facing=south,shape=inner_left,column=center": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_center_column"
-        },
-        "facing=south,shape=inner_left,column=side": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_side_column"
-        },
-        "facing=south,shape=inner_right,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_left_column",
+        "facing=south,shape=inner_right": {
+            "model": "maris-decoration:block/steel_guardrail_inner",
             "uvlock": true,
             "y": 90
         },
-        "facing=south,shape=inner_right,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_right_column",
-            "uvlock": true,
-            "y": 90
-        },
-        "facing=south,shape=inner_right,column=center": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_center_column",
-            "uvlock": true,
-            "y": 90
-        },
-        "facing=south,shape=inner_right,column=side": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_side_column",
-            "uvlock": true,
-            "y": 90
-        },
-        "facing=south,shape=outer_left,column=none": {
+        "facing=south,shape=outer_left": {
             "model": "maris-decoration:block/steel_guardrail_outer"
         },
-        "facing=south,shape=outer_left,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_outer_with_column"
-        },
-        "facing=south,shape=outer_left,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_outer_with_column"
-        },
-        "facing=south,shape=outer_right,column=none": {
+        "facing=south,shape=outer_right": {
             "model": "maris-decoration:block/steel_guardrail_outer",
             "uvlock": true,
             "y": 90
         },
-        "facing=south,shape=outer_right,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_outer_with_column",
+        "facing=south,shape=straight": {
+            "model": "maris-decoration:block/steel_guardrail",
             "uvlock": true,
             "y": 90
         },
-        "facing=south,shape=outer_right,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_outer_with_column",
+        "facing=west,shape=inner_left": {
+            "model": "maris-decoration:block/steel_guardrail_inner",
             "uvlock": true,
             "y": 90
         },
-        "facing=south,shape=straight,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_with_left_column",
-            "uvlock": true,
-            "y": 90
-        },
-        "facing=south,shape=straight,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_with_right_column",
-            "uvlock": true,
-            "y": 90
-        },
-        "facing=south,shape=straight,column=side": {
-            "model": "maris-decoration:block/steel_guardrail_with_side_column",
-            "uvlock": true,
-            "y": 90
-        },
-        "facing=west,shape=inner_left,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_left_column",
-            "uvlock": true,
-            "y": 90
-        },
-        "facing=west,shape=inner_left,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_right_column",
-            "uvlock": true,
-            "y": 90
-        },
-        "facing=west,shape=inner_left,column=center": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_center_column",
-            "uvlock": true,
-            "y": 90
-        },
-        "facing=west,shape=inner_left,column=side": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_side_column",
-            "uvlock": true,
-            "y": 90
-        },
-        "facing=west,shape=inner_right,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_left_column",
+        "facing=west,shape=inner_right": {
+            "model": "maris-decoration:block/steel_guardrail_inner",
             "uvlock": true,
             "y": 180
         },
-        "facing=west,shape=inner_right,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_right_column",
-            "uvlock": true,
-            "y": 180
-        },
-        "facing=west,shape=inner_right,column=center": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_center_column",
-            "uvlock": true,
-            "y": 180
-        },
-        "facing=west,shape=inner_right,column=side": {
-            "model": "maris-decoration:block/steel_guardrail_inner_with_side_column",
-            "uvlock": true,
-            "y": 180
-        },
-        "facing=west,shape=outer_left,column=none": {
+        "facing=west,shape=outer_left": {
             "model": "maris-decoration:block/steel_guardrail_outer",
             "uvlock": true,
             "y": 90
         },
-        "facing=west,shape=outer_left,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_outer_with_column",
-            "uvlock": true,
-            "y": 90
-        },
-        "facing=west,shape=outer_left,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_outer_with_column",
-            "uvlock": true,
-            "y": 180
-        },
-        "facing=west,shape=outer_right,column=none": {
+        "facing=west,shape=outer_right": {
             "model": "maris-decoration:block/steel_guardrail_outer",
             "uvlock": true,
             "y": 180
         },
-        "facing=west,shape=outer_right,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_outer_with_column",
-            "uvlock": true,
-            "y": 180
-        },
-        "facing=west,shape=outer_right,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_outer_with_column",
-            "uvlock": true,
-            "y": 180
-        },
-        "facing=west,shape=straight,column=left": {
-            "model": "maris-decoration:block/steel_guardrail_with_left_column",
-            "uvlock": true,
-            "y": 180
-        },
-        "facing=west,shape=straight,column=right": {
-            "model": "maris-decoration:block/steel_guardrail_with_right_column",
-            "uvlock": true,
-            "y": 180
-        },
-        "facing=west,shape=straight,column=side": {
-            "model": "maris-decoration:block/steel_guardrail_with_side_column",
+        "facing=west,shape=straight": {
+            "model": "maris-decoration:block/steel_guardrail",
             "uvlock": true,
             "y": 180
         }

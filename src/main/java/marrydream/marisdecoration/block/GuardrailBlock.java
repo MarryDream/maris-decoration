@@ -1,7 +1,6 @@
 package marrydream.marisdecoration.block;
 
 import marrydream.marisdecoration.MarisDecoration;
-import marrydream.marisdecoration.block.enums.GuardrailColumn;
 import marrydream.marisdecoration.block.enums.GuardrailShape;
 import marrydream.marisdecoration.block.property.Properties;
 import net.minecraft.block.*;
@@ -28,49 +27,9 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
 import net.minecraft.world.explosion.Explosion;
 
-/**
- * 目的为实现一条围栏，围栏每间隔两个方块插一条柱子，起始点和终点必有柱子
- *
- * straight 为一条面朝东的直线，left 为北侧有单柱，right 为南侧有单柱，side 为两侧都有柱
- * inner 为面朝东南角的内角，由东侧和南侧两条直线组成，left 为北侧和中心角有柱，right 为西侧和中心角有柱，center 为中心有柱但两头无柱，side 为两侧都有柱但中心无柱
- * outer 为面朝东南角的外角，俯视 1px，none 为无柱（仅从上到下三个像素点线条），left、right 为一根 1px 柱子（之所以写两个属性是因为它用来继承相邻的柱子朝向）
- *
- * 放置时左右侧同时有围栏时只看左侧
- *
- * 是 straight
- * 1. 两无: side
- * 2. 左/右侧有 side-straight: right（左）left（右），并把它变成 left-straight（左）right-straight（右）
- * 3. 左有 right-straight/右有 left-straight: side
- * 4. 左有 right-inner: right, 并把它变成 center-inner
- * 5. 右有 left-inner: left, 并把它变成 center-inner
- * 6. 左有 left-outer: right，并把它变成 none-outer
- * 7. 右有 right-outer: left，并把它变成 none-outer
- * 8. 左有 right-outer/右有 left-outer: side
- *
- * 是 inner
- * 1. 左/右侧有 side-straight: center，并把它变成 left-straight（左）right-straight（右）
- * 2. 左有 right-straight/右有 left-straight: side
- * 3. 左右有 side-inner: side
- * 4. 左有 left-inner: right，并把它变成 center-inner
- * 5. 右有 right-inner: left，并把它变成 center-inner
- * 6. 左有 right-outer: right，并把它变成 none-outer
- * 7. 右有 left-outer: left，并把它变成 none-outer
- * 8. 左有 left-outer/右有 right-outer: side
- *
- * outer 可以继承上一个人的状态（left、right）
- * 1. 左有 side-straight: left，并把它变成 left-straight
- * 2. 右有 side-straight: right，并把它变成 right-straight
- * 3. 左有 left-straight: left
- * 4. 右有 right-straight: right
- * 5. 左有 right-inner: left
- * 6. 左有 left-inner: right
- * 7. 左/右有 outer: 复制其属性
- */
-
 public class GuardrailBlock extends Block {
     public static final DirectionProperty FACING = Properties.BASE_ORIENTATION; // 北、东、南、西
     public static final EnumProperty<GuardrailShape> SHAPE = Properties.GUARDRAIL_SHAPE; // 直线、内左、内右、外左、外右
-    public static final EnumProperty<GuardrailColumn> COLUMN = Properties.GUARDRAIL_COLUMN; // 无柱、左柱、右柱、中柱、两侧柱
     // 符合上北下南左西右东的坐标系: x轴向右，z轴向下，y轴向上
 
     // 直线
@@ -138,7 +97,6 @@ public class GuardrailBlock extends Block {
                         .getDefaultState()
                         .with( FACING, Direction.NORTH )
                         .with( SHAPE, GuardrailShape.STRAIGHT )
-                        .with( COLUMN, GuardrailColumn.SIDE )
         );
         this.baseBlock = baseBlockState.getBlock();
         this.baseBlockState = baseBlockState;
@@ -234,8 +192,8 @@ public class GuardrailBlock extends Block {
     public BlockState getPlacementState( ItemPlacementContext ctx ) {
         BlockPos blockPos = ctx.getBlockPos();
         BlockState blockState = this.getDefaultState().with( FACING, ctx.getHorizontalPlayerFacing() );
-        GuardrailShape shapeState = getGuardrailShape( blockState, ctx.getWorld(), blockPos );
-        return blockState.with( SHAPE, shapeState ).with( COLUMN, getGuardrailColumn( shapeState, blockState, ctx.getWorld(), blockPos, "放置，" ) );
+        MarisDecoration.LOGGER.info( blockState.get( FACING ) + "" );
+        return blockState.with( SHAPE, getGuardrailShape( blockState, ctx.getWorld(), blockPos ) );
     }
 
     // 获取旁边方块的更新状态
@@ -245,73 +203,9 @@ public class GuardrailBlock extends Block {
     ) {
         boolean isHorizontal = direction.getAxis().isHorizontal();
         if ( isHorizontal ) {
-            GuardrailShape shapeState = getGuardrailShape( state, world, pos );
-            return state.with( SHAPE, shapeState ).with( COLUMN, getGuardrailColumn( shapeState, state, world, pos, "邻居更新，" ) );
+            return state.with( SHAPE, getGuardrailShape( state, world, pos ) );
         }
         return super.getStateForNeighborUpdate( state, direction, neighborState, world, pos, neighborPos );
-    }
-
-    // 获取柱子状态（无柱、左柱、右柱、中柱、两侧柱）
-    private static GuardrailColumn getGuardrailColumn( GuardrailShape shape, BlockState state, BlockView world, BlockPos pos, String type ) {
-        GuardrailColumn a;
-        if ( shape == GuardrailShape.STRAIGHT ) {
-            a = getGuardrailColumnStraight( state, world, pos );
-            MarisDecoration.LOGGER.info( type + "直线柱子状态: " + a );
-        } else if ( shape == GuardrailShape.INNER_LEFT || shape == GuardrailShape.INNER_RIGHT ) {
-            a = getGuardrailColumnInner( state, world, pos );
-            MarisDecoration.LOGGER.info( type + "内角柱子状态: " + a );
-        } else {
-            a = getGuardrailColumnOuter( state, world, pos );
-            MarisDecoration.LOGGER.info( type + "外角柱子状态: " + a );
-        }
-        return a;
-    }
-
-    // 获取直线柱子状态
-    private static GuardrailColumn getGuardrailColumnStraight( BlockState state, BlockView world, BlockPos pos ) {
-        BlockState blockState = world.getBlockState( pos.offset( state.get( FACING ).rotateYCounterclockwise() ) );
-        BlockState blockState2 = world.getBlockState( pos.offset( state.get( FACING ).rotateYClockwise() ) );
-        if ( isGuardrails( blockState ) && blockState.get( SHAPE ) == GuardrailShape.STRAIGHT ) {
-            return GuardrailColumn.RIGHT;
-        } else if ( isGuardrails( blockState2 ) && blockState2.get( SHAPE ) == GuardrailShape.STRAIGHT ) {
-            return GuardrailColumn.LEFT;
-        } else {
-            return GuardrailColumn.SIDE;
-        }
-    }
-
-    // 获取内角柱子状态
-    private static GuardrailColumn getGuardrailColumnInner( BlockState state, BlockView world, BlockPos pos ) {
-        BlockState blockState = world.getBlockState( pos.offset( state.get( FACING ).rotateYCounterclockwise() ) );
-        BlockState blockState2 = world.getBlockState( pos.offset( state.get( FACING ).rotateYClockwise() ) );
-        if ( isGuardrails( blockState ) && blockState.get( SHAPE ) == GuardrailShape.STRAIGHT ) {
-            return GuardrailColumn.RIGHT;
-        } else if ( isGuardrails( blockState2 ) && blockState2.get( SHAPE ) == GuardrailShape.STRAIGHT ) {
-            return GuardrailColumn.LEFT;
-        } else {
-            return GuardrailColumn.SIDE;
-        }
-    }
-
-    // 获取外角柱子状态
-    private static GuardrailColumn getGuardrailColumnOuter( BlockState state, BlockView world, BlockPos pos ) {
-        BlockState blockState = world.getBlockState( pos.offset( state.get( FACING ).rotateYCounterclockwise() ) );
-        BlockState blockState2 = world.getBlockState( pos.offset( state.get( FACING ).rotateYClockwise() ) );
-        if ( isGuardrails( blockState ) ) {
-            if ( blockState.get( SHAPE ) == GuardrailShape.STRAIGHT ) {
-                return GuardrailColumn.LEFT;
-            } else {
-                return blockState.get( COLUMN );
-            }
-        } else if ( isGuardrails( blockState2 ) ) {
-            if ( blockState2.get( SHAPE ) == GuardrailShape.STRAIGHT ) {
-                return GuardrailColumn.RIGHT;
-            } else {
-                return blockState2.get( COLUMN );
-            }
-        } else {
-            return GuardrailColumn.SIDE;
-        }
     }
 
     // 获取形状状态（直线、内左、内右、外左、外右）
@@ -409,7 +303,7 @@ public class GuardrailBlock extends Block {
     // 注册状态属性
     @Override
     protected void appendProperties( StateManager.Builder<Block, BlockState> builder ) {
-        builder.add( FACING, SHAPE, COLUMN );
+        builder.add( FACING, SHAPE );
     }
 
     // 实体不能尝试穿过

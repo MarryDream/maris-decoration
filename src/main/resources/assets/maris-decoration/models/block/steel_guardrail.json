@@ -1,5 +1,5 @@
 {
-    "parent": "maris-decoration:block/outer_guardrails_with_side_column",
+    "parent": "maris-decoration:block/guardrails",
     "textures": {
         "bottom": "maris-decoration:block/steel_block",
         "side": "maris-decoration:block/steel_block",
