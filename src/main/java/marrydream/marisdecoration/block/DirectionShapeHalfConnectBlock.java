@@ -58,7 +58,7 @@ public class DirectionShapeHalfConnectBlock extends Block {
                 .with( WATERLOGGED, false ); // 默认不含水
         // 此时不需要注册 HALF 属性，因为只有一个方向
         if ( !isOneWayBlock() ) {
-            state.with( HALF, PropHalf.BOTTOM );
+            state = state.with( HALF, PropHalf.BOTTOM );
         }
 
         this.setDefaultState( state );
@@ -172,14 +172,13 @@ public class DirectionShapeHalfConnectBlock extends Block {
         BlockPos blockPos = ctx.getBlockPos();
         FluidState fluidState = ctx.getWorld().getFluidState( blockPos );
         BlockState blockState = this.getDefaultState().with( FACING, ctx.getHorizontalPlayerFacing() );
-        var a = getDirectionShapeHalfConnectShape( blockState, ctx.getWorld(), blockPos );
-        System.out.println( "得到: " + a );
-        blockState
-                .with( SHAPE, a )
+        // 必须重新赋值，with 不会改变原有的 blockState（坑了我一个小时）
+        blockState = blockState
+                .with( SHAPE, getDirectionShapeHalfConnectShape( blockState, ctx.getWorld(), blockPos ) )
                 .with( WATERLOGGED, fluidState.getFluid() == Fluids.WATER );
         if ( !isOneWayBlock() ) {
             Direction direction = ctx.getSide();
-            blockState.with(
+            blockState = blockState.with(
                     HALF, direction != Direction.DOWN && ( direction == Direction.UP || !( ctx.getHitPos().y - ( double ) blockPos.getY() > 0.5 ) ) ? PropHalf.BOTTOM : PropHalf.TOP
             );
         }
