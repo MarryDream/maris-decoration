@@ -1,6 +1,7 @@
 package marrydream.marisdecoration.init;
 
 import marrydream.marisdecoration.block.*;
+import marrydream.marisdecoration.block.ComponentWallBlock;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
@@ -58,6 +59,11 @@ public final class ModBlock {
             new GuardrailBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_BLOCK ).nonOpaque() ),
             true
     ); // 黑色钢护栏
+    public static final ComponentWallBlock STEEL_TEAK_COMPONENT_WALL = register(
+            "steel_teak_component_wall",
+            new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_BLOCK ) ),
+            true
+    ); // 钢柚木墙
 
     public static void init( ) {
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.BUILDING_BLOCKS ).register( content -> {
@@ -70,6 +76,8 @@ public final class ModBlock {
             content.addAfter( ModBlock.STEEL_BLOCK, ModBlock.STEEL_SLABS );
             content.addAfter( ModBlock.STEEL_SLABS, ModBlock.STEEL_GUARDRAIL );
             content.addAfter( ModBlock.STEEL_GUARDRAIL, ModBlock.Black_STEEL_GUARDRAIL );
+
+            content.addAfter( ModBlock.Black_STEEL_GUARDRAIL, ModBlock.STEEL_TEAK_COMPONENT_WALL );
         } );
 
         // 如果方块一些部分是透明的（例如玻璃、树苗、门），避免贴图上的透明部分变成黑色

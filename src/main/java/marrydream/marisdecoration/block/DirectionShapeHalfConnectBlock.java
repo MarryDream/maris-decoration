@@ -6,6 +6,7 @@ import marrydream.marisdecoration.block.property.Properties;
 import marrydream.marisdecoration.block.utils.BlockShape;
 import marrydream.marisdecoration.block.utils.DirectionConnectBlockGroup;
 import net.minecraft.block.*;
+import net.minecraft.block.enums.BlockHalf;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ai.pathing.NavigationType;
 import net.minecraft.entity.player.PlayerEntity;
@@ -46,26 +47,31 @@ public class DirectionShapeHalfConnectBlock extends Block {
     private final Block baseBlock;
     private final BlockState baseBlockState;
 
+    /**
+     * 带方位、形状、上下属性的方块
+     * @param baseBlockState 基础方块状态
+     * @param settings 方块设置
+     * @param bottomShapeGroup 向下放置时的连接方块组
+     * @param upShapeGroup 向上放置时的连接方块组
+     */
     public DirectionShapeHalfConnectBlock(
             BlockState baseBlockState, AbstractBlock.Settings settings,
             DirectionConnectBlockGroup bottomShapeGroup, DirectionConnectBlockGroup upShapeGroup
     ) {
         super( settings );
-        BlockState state = this.stateManager
-                .getDefaultState()
-                .with( FACING, Direction.NORTH )
-                .with( SHAPE, PropShape.STRAIGHT )
-                .with( WATERLOGGED, false ); // 默认不含水
-        // 此时不需要注册 HALF 属性，因为只有一个方向
-        if ( !isOneWayBlock() ) {
-            state = state.with( HALF, PropHalf.BOTTOM );
-        }
-
-        this.setDefaultState( state );
-        this.baseBlock = baseBlockState.getBlock();
-        this.baseBlockState = baseBlockState;
         this.bottomShapeGroup = bottomShapeGroup;
         this.upShapeGroup = upShapeGroup;
+
+        this.setDefaultState(
+                this.stateManager
+                        .getDefaultState()
+                        .with( FACING, Direction.NORTH )
+                        .with( HALF, PropHalf.BOTTOM )
+                        .with( SHAPE, PropShape.STRAIGHT )
+                        .with( WATERLOGGED, false ) // 默认不含水
+        );
+        this.baseBlock = baseBlockState.getBlock();
+        this.baseBlockState = baseBlockState;
     }
 
     // 是否是单向方块（即只有底部）
@@ -169,20 +175,22 @@ public class DirectionShapeHalfConnectBlock extends Block {
     // 获取放置状态
     @Override
     public BlockState getPlacementState( ItemPlacementContext ctx ) {
+        Direction direction = ctx.getSide();
         BlockPos blockPos = ctx.getBlockPos();
         FluidState fluidState = ctx.getWorld().getFluidState( blockPos );
-        BlockState blockState = this.getDefaultState().with( FACING, ctx.getHorizontalPlayerFacing() );
-        // 必须重新赋值，with 不会改变原有的 blockState（坑了我一个小时）
-        blockState = blockState
-                .with( SHAPE, getDirectionShapeHalfConnectShape( blockState, ctx.getWorld(), blockPos ) )
-                .with( WATERLOGGED, fluidState.getFluid() == Fluids.WATER );
-        if ( !isOneWayBlock() ) {
-            Direction direction = ctx.getSide();
-            blockState = blockState.with(
-                    HALF, direction != Direction.DOWN && ( direction == Direction.UP || !( ctx.getHitPos().y - ( double ) blockPos.getY() > 0.5 ) ) ? PropHalf.BOTTOM : PropHalf.TOP
-            );
+
+        PropHalf halfValue;
+        if ( isOneWayBlock() ) {
+            halfValue = PropHalf.BOTTOM;
+        } else {
+            halfValue = direction != Direction.DOWN && ( direction == Direction.UP || !( ctx.getHitPos().y - ( double ) blockPos.getY() > 0.5 ) ) ? PropHalf.BOTTOM : PropHalf.TOP;
         }
-        return blockState;
+        // 要获取最新的 blockState 必须重新赋值，with 不会改变原有的 blockState（坑了我两个小时）
+        BlockState blockState = this.getDefaultState()
+                .with( FACING, ctx.getHorizontalPlayerFacing() )
+                .with( HALF, halfValue )
+                .with( WATERLOGGED, fluidState.getFluid() == Fluids.WATER );
+        return blockState.with( SHAPE, getDirectionShapeHalfConnectShape( blockState, ctx.getWorld(), blockPos ) );
     }
 
     // 获取旁边方块的更新状态
@@ -222,7 +230,6 @@ public class DirectionShapeHalfConnectBlock extends Block {
             Direction direction3 = blockState2.get( FACING );
             if ( direction3.getAxis() != ( ( Direction ) state.get( FACING ) ).getAxis() && isDifferentOrientation( state, world, pos, direction3 ) ) {
                 if ( direction3 == direction.rotateYCounterclockwise() ) {
-                    System.out.println( "3:" + PropShape.OUTER_RIGHT );
                     return PropShape.INNER_LEFT;
                 }
 
@@ -235,9 +242,7 @@ public class DirectionShapeHalfConnectBlock extends Block {
 
     private boolean isDifferentOrientation( BlockState state, BlockView world, BlockPos pos, Direction dir ) {
         BlockState blockState = world.getBlockState( pos.offset( dir ) );
-        // half 相关的判断条件
-        boolean halfJudgment = !isOneWayBlock() && blockState.get( HALF ) != state.get( HALF );
-        return !isDirectionShapeHalfConnectBlock( blockState ) || blockState.get( FACING ) != state.get( FACING ) || halfJudgment;
+        return !isDirectionShapeHalfConnectBlock( blockState ) || blockState.get( FACING ) != state.get( FACING ) || ( !isOneWayBlock() && blockState.get( HALF ) != state.get( HALF ) );
     }
 
     protected boolean isDirectionShapeHalfConnectBlock( BlockState state ) {
@@ -300,10 +305,7 @@ public class DirectionShapeHalfConnectBlock extends Block {
     // 注册状态属性，让方块认识这些属性
     @Override
     protected void appendProperties( StateManager.Builder<Block, BlockState> builder ) {
-        builder.add( FACING, SHAPE, WATERLOGGED );
-        if ( !isOneWayBlock() ) {
-            builder.add( HALF );
-        }
+        builder.add( FACING, HALF, SHAPE, WATERLOGGED );
     }
 
     // 覆盖 getFluidState，这样方块含水后就会显示水

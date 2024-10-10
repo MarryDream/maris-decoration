@@ -1,0 +1,64 @@
+{
+    "textures": {
+        "particle": "#outer"
+    },
+    "elements": [
+        {
+            "__comment": "顶层内墙",
+            "from": [ 0, 15, 0 ],
+            "to": [ 14, 16, 14 ],
+            "faces": {
+                "down":  { "uv": [  0,  0, 14, 14 ], "texture": "#inner" },
+                "up":    { "uv": [  0,  0, 14, 14 ], "texture": "#inner", "cullface": "up" },
+                "north": { "uv": [  2,  0, 16,  1 ], "texture": "#inner", "cullface": "north" },
+                "west":  { "uv": [  0,  0, 14,  1 ], "texture": "#inner", "cullface": "west" }
+            }
+        },
+        {
+            "__comment": "东侧外层墙",
+            "from": [ 15, 0, 0 ],
+            "to": [ 16, 16, 16 ],
+            "faces": {
+                "down":  { "uv": [ 15,  0, 16, 16 ], "texture": "#outer", "cullface": "down" },
+                "up":    { "uv": [ 15,  0, 16, 16 ], "texture": "#outer", "cullface": "up" },
+                "north": { "uv": [  0,  0,  1, 16 ], "texture": "#outer", "cullface": "north" },
+                "south": { "uv": [ 15,  0, 16, 16 ], "texture": "#outer", "cullface": "south" },
+                "east":  { "uv": [  0,  0, 16, 16 ], "texture": "#outer", "cullface": "east" }
+            }
+        },
+        {
+            "__comment": "东侧内层墙",
+            "from": [ 14, 0, 0 ],
+            "to": [ 15, 16, 15 ],
+            "faces": {
+                "down":  { "uv": [ 14,  0, 15, 15 ], "texture": "#inner", "cullface": "down" },
+                "up":    { "uv": [ 14,  0, 15, 15 ], "texture": "#inner", "cullface": "up" },
+                "north": { "uv": [  1,  0,  2, 16 ], "texture": "#inner", "cullface": "north" },
+                "south": { "uv": [ 14,  0, 15, 16 ], "texture": "#inner", "cullface": "south" },
+                "west":  { "uv": [  0,  0, 15, 16 ], "texture": "#inner" }
+            }
+        },
+        {
+            "__comment": "南侧外层墙",
+            "from": [ 0, 0, 15 ],
+            "to": [ 15, 16, 16 ],
+            "faces": {
+                "down":  { "uv": [  0, 14, 15, 16 ], "texture": "#outer", "cullface": "down" },
+                "up":    { "uv": [  0, 14, 15, 16 ], "texture": "#outer", "cullface": "up" },
+                "south": { "uv": [  0,  0, 15, 16 ], "texture": "#outer", "cullface": "south" },
+                "west":  { "uv": [ 15,  0, 16, 16 ], "texture": "#outer", "cullface": "west" }
+            }
+        },
+        {
+            "__comment": "南侧内层墙",
+            "from": [ 0, 0, 14 ],
+            "to": [ 15, 16, 15 ],
+            "faces": {
+                "down":  { "uv": [  0, 14, 15, 15 ], "texture": "#inner", "cullface": "down" },
+                "up":    { "uv": [  0, 14, 15, 15 ], "texture": "#inner", "cullface": "up" },
+                "north": { "uv": [  1,  0, 16, 16 ], "texture": "#inner" },
+                "west":  { "uv": [ 14,  0, 15, 16 ], "texture": "#inner", "cullface": "west" }
+            }
+        }
+    ]
+}

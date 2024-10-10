@@ -1,0 +1,55 @@
+{
+    "parent": "block/block",
+    "display": {
+        "gui": {
+            "rotation": [ 30, 135, 0 ],
+            "translation": [ 4, -2, -5 ],
+            "scale":[ 0.7, 0.7, 0.7 ]
+        },
+        "head": {
+            "rotation": [ 0, -90, 0 ],
+            "translation": [ 0, 0, 0 ],
+            "scale": [ 1, 1, 1 ]
+        },
+        "thirdperson_lefthand": {
+            "rotation": [ 75, -135, 0 ],
+            "translation": [ 0, -2, 0 ],
+            "scale": [ 0.375, 0.375, 0.375 ]
+        },
+        "thirdperson_righthand": {
+            "rotation": [ 75, 45, 0 ],
+            "translation": [ 0, -2, 0],
+            "scale": [ 0.375, 0.375, 0.375 ]
+        }
+    },
+    "textures": {
+        "particle": "#outer"
+    },
+    "elements": [
+        {
+            "__comment": "外层墙",
+            "from": [ 15, 0, 0 ],
+            "to": [ 16, 16, 16 ],
+            "faces": {
+                "down":  { "uv": [ 15,  0, 16, 16 ], "texture": "#outer", "cullface": "down" },
+                "up":    { "uv": [ 15,  0, 16, 16 ], "texture": "#outer", "cullface": "up" },
+                "north": { "uv": [  0,  0,  1, 16 ], "texture": "#outer", "cullface": "north" },
+                "south": { "uv": [ 15,  0, 16, 16 ], "texture": "#outer", "cullface": "south" },
+                "west":  { "uv": [  0,  0, 16, 16 ], "texture": "#outer" },
+                "east":  { "uv": [  0,  0, 16, 16 ], "texture": "#outer", "cullface": "east" }
+            }
+        },
+        {
+            "__comment": "内层墙",
+            "from": [ 14, 0, 0 ],
+            "to": [ 15, 16, 16 ],
+            "faces": {
+                "down":  { "uv": [ 14,  0, 15, 16 ], "texture": "#inner", "cullface": "down" },
+                "up":    { "uv": [ 14,  0, 15, 16 ], "texture": "#inner", "cullface": "up" },
+                "north": { "uv": [  1,  0,  2, 16 ], "texture": "#inner", "cullface": "north" },
+                "south": { "uv": [ 14,  0, 15, 16 ], "texture": "#inner", "cullface": "south" },
+                "west":  { "uv": [  0,  0, 16, 16 ], "texture": "#inner" }
+            }
+        }
+    ]
+}

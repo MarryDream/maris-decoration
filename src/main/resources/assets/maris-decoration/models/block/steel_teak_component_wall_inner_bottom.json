@@ -1,0 +1,7 @@
+{
+    "parent": "maris-decoration:block/component_wall_inner_bottom",
+    "textures": {
+        "inner": "maris-decoration:block/teak_planks",
+        "outer": "maris-decoration:block/steel_block"
+    }
+}
