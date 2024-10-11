@@ -32,7 +32,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
 import net.minecraft.world.explosion.Explosion;
 
-public class DirectionShapeHalfConnectBlock extends Block {
+public class DirectionShapeHalfConnectBlock extends Block implements Waterloggable {
     public static final DirectionProperty FACING = Properties.BASE_ORIENTATION; // 北、东、南、西
     public static final EnumProperty<PropShape> SHAPE = Properties.PROP_SHAPE; // 直线、内左、内右、外左、外右
     public static final EnumProperty<PropHalf> HALF = Properties.PROP_HALF; // 上、下
