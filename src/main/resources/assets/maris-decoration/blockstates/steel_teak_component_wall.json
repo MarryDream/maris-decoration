@@ -9,12 +9,12 @@
             "model": "maris-decoration:block/steel_teak_component_wall_inner_bottom"
         },
         "facing=east,half=bottom,shape=outer_left": {
-            "model": "maris-decoration:block/steel_teak_component_wall_outer",
+            "model": "maris-decoration:block/steel_teak_component_wall_outer_bottom",
             "uvlock": true,
             "y": 270
         },
         "facing=east,half=bottom,shape=outer_right": {
-            "model": "maris-decoration:block/steel_teak_component_wall_outer"
+            "model": "maris-decoration:block/steel_teak_component_wall_outer_bottom"
         },
         "facing=east,half=bottom,shape=straight": {
             "model": "maris-decoration:block/steel_teak_component_wall_bottom"
@@ -28,12 +28,12 @@
             "model": "maris-decoration:block/steel_teak_component_wall_inner_top"
         },
         "facing=east,half=top,shape=outer_left": {
-            "model": "maris-decoration:block/steel_teak_component_wall_outer",
+            "model": "maris-decoration:block/steel_teak_component_wall_outer_top",
             "uvlock": true,
             "y": 270
         },
         "facing=east,half=top,shape=outer_right": {
-            "model": "maris-decoration:block/steel_teak_component_wall_outer"
+            "model": "maris-decoration:block/steel_teak_component_wall_outer_top"
         },
         "facing=east,half=top,shape=straight": {
             "model": "maris-decoration:block/steel_teak_component_wall_top"
@@ -49,12 +49,12 @@
             "y": 270
         },
         "facing=north,half=bottom,shape=outer_left": {
-            "model": "maris-decoration:block/steel_teak_component_wall_outer",
+            "model": "maris-decoration:block/steel_teak_component_wall_outer_bottom",
             "uvlock": true,
             "y": 180
         },
         "facing=north,half=bottom,shape=outer_right": {
-            "model": "maris-decoration:block/steel_teak_component_wall_outer",
+            "model": "maris-decoration:block/steel_teak_component_wall_outer_bottom",
             "uvlock": true,
             "y": 270
         },
@@ -74,12 +74,12 @@
             "y": 270
         },
         "facing=north,half=top,shape=outer_left": {
-            "model": "maris-decoration:block/steel_teak_component_wall_outer",
+            "model": "maris-decoration:block/steel_teak_component_wall_outer_top",
             "uvlock": true,
             "y": 180
         },
         "facing=north,half=top,shape=outer_right": {
-            "model": "maris-decoration:block/steel_teak_component_wall_outer",
+            "model": "maris-decoration:block/steel_teak_component_wall_outer_top",
             "uvlock": true,
             "y": 270
         },
@@ -97,10 +97,10 @@
             "y": 90
         },
         "facing=south,half=bottom,shape=outer_left": {
-            "model": "maris-decoration:block/steel_teak_component_wall_outer"
+            "model": "maris-decoration:block/steel_teak_component_wall_outer_bottom"
         },
         "facing=south,half=bottom,shape=outer_right": {
-            "model": "maris-decoration:block/steel_teak_component_wall_outer",
+            "model": "maris-decoration:block/steel_teak_component_wall_outer_bottom",
             "uvlock": true,
             "y": 90
         },
@@ -118,10 +118,10 @@
             "y": 90
         },
         "facing=south,half=top,shape=outer_left": {
-            "model": "maris-decoration:block/steel_teak_component_wall_outer"
+            "model": "maris-decoration:block/steel_teak_component_wall_outer_top"
         },
         "facing=south,half=top,shape=outer_right": {
-            "model": "maris-decoration:block/steel_teak_component_wall_outer",
+            "model": "maris-decoration:block/steel_teak_component_wall_outer_top",
             "uvlock": true,
             "y": 90
         },
@@ -141,12 +141,12 @@
             "y": 180
         },
         "facing=west,half=bottom,shape=outer_left": {
-            "model": "maris-decoration:block/steel_teak_component_wall_outer",
+            "model": "maris-decoration:block/steel_teak_component_wall_outer_bottom",
             "uvlock": true,
             "y": 90
         },
         "facing=west,half=bottom,shape=outer_right": {
-            "model": "maris-decoration:block/steel_teak_component_wall_outer",
+            "model": "maris-decoration:block/steel_teak_component_wall_outer_bottom",
             "uvlock": true,
             "y": 180
         },
@@ -166,12 +166,12 @@
             "y": 180
         },
         "facing=west,half=top,shape=outer_left": {
-            "model": "maris-decoration:block/steel_teak_component_wall_outer",
+            "model": "maris-decoration:block/steel_teak_component_wall_outer_top",
             "uvlock": true,
             "y": 90
         },
         "facing=west,half=top,shape=outer_right": {
-            "model": "maris-decoration:block/steel_teak_component_wall_outer",
+            "model": "maris-decoration:block/steel_teak_component_wall_outer_top",
             "uvlock": true,
             "y": 180
         },
