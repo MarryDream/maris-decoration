@@ -63,7 +63,12 @@ public final class ModBlock {
             "steel_teak_component_wall",
             new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_BLOCK ) ),
             true
-    ); // 钢柚木墙
+    ); // 钢层柚木组件墙
+    public static final TrimRoofBlock STEEL_TEAK_TRIM_ROOF = register(
+            "steel_teak_trim_roof",
+            new TrimRoofBlock( TEAK_PLANKS.getDefaultState(), FabricBlockSettings.copy( TEAK_PLANKS ) ),
+            true
+    ); // 钢层柚木房顶
 
     public static void init( ) {
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.BUILDING_BLOCKS ).register( content -> {
@@ -78,6 +83,7 @@ public final class ModBlock {
             content.addAfter( ModBlock.STEEL_GUARDRAIL, ModBlock.Black_STEEL_GUARDRAIL );
 
             content.addAfter( ModBlock.Black_STEEL_GUARDRAIL, ModBlock.STEEL_TEAK_COMPONENT_WALL );
+            content.addAfter( ModBlock.STEEL_TEAK_COMPONENT_WALL, ModBlock.STEEL_TEAK_TRIM_ROOF );
         } );
 
         // 如果方块一些部分是透明的（例如玻璃、树苗、门），避免贴图上的透明部分变成黑色

@@ -75,7 +75,7 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
     }
 
     // 是否是单向方块（即只有底部）
-    private boolean isOneWayBlock( ) {
+    protected boolean isOneWayBlock( ) {
         return this.upShapeGroup == null;
     }
 
@@ -98,7 +98,7 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
     }
 
     // 根据形状和朝向状态获取碰撞体积
-    private BlockShape getShapeByState( BlockState state ) {
+    protected BlockShape getShapeByState( BlockState state ) {
         DirectionConnectBlockGroup shapeGroup = ( isOneWayBlock() || state.get( HALF ) == PropHalf.BOTTOM ) ? this.bottomShapeGroup : this.upShapeGroup;
         return shapeGroup.getShapeByShapeAndFacing( state.get( SHAPE ).ordinal(), state.get( FACING ).getHorizontal() );
     }
