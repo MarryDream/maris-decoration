@@ -1,0 +1,19 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "B#"
+    ],
+    "key": {
+        "#": {
+            "item": "maris-decoration:teak_planks"
+        },
+        "B": {
+            "item": "maris-decoration:steel_block"
+        }
+    },
+    "result": {
+        "count": 12,
+        "item": "maris-decoration:steel_teak_trim_roof"
+    },
+    "show_notification": true
+}
