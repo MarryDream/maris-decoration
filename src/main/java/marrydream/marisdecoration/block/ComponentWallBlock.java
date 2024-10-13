@@ -60,7 +60,7 @@ public class ComponentWallBlock extends DirectionShapeHalfConnectBlock {
     );
 
     public ComponentWallBlock( BlockState baseBlockState, Settings settings ) {
-        super( baseBlockState, settings, bottomShapeGroup, topShapeGroup );
+        super( baseBlockState, settings, bottomShapeGroup, topShapeGroup, true );
     }
 
     @Override

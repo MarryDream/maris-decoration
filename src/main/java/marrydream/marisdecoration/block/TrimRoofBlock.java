@@ -15,7 +15,7 @@ public class TrimRoofBlock extends DirectionShapeHalfConnectBlock {
     protected static final BlockShape BLOCK_SHAPE_BOTTOM = new BlockShape( 0.0, 0.0, 0.0, 16.0, 1.0, 16.0, -1 );
 
     public TrimRoofBlock( BlockState baseBlockState, Settings settings ) {
-        super( baseBlockState, settings, null, null );
+        super( baseBlockState, settings, null, null, false );
     }
 
     @Override

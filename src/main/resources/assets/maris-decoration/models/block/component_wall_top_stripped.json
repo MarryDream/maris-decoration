@@ -1,0 +1,43 @@
+{
+    "textures": {
+        "particle": "#outer"
+    },
+    "elements": [
+        {
+            "__comment": "顶层内墙去皮",
+            "from": [ 0, 15, 0 ],
+            "to": [ 16, 16, 16 ],
+            "faces": {
+                "down":  { "uv": [  0,  0, 16, 16 ], "texture": "#inner" },
+                "up":    { "uv": [  0,  0, 16, 16 ], "texture": "#inner", "cullface": "up" },
+                "north": { "uv": [  0,  0, 16,  1 ], "texture": "#inner", "cullface": "north" },
+                "south": { "uv": [  0,  0, 16,  1 ], "texture": "#inner", "cullface": "south" },
+                "west":  { "uv": [  0,  0, 16,  1 ], "texture": "#inner", "cullface": "west" },
+                "east":  { "uv": [  0,  0, 16,  1 ], "texture": "#inner", "cullface": "east" }
+            }
+        },
+        {
+            "__comment": "外层墙",
+            "from": [ 15, 0, 0 ],
+            "to": [ 16, 15, 16 ],
+            "faces": {
+                "down":  { "uv": [ 15,  0, 16, 16 ], "texture": "#outer", "cullface": "down" },
+                "north": { "uv": [  0,  1,  1, 16 ], "texture": "#outer", "cullface": "north" },
+                "south": { "uv": [ 15,  1, 16, 16 ], "texture": "#outer", "cullface": "south" },
+                "west":  { "uv": [  0,  1, 16, 16 ], "texture": "#outer" },
+                "east":  { "uv": [  0,  1, 16, 16 ], "texture": "#outer", "cullface": "east" }
+            }
+        },
+        {
+            "__comment": "内层墙",
+            "from": [ 14, 0, 0 ],
+            "to": [ 15, 15, 16 ],
+            "faces": {
+                "down":  { "uv": [ 14,  0, 15, 16 ], "texture": "#inner", "cullface": "down" },
+                "north": { "uv": [  1,  1,  2, 16 ], "texture": "#inner", "cullface": "north" },
+                "south": { "uv": [ 14,  1, 15, 16 ], "texture": "#inner", "cullface": "south" },
+                "west":  { "uv": [  0,  1, 16, 16 ], "texture": "#inner" }
+            }
+        }
+    ]
+}

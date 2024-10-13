@@ -30,7 +30,7 @@ public class GuardrailBlock extends DirectionShapeHalfConnectBlock {
     );
 
     public GuardrailBlock( BlockState baseBlockState, AbstractBlock.Settings settings ) {
-        super( baseBlockState, settings, bottomShapeGroup, null );
+        super( baseBlockState, settings, bottomShapeGroup, null, false );
     }
 
     @Override

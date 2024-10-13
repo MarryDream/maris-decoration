@@ -2,6 +2,7 @@ package marrydream.marisdecoration.block;
 
 import marrydream.marisdecoration.block.enums.PropHalf;
 import marrydream.marisdecoration.block.enums.PropShape;
+import marrydream.marisdecoration.block.enums.PropTexture;
 import marrydream.marisdecoration.block.property.Properties;
 import marrydream.marisdecoration.block.utils.BlockShape;
 import marrydream.marisdecoration.block.utils.DirectionConnectBlockGroup;
@@ -29,12 +30,14 @@ import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldAccess;
+import net.minecraft.world.event.GameEvent;
 import net.minecraft.world.explosion.Explosion;
 
 public class DirectionShapeHalfConnectBlock extends Block implements Waterloggable {
     public static final DirectionProperty FACING = Properties.BASE_ORIENTATION; // 北、东、南、西
     public static final EnumProperty<PropShape> SHAPE = Properties.PROP_SHAPE; // 直线、内左、内右、外左、外右
     public static final EnumProperty<PropHalf> HALF = Properties.PROP_HALF; // 上、下
+    public static final EnumProperty<PropTexture> TEXTURE = Properties.PROP_TEXTURE; // 无纹理，左纹理，右纹理，两侧纹理
     public static final BooleanProperty WATERLOGGED = Properties.WATERLOGGED; // 是否含水
     // 符合上北下南左西右东的坐标系: x轴向右，z轴向下，y轴向上
 
@@ -42,6 +45,8 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
     private final DirectionConnectBlockGroup bottomShapeGroup;
     // 向上放置的连接方块组
     private final DirectionConnectBlockGroup upShapeGroup;
+    // 是否需要切换纹理
+    private final boolean allowSwitchTexture;
 
     private final Block baseBlock;
     private final BlockState baseBlockState;
@@ -52,14 +57,17 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
      * @param settings 方块设置
      * @param bottomShapeGroup 向下放置时的连接方块组
      * @param upShapeGroup 向上放置时的连接方块组
+     * @param allowSwitchTexture 是否允许切换纹理
      */
     public DirectionShapeHalfConnectBlock(
             BlockState baseBlockState, AbstractBlock.Settings settings,
-            DirectionConnectBlockGroup bottomShapeGroup, DirectionConnectBlockGroup upShapeGroup
+            DirectionConnectBlockGroup bottomShapeGroup, DirectionConnectBlockGroup upShapeGroup,
+            boolean allowSwitchTexture
     ) {
         super( settings );
         this.bottomShapeGroup = bottomShapeGroup;
         this.upShapeGroup = upShapeGroup;
+        this.allowSwitchTexture = allowSwitchTexture;
 
         this.setDefaultState(
                 this.stateManager
@@ -67,6 +75,7 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
                         .with( FACING, Direction.NORTH )
                         .with( HALF, PropHalf.BOTTOM )
                         .with( SHAPE, PropShape.STRAIGHT )
+                        .with( TEXTURE, PropTexture.NONE )
                         .with( WATERLOGGED, false ) // 默认不含水
         );
         this.baseBlock = baseBlockState.getBlock();
@@ -159,12 +168,6 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
         this.baseBlock.scheduledTick( state, world, pos, random );
     }
 
-    // 当右键点击时
-    @Override
-    public ActionResult onUse( BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit ) {
-        return this.baseBlockState.onUse( world, player, hand, hit );
-    }
-
     // 当被爆炸破坏时
     @Override
     public void onDestroyedByExplosion( World world, BlockPos pos, Explosion explosion ) {
@@ -188,6 +191,7 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
         BlockState blockState = this.getDefaultState()
                 .with( FACING, ctx.getHorizontalPlayerFacing() )
                 .with( HALF, halfValue )
+                .with( TEXTURE, PropTexture.NONE ) // 放置时默认无纹理
                 .with( WATERLOGGED, fluidState.getFluid() == Fluids.WATER );
         return blockState.with( SHAPE, getDirectionShapeHalfConnectShape( blockState, ctx.getWorld(), blockPos ) );
     }
@@ -204,8 +208,20 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
 
         boolean isHorizontal = direction.getAxis().isHorizontal();
         if ( isHorizontal ) {
-            return state.with( SHAPE, getDirectionShapeHalfConnectShape( state, world, pos ) );
+            PropShape shapeState = getDirectionShapeHalfConnectShape( state, world, pos );
+            state = state.with( SHAPE, shapeState );
+
+            // 处理过后若未非 inner 且 TEXTURE 为 left 或 right 则将 TEXTURE 设置为 side
+            if ( shapeState != PropShape.INNER_LEFT && shapeState != PropShape.INNER_RIGHT ) {
+                PropTexture textureState = state.get( TEXTURE );
+                if ( textureState == PropTexture.LEFT || textureState == PropTexture.RIGHT ) {
+                    return state.with( TEXTURE, PropTexture.SIDE );
+                }
+            }
+
+            return state;
         }
+
         return super.getStateForNeighborUpdate( state, direction, neighborState, world, pos, neighborPos );
     }
 
@@ -304,7 +320,7 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
     // 注册状态属性，让方块认识这些属性
     @Override
     protected void appendProperties( StateManager.Builder<Block, BlockState> builder ) {
-        builder.add( FACING, HALF, SHAPE, WATERLOGGED );
+        builder.add( FACING, HALF, SHAPE, TEXTURE, WATERLOGGED );
     }
 
     // 覆盖 getFluidState，这样方块含水后就会显示水
@@ -317,5 +333,34 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
     @Override
     public boolean canPathfindThrough( BlockState state, BlockView world, BlockPos pos, NavigationType type ) {
         return false;
+    }
+
+    // 右键时更换形态
+    @Override
+    public ActionResult onUse( BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit ) {
+        // 只有上半部分方块才支持更换纹理
+        if ( !allowSwitchTexture || state.get( HALF ) == PropHalf.BOTTOM ) {
+            return this.baseBlockState.onUse( world, player, hand, hit );
+        }
+        PropTexture textureState = state.get( TEXTURE );
+        PropShape shape = state.get( SHAPE );
+        if ( textureState == PropTexture.NONE ) {
+            // 只有 inner 才有 left 和 right 纹理
+            if ( shape == PropShape.INNER_LEFT || shape == PropShape.INNER_RIGHT ) {
+                state = state.with( TEXTURE, PropTexture.LEFT );
+            } else {
+                state = state.with( TEXTURE, PropTexture.SIDE );
+            }
+        } else if ( textureState == PropTexture.LEFT ) {
+            state = state.with( TEXTURE, PropTexture.RIGHT );
+        } else if ( textureState == PropTexture.RIGHT ) {
+            state = state.with( TEXTURE, PropTexture.SIDE );
+        } else {
+            state = state.with( TEXTURE, PropTexture.NONE );
+        }
+
+        world.setBlockState( pos, state, Block.NOTIFY_LISTENERS | Block.REDRAW_ON_MAIN_THREAD );
+        world.emitGameEvent( player, GameEvent.BLOCK_CHANGE, pos );
+        return ActionResult.success( world.isClient );
     }
 }

@@ -3,6 +3,7 @@ package marrydream.marisdecoration.block.property;
 import marrydream.marisdecoration.block.enums.GuardrailColumn;
 import marrydream.marisdecoration.block.enums.PropHalf;
 import marrydream.marisdecoration.block.enums.PropShape;
+import marrydream.marisdecoration.block.enums.PropTexture;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.DirectionProperty;
 import net.minecraft.state.property.EnumProperty;
@@ -13,6 +14,8 @@ public class Properties {
     public static final EnumProperty<PropShape> PROP_SHAPE = EnumProperty.of( "shape", PropShape.class );
     /** 上、下 */
     public static final EnumProperty<PropHalf> PROP_HALF = EnumProperty.of( "half", PropHalf.class );
+    /** 无纹理，左纹理，右纹理，两侧纹理 */
+    public static final EnumProperty<PropTexture> PROP_TEXTURE = EnumProperty.of( "texture", PropTexture.class );
     /** 无柱、左柱、右柱、中柱、两侧柱 */
     public static final EnumProperty<GuardrailColumn> GUARDRAIL_COLUMN = EnumProperty.of( "column", GuardrailColumn.class );
     /** 基本方向: 北、东、南、西 */
