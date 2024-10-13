@@ -1,0 +1,21 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "equipment",
+    "key": {
+        "#": {
+            "item": "minecraft:stick"
+        },
+        "X": {
+            "item": "maris-decoration:steel_block"
+        }
+    },
+    "pattern": [
+        "X",
+        "#",
+        "#"
+    ],
+    "result": {
+        "item": "maris-decoration:steel_spatula"
+    },
+    "show_notification": true
+}

@@ -6,6 +6,7 @@ import marrydream.marisdecoration.block.enums.PropTexture;
 import marrydream.marisdecoration.block.property.Properties;
 import marrydream.marisdecoration.block.utils.BlockShape;
 import marrydream.marisdecoration.block.utils.DirectionConnectBlockGroup;
+import marrydream.marisdecoration.init.ModItem;
 import net.minecraft.block.*;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ai.pathing.NavigationType;
@@ -13,6 +14,8 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
@@ -338,8 +341,8 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
     // 右键时更换形态
     @Override
     public ActionResult onUse( BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit ) {
-        // 只有上半部分方块才支持更换纹理
-        if ( !allowSwitchTexture || state.get( HALF ) == PropHalf.BOTTOM ) {
+        // 只有手持钢铲刀且目标为上半部分方块时，才支持更换纹理
+        if ( !allowSwitchTexture || state.get( HALF ) == PropHalf.BOTTOM || !player.getStackInHand( hand ).isOf( ModItem.STEEL_SPATULA ) ) {
             return this.baseBlockState.onUse( world, player, hand, hit );
         }
         PropTexture textureState = state.get( TEXTURE );
