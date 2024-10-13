@@ -71,6 +71,11 @@ public final class ModBlock {
             new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_BLOCK ).strength( 4.0F, 7.5f ) ),
             true
     ); // 钢层柚木组件墙
+    public static final ComponentWallBlock CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL = register(
+            "cyan_glass_steel_teak_component_wall",
+            new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_TEAK_COMPONENT_WALL ).nonOpaque() ),
+            true
+    ); // 青色玻璃钢层柚木组件墙
     public static final TrimRoofBlock STEEL_TEAK_TRIM_ROOF = register(
             "steel_teak_trim_roof",
             new TrimRoofBlock( TEAK_PLANKS.getDefaultState(), FabricBlockSettings.copy( TEAK_PLANKS ).strength( 2.0F, 3.0F ).solid() ),
@@ -86,6 +91,7 @@ public final class ModBlock {
             content.addAfter( ModBlock.TEAK_TRAPDOOR, ModBlock.TEAK_ROOF );
             content.addAfter( ModBlock.TEAK_ROOF, ModBlock.STEEL_TEAK_TRIM_ROOF );
             content.addAfter( ModBlock.STEEL_TEAK_TRIM_ROOF, ModBlock.STEEL_TEAK_COMPONENT_WALL );
+            content.addAfter( ModBlock.STEEL_TEAK_COMPONENT_WALL, ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL );
 
             content.addAfter( Items.LIGHT_WEIGHTED_PRESSURE_PLATE, ModBlock.STEEL_BLOCK );
             content.addAfter( ModBlock.STEEL_BLOCK, ModBlock.STEEL_SLABS );
@@ -95,6 +101,8 @@ public final class ModBlock {
 
         // 如果方块一些部分是透明的（例如玻璃、树苗、门），避免贴图上的透明部分变成黑色
         BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.TEAK_TRAPDOOR, RenderLayer.getCutout() );
+        // 如果方块一些部分的材质是半透明的，例如玻璃
+        BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL, RenderLayer.getTranslucent() );
 
         // 注册燃料
         FuelRegistry.INSTANCE.add( ModBlock.TEAK_PLANKS, 30 * 20 ); // 烧 30s

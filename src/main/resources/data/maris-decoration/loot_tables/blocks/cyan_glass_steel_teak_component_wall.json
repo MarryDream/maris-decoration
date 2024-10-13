@@ -1,0 +1,21 @@
+{
+    "type": "minecraft:block",
+    "pools": [
+        {
+            "bonus_rolls": 0.0,
+            "conditions": [
+                {
+                    "condition": "minecraft:survives_explosion"
+                }
+            ],
+            "entries": [
+                {
+                    "type": "minecraft:item",
+                    "name": "maris-decoration:cyan_glass_steel_teak_component_wall"
+                }
+            ],
+            "rolls": 1.0
+        }
+    ],
+    "random_sequence": "maris-decoration:blocks/cyan_glass_steel_teak_component_wall"
+}

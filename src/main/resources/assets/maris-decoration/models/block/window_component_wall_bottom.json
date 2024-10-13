@@ -1,0 +1,97 @@
+{
+    "parent": "maris-decoration:block/thin_side_block",
+    "textures": {
+        "particle": "#outer"
+    },
+    "elements": [
+        {
+            "__comment": "外层墙上部分",
+            "from": [ 15, 10, 0 ],
+            "to": [ 16, 16, 16 ],
+            "faces": {
+                "up":    { "uv": [ 15,  0, 16, 16 ], "texture": "#outer", "cullface": "up" },
+                "north": { "uv": [  0,  0,  1,  6 ], "texture": "#outer", "cullface": "north" },
+                "south": { "uv": [ 15,  0, 16,  6 ], "texture": "#outer", "cullface": "south" },
+                "east":  { "uv": [  0,  0, 16,  6 ], "texture": "#outer", "cullface": "east" }
+            }
+        },
+        {
+            "__comment": "外层墙下部分",
+            "from": [ 15, 0, 0 ],
+            "to": [ 16, 6, 16 ],
+            "faces": {
+                "down":  { "uv": [ 15,  0, 16, 16 ], "texture": "#outer", "cullface": "down" },
+                "north": { "uv": [  0, 10,  1, 16 ], "texture": "#outer", "cullface": "north" },
+                "south": { "uv": [ 15, 10, 16, 16 ], "texture": "#outer", "cullface": "south" },
+                "east":  { "uv": [  0, 10, 16, 16 ], "texture": "#outer", "cullface": "east" }
+            }
+        },
+        {
+            "__comment": "外层墙中间左部分",
+            "from": [ 15, 6, 0 ],
+            "to": [ 16, 10, 6 ],
+            "faces": {
+                "north": { "uv": [  0,  6,  1, 10 ], "texture": "#outer", "cullface": "north" },
+                "east":  { "uv": [ 10,  6, 16, 10 ], "texture": "#outer", "cullface": "east" }
+            }
+        },
+        {
+            "__comment": "外层墙中间右部分",
+            "from": [ 15, 6, 10 ],
+            "to": [ 16, 10, 16 ],
+            "faces": {
+                "south": { "uv": [ 15,  6, 16, 10 ], "texture": "#outer", "cullface": "south" },
+                "east":  { "uv": [  0,  6,  6, 10 ], "texture": "#outer", "cullface": "east" }
+            }
+        },
+        {
+            "__comment": "内层墙上部分",
+            "from": [ 14, 10, 0 ],
+            "to": [ 15, 16, 16 ],
+            "faces": {
+                "up":    { "uv": [ 14,  0, 15, 16 ], "texture": "#inner", "cullface": "up" },
+                "north": { "uv": [  1,  0,  2,  6 ], "texture": "#inner", "cullface": "north" },
+                "south": { "uv": [ 14,  0, 15,  6 ], "texture": "#inner", "cullface": "south" },
+                "west":  { "uv": [  0,  0, 16,  6 ], "texture": "#inner" }
+            }
+        },
+        {
+            "__comment": "内层墙下部分",
+            "from": [ 14, 0, 0 ],
+            "to": [ 15, 6, 16 ],
+            "faces": {
+                "down":  { "uv": [ 14,  0, 15, 16 ], "texture": "#inner", "cullface": "down" },
+                "north": { "uv": [  1, 10,  2, 16 ], "texture": "#inner", "cullface": "north" },
+                "south": { "uv": [ 14, 10, 15, 16 ], "texture": "#inner", "cullface": "south" },
+                "west":  { "uv": [  0, 10, 16, 16 ], "texture": "#inner" }
+            }
+        },
+        {
+            "__comment": "内层墙中间左部分",
+            "from": [ 14, 6, 0 ],
+            "to": [ 15, 10, 6 ],
+            "faces": {
+                "north": { "uv": [  1,  6,  2, 10 ], "texture": "#inner", "cullface": "north" },
+                "west":  { "uv": [  0,  6,  6, 10 ], "texture": "#inner" }
+            }
+        },
+        {
+            "__comment": "内层墙中间右部分",
+            "from": [ 14, 6, 10 ],
+            "to": [ 15, 10, 16 ],
+            "faces": {
+                "south": { "uv": [ 14,  6, 15, 10 ], "texture": "#inner", "cullface": "south" },
+                "west":  { "uv": [ 10,  6, 16, 10 ], "texture": "#inner" }
+            }
+        },
+        {
+            "__comment": "中间玻璃部分",
+            "from": [ 14, 6, 6 ],
+            "to": [ 16, 10, 10 ],
+            "faces": {
+                "west":  { "uv": [ 6, 6, 10, 10 ], "texture": "#glass" },
+                "east":  { "uv": [ 6, 6, 10, 10 ], "texture": "#glass", "cullface": "east" }
+            }
+        }
+    ]
+}
