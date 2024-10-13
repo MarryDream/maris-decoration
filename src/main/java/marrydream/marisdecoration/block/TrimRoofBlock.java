@@ -4,6 +4,9 @@ import marrydream.marisdecoration.block.enums.PropHalf;
 import marrydream.marisdecoration.block.utils.BlockShape;
 import marrydream.marisdecoration.block.utils.DirectionConnectBlockGroup;
 import net.minecraft.block.BlockState;
+import net.minecraft.item.ItemPlacementContext;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.math.Direction;
 
 // 带修边的房顶
 public class TrimRoofBlock extends DirectionShapeHalfConnectBlock {

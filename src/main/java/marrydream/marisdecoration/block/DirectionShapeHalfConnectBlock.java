@@ -6,7 +6,6 @@ import marrydream.marisdecoration.block.property.Properties;
 import marrydream.marisdecoration.block.utils.BlockShape;
 import marrydream.marisdecoration.block.utils.DirectionConnectBlockGroup;
 import net.minecraft.block.*;
-import net.minecraft.block.enums.BlockHalf;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.ai.pathing.NavigationType;
 import net.minecraft.entity.player.PlayerEntity;
