@@ -1,8 +1,0 @@
-{
-    "parent": "maris-decoration:block/roof_top",
-    "textures": {
-        "bottom": "maris-decoration:block/teak_planks",
-        "side": "maris-decoration:block/teak_planks",
-        "top": "maris-decoration:block/teak_planks"
-    }
-}

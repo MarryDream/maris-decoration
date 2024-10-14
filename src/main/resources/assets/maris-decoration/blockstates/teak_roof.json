@@ -1,10 +1,10 @@
 {
     "variants": {
         "half=bottom": {
-            "model": "maris-decoration:block/teak_roof"
+            "model": "maris-decoration:block/teak_roof/bottom"
         },
         "half=top": {
-            "model": "maris-decoration:block/teak_roof_top"
+            "model": "maris-decoration:block/teak_roof/top"
         }
     }
 }

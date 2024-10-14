@@ -1,13 +1,13 @@
 {
     "variants": {
         "type=bottom": {
-            "model": "maris-decoration:block/teak_slab"
+            "model": "maris-decoration:block/teak_slab/bottom"
         },
         "type=double": {
             "model": "maris-decoration:block/teak_planks"
         },
         "type=top": {
-            "model": "maris-decoration:block/teak_slab_top"
+            "model": "maris-decoration:block/teak_slab/top"
         }
     }
 }

@@ -1,0 +1,7 @@
+{
+    "parent": "maris-decoration:block/guardrail/inner",
+    "textures": {
+        "column": "maris-decoration:block/steel_block",
+        "row": "minecraft:block/black_wool"
+    }
+}

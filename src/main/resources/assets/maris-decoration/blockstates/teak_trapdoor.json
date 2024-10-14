@@ -1,67 +1,67 @@
 {
   "variants": {
     "facing=east,half=bottom,open=false": {
-      "model": "maris-decoration:block/teak_trapdoor_bottom",
+      "model": "maris-decoration:block/teak_trapdoor/bottom",
       "y": 90
     },
     "facing=east,half=bottom,open=true": {
-      "model": "maris-decoration:block/teak_trapdoor_open",
+      "model": "maris-decoration:block/teak_trapdoor/open",
       "y": 90
     },
     "facing=east,half=top,open=false": {
-      "model": "maris-decoration:block/teak_trapdoor_top",
+      "model": "maris-decoration:block/teak_trapdoor/top",
       "y": 90
     },
     "facing=east,half=top,open=true": {
-      "model": "maris-decoration:block/teak_trapdoor_open",
+      "model": "maris-decoration:block/teak_trapdoor/open",
       "x": 180,
       "y": 270
     },
     "facing=north,half=bottom,open=false": {
-      "model": "maris-decoration:block/teak_trapdoor_bottom"
+      "model": "maris-decoration:block/teak_trapdoor/bottom"
     },
     "facing=north,half=bottom,open=true": {
-      "model": "maris-decoration:block/teak_trapdoor_open"
+      "model": "maris-decoration:block/teak_trapdoor/open"
     },
     "facing=north,half=top,open=false": {
-      "model": "maris-decoration:block/teak_trapdoor_top"
+      "model": "maris-decoration:block/teak_trapdoor/top"
     },
     "facing=north,half=top,open=true": {
-      "model": "maris-decoration:block/teak_trapdoor_open",
+      "model": "maris-decoration:block/teak_trapdoor/open",
       "x": 180,
       "y": 180
     },
     "facing=south,half=bottom,open=false": {
-      "model": "maris-decoration:block/teak_trapdoor_bottom",
+      "model": "maris-decoration:block/teak_trapdoor/bottom",
       "y": 180
     },
     "facing=south,half=bottom,open=true": {
-      "model": "maris-decoration:block/teak_trapdoor_open",
+      "model": "maris-decoration:block/teak_trapdoor/open",
       "y": 180
     },
     "facing=south,half=top,open=false": {
-      "model": "maris-decoration:block/teak_trapdoor_top",
+      "model": "maris-decoration:block/teak_trapdoor/top",
       "y": 180
     },
     "facing=south,half=top,open=true": {
-      "model": "maris-decoration:block/teak_trapdoor_open",
+      "model": "maris-decoration:block/teak_trapdoor/open",
       "x": 180,
       "y": 0
     },
     "facing=west,half=bottom,open=false": {
-      "model": "maris-decoration:block/teak_trapdoor_bottom",
+      "model": "maris-decoration:block/teak_trapdoor/bottom",
       "y": 270
     },
     "facing=west,half=bottom,open=true": {
-      "model": "maris-decoration:block/teak_trapdoor_open",
+      "model": "maris-decoration:block/teak_trapdoor/open",
       "y": 270
     },
     "facing=west,half=top,open=false": {
-      "model": "maris-decoration:block/teak_trapdoor_top",
+      "model": "maris-decoration:block/teak_trapdoor/top",
       "y": 270
     },
     "facing=west,half=top,open=true": {
-      "model": "maris-decoration:block/teak_trapdoor_open",
+      "model": "maris-decoration:block/teak_trapdoor/open",
       "x": 180,
       "y": 90
     }

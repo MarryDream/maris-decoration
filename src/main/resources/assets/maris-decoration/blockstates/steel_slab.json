@@ -1,13 +1,13 @@
 {
     "variants": {
         "type=bottom": {
-            "model": "maris-decoration:block/steel_slab"
+            "model": "maris-decoration:block/steel_slab/bottom"
         },
         "type=double": {
             "model": "maris-decoration:block/steel_block"
         },
         "type=top": {
-            "model": "maris-decoration:block/steel_slab_top"
+            "model": "maris-decoration:block/steel_slab/top"
         }
     }
 }
