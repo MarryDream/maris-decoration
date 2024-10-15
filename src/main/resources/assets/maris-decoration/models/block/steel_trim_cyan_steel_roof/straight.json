@@ -1,0 +1,7 @@
+{
+    "parent": "maris-decoration:block/trim_roof/straight",
+    "textures": {
+        "outer": "maris-decoration:block/steel_block",
+        "inner": "maris-decoration:block/cyan_steel_block"
+    }
+}

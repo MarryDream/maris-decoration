@@ -106,7 +106,12 @@ public final class ModBlock {
             "steel_teak_trim_roof",
             new TrimRoofBlock( TEAK_PLANKS.getDefaultState(), FabricBlockSettings.copy( TEAK_PLANKS ).strength( 2.0F, 3.0F ).solid() ),
             true
-    ); // 钢层柚木房顶
+    ); // 钢边柚木房顶
+    public static final TrimRoofBlock STEEL_TRIM_CYAN_STEEL_ROOF = register(
+            "steel_trim_cyan_steel_roof",
+            new TrimRoofBlock( TEAK_PLANKS.getDefaultState(), FabricBlockSettings.copy( STEEL_TEAK_TRIM_ROOF ) ),
+            true
+    ); // 钢边青色钢房顶
 
     public static void init( ) {
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.BUILDING_BLOCKS ).register( content -> {
@@ -128,6 +133,7 @@ public final class ModBlock {
             /* 房顶 */
             content.add( ModBlock.TEAK_ROOF );
             content.add( ModBlock.STEEL_TEAK_TRIM_ROOF );
+            content.add( ModBlock.STEEL_TRIM_CYAN_STEEL_ROOF );
 
             /* 墙 */
             content.add( ModBlock.STEEL_WALL );
