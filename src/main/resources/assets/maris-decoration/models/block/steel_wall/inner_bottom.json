@@ -1,0 +1,7 @@
+{
+    "parent": "maris-decoration:block/wall/inner_bottom",
+    "textures": {
+        "top": "maris-decoration:block/steel_block",
+        "side": "maris-decoration:block/steel_block"
+    }
+}

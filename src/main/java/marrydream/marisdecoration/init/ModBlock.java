@@ -2,6 +2,7 @@ package marrydream.marisdecoration.init;
 
 import marrydream.marisdecoration.block.*;
 import marrydream.marisdecoration.block.ComponentWallBlock;
+import marrydream.marisdecoration.block.WallBlock;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
@@ -66,9 +67,14 @@ public final class ModBlock {
             new GuardrailBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_GUARDRAIL ) ),
             true
     ); // 黑色钢护栏
+    public static final WallBlock STEEL_WALL = register(
+            "steel_wall",
+            new WallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_BLOCK ).strength( 4.0F, 7.5f ) ),
+            true
+    ); // 钢墙
     public static final ComponentWallBlock STEEL_TEAK_COMPONENT_WALL = register(
             "steel_teak_component_wall",
-            new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_BLOCK ).strength( 4.0F, 7.5f ) ),
+            new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_WALL ) ),
             true
     ); // 钢层柚木组件墙
     public static final ComponentWallBlock CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL = register(
@@ -95,7 +101,8 @@ public final class ModBlock {
 
             content.addAfter( Items.LIGHT_WEIGHTED_PRESSURE_PLATE, ModBlock.STEEL_BLOCK );
             content.addAfter( ModBlock.STEEL_BLOCK, ModBlock.STEEL_SLABS );
-            content.addAfter( ModBlock.STEEL_SLABS, ModBlock.STEEL_GUARDRAIL );
+            content.addAfter( ModBlock.STEEL_SLABS, ModBlock.STEEL_WALL );
+            content.addAfter( ModBlock.STEEL_WALL, ModBlock.STEEL_GUARDRAIL );
             content.addAfter( ModBlock.STEEL_GUARDRAIL, ModBlock.BLACK_STEEL_GUARDRAIL );
         } );
 

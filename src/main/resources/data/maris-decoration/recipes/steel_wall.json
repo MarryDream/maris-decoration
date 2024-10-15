@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "#",
+        "#"
+    ],
+    "key": {
+        "#": {
+            "item": "maris-decoration:steel_block"
+        }
+    },
+    "result": {
+        "count": 6,
+        "item": "maris-decoration:steel_teak_component_wall"
+    },
+    "show_notification": true
+}
