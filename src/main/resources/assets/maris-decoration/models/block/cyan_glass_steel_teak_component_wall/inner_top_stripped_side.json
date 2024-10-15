@@ -1,6 +1,7 @@
 {
     "parent": "maris-decoration:block/window_component_wall/inner_top_stripped_side",
     "textures": {
+        "top": "maris-decoration:block/teak_planks",
         "inner": "maris-decoration:block/teak_planks",
         "outer": "maris-decoration:block/steel_block",
         "glass": "minecraft:block/cyan_stained_glass"
