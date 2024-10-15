@@ -2,6 +2,7 @@
     "replace": false,
     "values": [
         "maris-decoration:steel_block",
+        "maris-decoration:cyan_steel_block",
         "maris-decoration:steel_slab",
         "maris-decoration:steel_guardrail",
         "maris-decoration:black_steel_guardrail",

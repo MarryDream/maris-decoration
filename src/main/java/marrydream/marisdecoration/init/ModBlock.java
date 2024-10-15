@@ -52,6 +52,11 @@ public final class ModBlock {
             new Block( FabricBlockSettings.create().mapColor( MapColor.TERRACOTTA_CYAN ).instrument( Instrument.IRON_XYLOPHONE ).requiresTool().strength( 8.0f, 15.0f ) ),
             true
     ); // 钢块
+    public static final Block CYNA_STEEL_BLOCK = register(
+            "cyan_steel_block",
+            new Block( FabricBlockSettings.copy( STEEL_BLOCK ) ),
+            true
+    ); // 钢块
     public static final SlabBlock STEEL_SLABS = register(
             "steel_slab",
             new SlabBlock( FabricBlockSettings.copy( STEEL_BLOCK ) ),
@@ -100,7 +105,8 @@ public final class ModBlock {
             content.addAfter( ModBlock.STEEL_TEAK_COMPONENT_WALL, ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL );
 
             content.addAfter( Items.LIGHT_WEIGHTED_PRESSURE_PLATE, ModBlock.STEEL_BLOCK );
-            content.addAfter( ModBlock.STEEL_BLOCK, ModBlock.STEEL_SLABS );
+            content.addAfter( ModBlock.STEEL_BLOCK, ModBlock.CYNA_STEEL_BLOCK );
+            content.addAfter( ModBlock.CYNA_STEEL_BLOCK, ModBlock.STEEL_SLABS );
             content.addAfter( ModBlock.STEEL_SLABS, ModBlock.STEEL_WALL );
             content.addAfter( ModBlock.STEEL_WALL, ModBlock.STEEL_GUARDRAIL );
             content.addAfter( ModBlock.STEEL_GUARDRAIL, ModBlock.BLACK_STEEL_GUARDRAIL );

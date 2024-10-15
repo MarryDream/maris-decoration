@@ -1,0 +1,16 @@
+{
+    "type": "minecraft:crafting_shapeless",
+    "ingredients": [
+        {
+            "item": "maris-decoration:steel_block"
+        },
+        {
+            "item": "minecraft:cyan_dye"
+        }
+    ],
+    "result": {
+        "count": 1,
+        "item": "maris-decoration:cyan_steel_block"
+    },
+    "show_notification": true
+}
