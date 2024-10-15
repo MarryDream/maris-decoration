@@ -1,7 +1,7 @@
 {
     "type": "minecraft:crafting_shaped",
     "category": "building",
-    "group": "steel_guardrail",
+    "group": "guardrail",
     "key": {
         "#": {
             "item": "maris-decoration:steel_block"

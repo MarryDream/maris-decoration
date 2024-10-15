@@ -1,6 +1,7 @@
 {
     "type": "minecraft:crafting_shaped",
     "category": "building",
+    "group": "metal_slab",
     "key": {
         "#": {
             "item": "maris-decoration:steel_block"
