@@ -2,16 +2,19 @@
     "type": "minecraft:crafting_shaped",
     "pattern": [
         "#",
-        "#"
+        "S"
     ],
     "key": {
         "#": {
+            "item": "maris-decoration:cyan_steel_block"
+        },
+        "S": {
             "item": "maris-decoration:steel_block"
         }
     },
     "result": {
         "count": 6,
-        "item": "maris-decoration:steel_wall"
+        "item": "maris-decoration:cyan_roof_steel_wall"
     },
     "show_notification": true
 }

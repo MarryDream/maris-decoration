@@ -1,0 +1,7 @@
+{
+    "parent": "maris-decoration:block/wall/outer_top_stripped",
+    "textures": {
+        "top": "maris-decoration:block/cyan_steel_block",
+        "side": "maris-decoration:block/steel_block"
+    }
+}

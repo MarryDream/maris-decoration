@@ -56,7 +56,7 @@ public final class ModBlock {
             "cyan_steel_block",
             new Block( FabricBlockSettings.copy( STEEL_BLOCK ) ),
             true
-    ); // 钢块
+    ); // 青色钢块
     public static final SlabBlock STEEL_SLABS = register(
             "steel_slab",
             new SlabBlock( FabricBlockSettings.copy( STEEL_BLOCK ) ),
@@ -77,6 +77,11 @@ public final class ModBlock {
             new WallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_BLOCK ).strength( 4.0F, 7.5f ) ),
             true
     ); // 钢墙
+    public static final WallBlock CYAN_ROOF_STEEL_WALL = register(
+            "cyan_roof_steel_wall",
+            new WallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_WALL ) ),
+            true
+    ); // 青色屋顶钢墙
     public static final ComponentWallBlock STEEL_TEAK_COMPONENT_WALL = register(
             "steel_teak_component_wall",
             new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_WALL ) ),
@@ -107,8 +112,11 @@ public final class ModBlock {
             content.addAfter( Items.LIGHT_WEIGHTED_PRESSURE_PLATE, ModBlock.STEEL_BLOCK );
             content.addAfter( ModBlock.STEEL_BLOCK, ModBlock.CYNA_STEEL_BLOCK );
             content.addAfter( ModBlock.CYNA_STEEL_BLOCK, ModBlock.STEEL_SLABS );
+
             content.addAfter( ModBlock.STEEL_SLABS, ModBlock.STEEL_WALL );
-            content.addAfter( ModBlock.STEEL_WALL, ModBlock.STEEL_GUARDRAIL );
+            content.addAfter( ModBlock.STEEL_WALL, ModBlock.CYAN_ROOF_STEEL_WALL );
+
+            content.addAfter( ModBlock.CYAN_ROOF_STEEL_WALL, ModBlock.STEEL_GUARDRAIL );
             content.addAfter( ModBlock.STEEL_GUARDRAIL, ModBlock.BLACK_STEEL_GUARDRAIL );
         } );
 
