@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "building",
+    "pattern": [
+        "##"
+    ],
+    "key": {
+        "#": {
+            "item": "maris-decoration:cyan_steel_block"
+        }
+    },
+    "result": {
+        "count": 12,
+        "item": "maris-decoration:cyan_steel_roof"
+    },
+    "show_notification": true
+}

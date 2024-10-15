@@ -22,7 +22,7 @@ import net.minecraft.util.Identifier;
 public final class ModBlock {
     public static final Block TEAK_PLANKS = register(
             "teak_planks",
-            new Block( FabricBlockSettings.create().mapColor( MapColor.PALE_YELLOW ).instrument( Instrument.BASS ).strength( 2.0F, 3.0F ).sounds( BlockSoundGroup.WOOD ).burnable() ),
+            new Block( FabricBlockSettings.create().mapColor( state -> MapColor.PALE_YELLOW ).instrument( Instrument.BASS ).strength( 2.0F, 3.0F ).sounds( BlockSoundGroup.WOOD ).burnable() ),
             true
     ); // 柚木木板
     public static final StairsBlock TEAK_STAIRS = register(
@@ -35,13 +35,6 @@ public final class ModBlock {
             new SlabBlock( FabricBlockSettings.copy( TEAK_PLANKS ) ),
             true
     ); // 柚木半砖
-    public static final RoofBlock TEAK_ROOF = register(
-            "teak_roof",
-            // solid() 会使方块变成固体方块，此时可以放置展示框等需要依附估计方块的方块，最关键的是可以挡雨
-            // 如果没有手动设置，那么 mc 会判断方块的碰撞体积高度是否超过一定的值，如果超过了就会自动设置为固体方块
-            new RoofBlock( FabricBlockSettings.copy( TEAK_PLANKS ).strength( 1.0F, 1.5F ).solid() ),
-            true
-    ); // 柚木房顶
     public static final TrapdoorBlock TEAK_TRAPDOOR = register(
             "teak_trapdoor",
             new TrapdoorBlock( FabricBlockSettings.copy( TEAK_PLANKS ).nonOpaque(), BlockSetType.BIRCH ),
@@ -49,12 +42,12 @@ public final class ModBlock {
     ); // 柚木活板门
     public static final Block STEEL_BLOCK = register(
             "steel_block",
-            new Block( FabricBlockSettings.create().mapColor( MapColor.TERRACOTTA_CYAN ).instrument( Instrument.IRON_XYLOPHONE ).requiresTool().strength( 8.0f, 15.0f ) ),
+            new Block( FabricBlockSettings.create().mapColor( state -> MapColor.TERRACOTTA_CYAN ).instrument( Instrument.IRON_XYLOPHONE ).requiresTool().strength( 8.0f, 15.0f ) ),
             true
     ); // 钢块
-    public static final Block CYNA_STEEL_BLOCK = register(
+    public static final Block CYAN_STEEL_BLOCK = register(
             "cyan_steel_block",
-            new Block( FabricBlockSettings.copy( STEEL_BLOCK ) ),
+            new Block( FabricBlockSettings.copy( STEEL_BLOCK ).mapColor( state -> MapColor.TERRACOTTA_CYAN ) ),
             true
     ); // 青色钢块
     public static final SlabBlock STEEL_SLABS = register(
@@ -79,39 +72,56 @@ public final class ModBlock {
     ); // 钢墙
     public static final WallBlock CYAN_ROOF_STEEL_WALL = register(
             "cyan_roof_steel_wall",
-            new WallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_WALL ) ),
+            new WallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( CYAN_STEEL_BLOCK ).strength( 4.0F, 7.5f ) ),
             true
     ); // 青色屋顶钢墙
     public static final ComponentWallBlock STEEL_TEAK_COMPONENT_WALL = register(
             "steel_teak_component_wall",
-            new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_WALL ) ),
+            new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_WALL ).mapColor( MapColor.PALE_YELLOW ) ),
             true
     ); // 钢层柚木组件墙
     public static final ComponentWallBlock CYAN_ROOF_STEEL_TEAK_COMPONENT_WALL = register(
             "cyan_roof_steel_teak_component_wall",
-            new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_WALL ) ),
+            new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( CYAN_ROOF_STEEL_WALL ) ),
             true
     ); // 青色屋顶钢层柚木组件墙
     public static final ComponentWallBlock CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL = register(
             "cyan_glass_steel_teak_component_wall",
-            new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_WALL ).nonOpaque() ),
+            new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_TEAK_COMPONENT_WALL ).nonOpaque() ),
             true
     ); // 青色玻璃钢层柚木组件墙
     public static final ComponentWallBlock CYAN_GLASS_ROOF_STEEL_TEAK_COMPONENT_WALL = register(
             "cyan_glass_cyan_roof_steel_teak_component_wall",
-            new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL ) ),
+            new ComponentWallBlock( CYAN_STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( CYAN_ROOF_STEEL_WALL ) ),
             true
     ); // 青色玻璃屋顶钢层柚木组件墙
+    public static final RoofBlock TEAK_ROOF = register(
+            "teak_roof",
+            // solid() 会使方块变成固体方块，此时可以放置展示框等需要依附估计方块的方块，最关键的是可以挡雨
+            // 如果没有手动设置，那么 mc 会判断方块的碰撞体积高度是否超过一定的值，如果超过了就会自动设置为固体方块
+            new RoofBlock( FabricBlockSettings.copy( TEAK_PLANKS ).strength( 1.0F, 1.5F ).solid() ),
+            true
+    ); // 柚木屋顶
+    public static final RoofBlock STEEL_ROOF = register(
+            "steel_roof",
+            new RoofBlock( FabricBlockSettings.copy( STEEL_BLOCK ).strength( 3.0F, 5.0F ).solid() ),
+            true
+    ); // 钢屋顶
+    public static final RoofBlock CYAN_STEEL_ROOF = register(
+            "cyan_steel_roof",
+            new RoofBlock( FabricBlockSettings.copy( CYAN_STEEL_BLOCK ).strength( 3.0F, 5.0F ).solid() ),
+            true
+    ); // 青色钢屋顶
     public static final TrimRoofBlock STEEL_TEAK_TRIM_ROOF = register(
             "steel_teak_trim_roof",
-            new TrimRoofBlock( TEAK_PLANKS.getDefaultState(), FabricBlockSettings.copy( TEAK_PLANKS ).strength( 2.0F, 3.0F ).solid() ),
+            new TrimRoofBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_BLOCK ).mapColor( MapColor.PALE_YELLOW ).strength( 2.0F, 3.0F ).solid() ),
             true
-    ); // 钢边柚木房顶
+    ); // 钢边柚木屋顶
     public static final TrimRoofBlock STEEL_TRIM_CYAN_STEEL_ROOF = register(
             "steel_trim_cyan_steel_roof",
-            new TrimRoofBlock( TEAK_PLANKS.getDefaultState(), FabricBlockSettings.copy( STEEL_TEAK_TRIM_ROOF ) ),
+            new TrimRoofBlock( CYAN_STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( CYAN_STEEL_ROOF ) ),
             true
-    ); // 钢边青色钢房顶
+    ); // 钢边青色钢屋顶
 
     public static void init( ) {
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.BUILDING_BLOCKS ).register( content -> {
@@ -123,15 +133,17 @@ public final class ModBlock {
 
             /* 钢 */
             content.add( ModBlock.STEEL_BLOCK );
-            content.add( ModBlock.CYNA_STEEL_BLOCK );
+            content.add( ModBlock.CYAN_STEEL_BLOCK );
             content.add( ModBlock.STEEL_SLABS );
 
             /* 护栏 */
             content.add( ModBlock.STEEL_GUARDRAIL );
             content.add( ModBlock.BLACK_STEEL_GUARDRAIL );
 
-            /* 房顶 */
+            /* 屋顶 */
             content.add( ModBlock.TEAK_ROOF );
+            content.add( ModBlock.STEEL_ROOF );
+            content.add( ModBlock.CYAN_STEEL_ROOF );
             content.add( ModBlock.STEEL_TEAK_TRIM_ROOF );
             content.add( ModBlock.STEEL_TRIM_CYAN_STEEL_ROOF );
 

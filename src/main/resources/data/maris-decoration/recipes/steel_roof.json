@@ -1,0 +1,16 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        "##"
+    ],
+    "key": {
+        "#": {
+            "item": "maris-decoration:steel_block"
+        }
+    },
+    "result": {
+        "count": 12,
+        "item": "maris-decoration:steel_roof"
+    },
+    "show_notification": true
+}

@@ -1,0 +1,10 @@
+{
+    "variants": {
+        "half=bottom": {
+            "model": "maris-decoration:block/steel_roof/bottom"
+        },
+        "half=top": {
+            "model": "maris-decoration:block/steel_roof/top"
+        }
+    }
+}
