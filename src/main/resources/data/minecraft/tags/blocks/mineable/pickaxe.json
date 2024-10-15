@@ -9,6 +9,8 @@
         "maris-decoration:steel_wall",
         "maris-decoration:cyan_roof_steel_wall",
         "maris-decoration:steel_teak_component_wall",
-        "maris-decoration:cyan_glass_steel_teak_component_wall"
+        "maris-decoration:cyan_roof_steel_teak_component_wall",
+        "maris-decoration:cyan_glass_steel_teak_component_wall",
+        "maris-decoration:cyan_glass_cyan_roof_steel_teak_component_wall"
     ]
 }

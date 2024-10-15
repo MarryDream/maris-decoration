@@ -11,13 +11,15 @@
     "block.maris-decoration.teak_trapdoor": "Teak Trapdoor",
     "block.maris-decoration.teak_roof": "Teak Roof",
     "block.maris-decoration.steel_teak_trim_roof": "Steel Teak Trim Roof",
-    "block.maris-decoration.steel_teak_component_wall": "Steel Teak Component Wall",
-    "block.maris-decoration.cyan_glass_steel_teak_component_wall": "Cyan Glass Windows Steel Teak Component Wall",
     "block.maris-decoration.steel_block": "Steel Block",
     "block.maris-decoration.cyan_steel_block": "Cyan Steel Block",
     "block.maris-decoration.steel_slab": "Steel Slab",
     "block.maris-decoration.steel_wall": "Steel Wall",
     "block.maris-decoration.cyan_roof_steel_wall": "Cyan Roof Steel Wall",
+    "block.maris-decoration.steel_teak_component_wall": "Steel Teak Component Wall",
+    "block.maris-decoration.cyan_roof_steel_teak_component_wall": "Cyan Roof Steel Teak Component Wall",
+    "block.maris-decoration.cyan_glass_steel_teak_component_wall": "Cyan Glass Windows Steel Teak Component Wall",
+    "block.maris-decoration.cyan_glass_cyan_roof_steel_teak_component_wall": "Cyan Glass Windows Roof Steel Teak Component Wall",
     "block.maris-decoration.steel_guardrail": "Steel Guardrail",
     "block.maris-decoration.black_steel_guardrail": "Black Steel Guardrail"
 }

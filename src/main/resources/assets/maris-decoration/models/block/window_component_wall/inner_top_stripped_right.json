@@ -61,13 +61,12 @@
         },{
             "__comment": "东侧内层墙上部分",
             "from": [ 14, 11, 0 ],
-            "to": [ 15, 16, 15 ],
+            "to": [ 15, 15, 15 ],
             "faces": {
                 "down":  { "uv": [ 14,  0, 15, 15 ], "texture": "#inner" },
-                "up":    { "uv": [ 14,  0, 15, 15 ], "texture": "#inner", "cullface": "up" },
-                "north": { "uv": [  1,  0,  2,  5 ], "texture": "#inner", "cullface": "north" },
-                "south": { "uv": [ 14,  0, 15,  5 ], "texture": "#inner", "cullface": "south" },
-                "west":  { "uv": [  0,  0, 15,  5 ], "texture": "#inner" }
+                "north": { "uv": [  1,  1,  2,  5 ], "texture": "#inner", "cullface": "north" },
+                "south": { "uv": [ 14,  1, 15,  5 ], "texture": "#inner", "cullface": "south" },
+                "west":  { "uv": [  0,  1, 15,  5 ], "texture": "#inner" }
             }
         },
         {

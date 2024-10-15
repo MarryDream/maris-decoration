@@ -11,13 +11,15 @@
     "block.maris-decoration.teak_trapdoor": "柚木活板门",
     "block.maris-decoration.teak_roof": "柚木屋顶",
     "block.maris-decoration.steel_teak_trim_roof": "钢层柚木屋顶",
-    "block.maris-decoration.steel_teak_component_wall": "钢层柚木组件墙",
-    "block.maris-decoration.cyan_glass_steel_teak_component_wall": "青色玻璃窗钢柚木组件墙",
     "block.maris-decoration.steel_block": "钢块",
     "block.maris-decoration.cyan_steel_block": "青色钢块",
     "block.maris-decoration.steel_slab": "钢台阶",
     "block.maris-decoration.steel_wall": "钢墙",
     "block.maris-decoration.cyan_roof_steel_wall": "青色屋顶钢墙",
+    "block.maris-decoration.steel_teak_component_wall": "钢层柚木组件墙",
+    "block.maris-decoration.cyan_roof_steel_teak_component_wall": "青色屋顶钢层柚木组件墙",
+    "block.maris-decoration.cyan_glass_steel_teak_component_wall": "青色玻璃窗钢柚木组件墙",
+    "block.maris-decoration.cyan_glass_cyan_roof_steel_teak_component_wall": "青色玻璃窗屋顶钢柚木组件墙",
     "block.maris-decoration.steel_guardrail": "钢护栏",
     "block.maris-decoration.black_steel_guardrail": "黑色钢护栏"
 }

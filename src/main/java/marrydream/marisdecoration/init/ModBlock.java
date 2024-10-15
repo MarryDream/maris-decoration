@@ -87,11 +87,21 @@ public final class ModBlock {
             new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_WALL ) ),
             true
     ); // 钢层柚木组件墙
+    public static final ComponentWallBlock CYAN_ROOF_STEEL_TEAK_COMPONENT_WALL = register(
+            "cyan_roof_steel_teak_component_wall",
+            new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_WALL ) ),
+            true
+    ); // 青色屋顶钢层柚木组件墙
     public static final ComponentWallBlock CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL = register(
             "cyan_glass_steel_teak_component_wall",
-            new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_TEAK_COMPONENT_WALL ).nonOpaque() ),
+            new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_WALL ).nonOpaque() ),
             true
     ); // 青色玻璃钢层柚木组件墙
+    public static final ComponentWallBlock CYAN_GLASS_ROOF_STEEL_TEAK_COMPONENT_WALL = register(
+            "cyan_glass_cyan_roof_steel_teak_component_wall",
+            new ComponentWallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL ) ),
+            true
+    ); // 青色玻璃屋顶钢层柚木组件墙
     public static final TrimRoofBlock STEEL_TEAK_TRIM_ROOF = register(
             "steel_teak_trim_roof",
             new TrimRoofBlock( TEAK_PLANKS.getDefaultState(), FabricBlockSettings.copy( TEAK_PLANKS ).strength( 2.0F, 3.0F ).solid() ),
@@ -100,30 +110,39 @@ public final class ModBlock {
 
     public static void init( ) {
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.BUILDING_BLOCKS ).register( content -> {
+            /* 柚木 */
             content.addAfter( Items.CHERRY_BUTTON, ModBlock.TEAK_PLANKS );
             content.addAfter( ModBlock.TEAK_PLANKS, ModBlock.TEAK_STAIRS );
             content.addAfter( ModBlock.TEAK_STAIRS, ModBlock.TEAK_SLABS );
             content.addAfter( ModBlock.TEAK_SLABS, ModBlock.TEAK_TRAPDOOR );
-            content.addAfter( ModBlock.TEAK_TRAPDOOR, ModBlock.TEAK_ROOF );
-            content.addAfter( ModBlock.TEAK_ROOF, ModBlock.STEEL_TEAK_TRIM_ROOF );
-            content.addAfter( ModBlock.STEEL_TEAK_TRIM_ROOF, ModBlock.STEEL_TEAK_COMPONENT_WALL );
-            content.addAfter( ModBlock.STEEL_TEAK_COMPONENT_WALL, ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL );
 
-            content.addAfter( Items.LIGHT_WEIGHTED_PRESSURE_PLATE, ModBlock.STEEL_BLOCK );
-            content.addAfter( ModBlock.STEEL_BLOCK, ModBlock.CYNA_STEEL_BLOCK );
-            content.addAfter( ModBlock.CYNA_STEEL_BLOCK, ModBlock.STEEL_SLABS );
+            /* 钢 */
+            content.add( ModBlock.STEEL_BLOCK );
+            content.add( ModBlock.CYNA_STEEL_BLOCK );
+            content.add( ModBlock.STEEL_SLABS );
 
-            content.addAfter( ModBlock.STEEL_SLABS, ModBlock.STEEL_WALL );
-            content.addAfter( ModBlock.STEEL_WALL, ModBlock.CYAN_ROOF_STEEL_WALL );
+            /* 护栏 */
+            content.add( ModBlock.STEEL_GUARDRAIL );
+            content.add( ModBlock.BLACK_STEEL_GUARDRAIL );
 
-            content.addAfter( ModBlock.CYAN_ROOF_STEEL_WALL, ModBlock.STEEL_GUARDRAIL );
-            content.addAfter( ModBlock.STEEL_GUARDRAIL, ModBlock.BLACK_STEEL_GUARDRAIL );
+            /* 房顶 */
+            content.add( ModBlock.TEAK_ROOF );
+            content.add( ModBlock.STEEL_TEAK_TRIM_ROOF );
+
+            /* 墙 */
+            content.add( ModBlock.STEEL_WALL );
+            content.add( ModBlock.CYAN_ROOF_STEEL_WALL );
+            content.add( ModBlock.STEEL_TEAK_COMPONENT_WALL );
+            content.add( ModBlock.CYAN_ROOF_STEEL_TEAK_COMPONENT_WALL );
+            content.add( ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL );
+            content.add( ModBlock.CYAN_GLASS_ROOF_STEEL_TEAK_COMPONENT_WALL );
         } );
 
         // 如果方块一些部分是透明的（例如玻璃、树苗、门），避免贴图上的透明部分变成黑色
         BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.TEAK_TRAPDOOR, RenderLayer.getCutout() );
         // 如果方块一些部分的材质是半透明的，例如玻璃
         BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL, RenderLayer.getTranslucent() );
+        BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_GLASS_ROOF_STEEL_TEAK_COMPONENT_WALL, RenderLayer.getTranslucent() );
 
         // 注册燃料
         FuelRegistry.INSTANCE.add( ModBlock.TEAK_PLANKS, 30 * 20 ); // 烧 30s

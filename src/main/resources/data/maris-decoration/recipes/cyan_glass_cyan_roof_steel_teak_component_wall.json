@@ -2,22 +2,25 @@
     "type": "minecraft:crafting_shaped",
     "pattern": [
         " # ",
-        "CB#"
+        "CBS"
     ],
     "key": {
         "#": {
-            "item": "maris-decoration:teak_planks"
+            "item": "maris-decoration:cyan_steel_block"
         },
         "C": {
             "item": "minecraft:cyan_stained_glass"
         },
         "B": {
             "item": "maris-decoration:steel_block"
+        },
+        "S": {
+            "item": "maris-decoration:teak_planks"
         }
     },
     "result": {
-        "count": 6,
-        "item": "maris-decoration:cyan_glass_steel_teak_component_wall"
+        "count": 8,
+        "item": "maris-decoration:cyan_glass_cyan_roof_steel_teak_component_wall"
     },
     "show_notification": true
 }
