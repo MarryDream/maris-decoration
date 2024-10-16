@@ -3,13 +3,11 @@ package marrydream.marisdecoration.init;
 import marrydream.marisdecoration.block.*;
 import marrydream.marisdecoration.block.ComponentWallBlock;
 import marrydream.marisdecoration.block.WallBlock;
-import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.minecraft.block.*;
 import net.minecraft.block.enums.Instrument;
-import net.minecraft.client.render.RenderLayer;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroups;
@@ -179,13 +177,6 @@ public final class ModBlock {
             content.addAfter( Blocks.LADDER, ModBlock.STEEL_FIXED_LADDER );
             content.addAfter( Blocks.LADDER, ModBlock.STEEL_VERTICAL_LADDER );
         } );
-
-        // 如果方块一些部分是透明的（例如玻璃、树苗、门），避免贴图上的透明部分变成黑色
-        BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.TEAK_TRAPDOOR, RenderLayer.getCutout() );
-        // 如果方块一些部分的材质是半透明的，例如玻璃
-        BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL, RenderLayer.getTranslucent() );
-        BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_GLASS_ROOF_STEEL_TEAK_COMPONENT_WALL, RenderLayer.getTranslucent() );
-        BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.STEEL_TRIM_CYAN_GLASS_WINDOW, RenderLayer.getTranslucent() );
 
         // 注册燃料
         FuelRegistry.INSTANCE.add( ModBlock.TEAK_PLANKS, 30 * 20 ); // 烧 30s
