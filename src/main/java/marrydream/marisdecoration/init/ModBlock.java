@@ -122,6 +122,11 @@ public final class ModBlock {
             new TrimRoofBlock( CYAN_STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( CYAN_STEEL_ROOF ) ),
             true
     ); // 钢边青色钢屋顶
+    public static final WindowBlock STEEL_TRIM_CYAN_GLASS_WINDOW = register(
+            "steel_trim_cyan_glass_window",
+            new WindowBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_ROOF ).sounds(BlockSoundGroup.GLASS).strength( 1.5F, 2.5f ) ),
+            true
+    ); // 钢边青色玻璃窗
 
     public static void init( ) {
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.BUILDING_BLOCKS ).register( content -> {
@@ -154,6 +159,9 @@ public final class ModBlock {
             content.add( ModBlock.CYAN_ROOF_STEEL_TEAK_COMPONENT_WALL );
             content.add( ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL );
             content.add( ModBlock.CYAN_GLASS_ROOF_STEEL_TEAK_COMPONENT_WALL );
+
+            /* 窗 */
+            content.add( ModBlock.STEEL_TRIM_CYAN_GLASS_WINDOW );
         } );
 
         // 如果方块一些部分是透明的（例如玻璃、树苗、门），避免贴图上的透明部分变成黑色
@@ -161,6 +169,7 @@ public final class ModBlock {
         // 如果方块一些部分的材质是半透明的，例如玻璃
         BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL, RenderLayer.getTranslucent() );
         BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_GLASS_ROOF_STEEL_TEAK_COMPONENT_WALL, RenderLayer.getTranslucent() );
+        BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.STEEL_TRIM_CYAN_GLASS_WINDOW, RenderLayer.getTranslucent() );
 
         // 注册燃料
         FuelRegistry.INSTANCE.add( ModBlock.TEAK_PLANKS, 30 * 20 ); // 烧 30s

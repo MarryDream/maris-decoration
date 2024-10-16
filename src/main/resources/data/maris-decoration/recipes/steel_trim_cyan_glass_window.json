@@ -1,0 +1,21 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "building",
+    "group": "roof",
+    "pattern": [
+        "#S#"
+    ],
+    "key": {
+        "#": {
+            "item": "maris-decoration:steel_block"
+        },
+        "S": {
+            "item": "minecraft:cyan_stained_glass"
+        }
+    },
+    "result": {
+        "count": 12,
+        "item": "maris-decoration:steel_trim_cyan_glass_window"
+    },
+    "show_notification": true
+}

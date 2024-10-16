@@ -14,8 +14,6 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.ItemPlacementContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
@@ -36,6 +34,7 @@ import net.minecraft.world.WorldAccess;
 import net.minecraft.world.event.GameEvent;
 import net.minecraft.world.explosion.Explosion;
 
+/* 有内左内右外左外右、东南西北、上下状态的连接方块，包含可改变的纹理，可含水 */
 public class DirectionShapeHalfConnectBlock extends Block implements Waterloggable {
     public static final DirectionProperty FACING = Properties.BASE_ORIENTATION; // 北、东、南、西
     public static final EnumProperty<PropShape> SHAPE = Properties.PROP_SHAPE; // 直线、内左、内右、外左、外右

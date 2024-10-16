@@ -1,0 +1,7 @@
+{
+    "parent": "maris-decoration:block/trim_window/outer",
+    "textures": {
+        "column": "maris-decoration:block/steel_block",
+        "glass": "minecraft:block/cyan_stained_glass"
+    }
+}

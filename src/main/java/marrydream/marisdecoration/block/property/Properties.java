@@ -1,9 +1,6 @@
 package marrydream.marisdecoration.block.property;
 
-import marrydream.marisdecoration.block.enums.GuardrailColumn;
-import marrydream.marisdecoration.block.enums.PropHalf;
-import marrydream.marisdecoration.block.enums.PropShape;
-import marrydream.marisdecoration.block.enums.PropTexture;
+import marrydream.marisdecoration.block.enums.*;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.DirectionProperty;
 import net.minecraft.state.property.EnumProperty;
