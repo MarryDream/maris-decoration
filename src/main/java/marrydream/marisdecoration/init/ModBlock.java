@@ -124,9 +124,19 @@ public final class ModBlock {
     ); // 钢边青色钢屋顶
     public static final WindowBlock STEEL_TRIM_CYAN_GLASS_WINDOW = register(
             "steel_trim_cyan_glass_window",
-            new WindowBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_ROOF ).sounds(BlockSoundGroup.GLASS).strength( 1.5F, 2.5f ) ),
+            new WindowBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_ROOF ).sounds( BlockSoundGroup.GLASS ).strength( 1.5F, 2.5f ) ),
             true
     ); // 钢边青色玻璃窗
+    public static final LadderBlock STEEL_FIXED_LADDER = register(
+            "steel_fixed_ladder",
+            new LadderBlock( FabricBlockSettings.copy( Blocks.LADDER ).strength( 1.5F ) ),
+            true
+    ); // 钢固定梯
+    public static final VerticalLadderBlock STEEL_VERTICAL_LADDER = register(
+            "steel_vertical_ladder",
+            new VerticalLadderBlock( FabricBlockSettings.copy( STEEL_FIXED_LADDER ) ),
+            true
+    ); // 垂直钢爬梯
 
     public static void init( ) {
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.BUILDING_BLOCKS ).register( content -> {
@@ -162,6 +172,12 @@ public final class ModBlock {
 
             /* 窗 */
             content.add( ModBlock.STEEL_TRIM_CYAN_GLASS_WINDOW );
+        } );
+
+        ItemGroupEvents.modifyEntriesEvent( ItemGroups.FUNCTIONAL ).register( content -> {
+            /* 梯子 */
+            content.addAfter( Blocks.LADDER, ModBlock.STEEL_FIXED_LADDER );
+            content.addAfter( Blocks.LADDER, ModBlock.STEEL_VERTICAL_LADDER );
         } );
 
         // 如果方块一些部分是透明的（例如玻璃、树苗、门），避免贴图上的透明部分变成黑色

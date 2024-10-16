@@ -1,0 +1,6 @@
+{
+    "parent": "maris-decoration:block/fixed_ladder",
+    "textures": {
+        "all": "maris-decoration:block/steel_block"
+    }
+}

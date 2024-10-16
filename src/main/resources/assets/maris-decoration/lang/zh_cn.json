@@ -25,5 +25,7 @@
     "block.maris-decoration.cyan_glass_cyan_roof_steel_teak_component_wall": "青色玻璃窗屋顶钢柚木组件墙",
     "block.maris-decoration.steel_guardrail": "钢护栏",
     "block.maris-decoration.black_steel_guardrail": "黑色钢护栏",
-    "block.maris-decoration.steel_trim_cyan_glass_window": "钢边青色玻璃窗"
+    "block.maris-decoration.steel_trim_cyan_glass_window": "钢边青色玻璃窗",
+    "block.maris-decoration.steel_fixed_ladder": "钢固定梯",
+    "block.maris-decoration.steel_vertical_ladder": "垂直钢爬梯"
 }

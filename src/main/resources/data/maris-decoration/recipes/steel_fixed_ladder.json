@@ -1,0 +1,19 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "building",
+    "group": "roof",
+    "pattern": [
+        "##",
+        "##"
+    ],
+    "key": {
+        "#": {
+            "item": "maris-decoration:steel_block"
+        }
+    },
+    "result": {
+        "count": 12,
+        "item": "maris-decoration:steel_fixed_ladder"
+    },
+    "show_notification": true
+}

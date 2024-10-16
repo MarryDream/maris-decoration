@@ -1,0 +1,82 @@
+{
+    "parent": "maris-decoration:block/thin_side_block",
+    "textures": {
+        "particle": "#all"
+    },
+    "elements": [
+        {
+            "_comment": "一段左部分",
+            "from": [ 13, 12, 2 ],
+            "to": [ 16, 13, 3 ],
+            "faces": {
+                "down":  { "uv": [ 13,  2, 16,  3 ], "texture": "#all" },
+                "up":    { "uv": [ 13,  2, 16,  3 ], "texture": "#all" },
+                "north": { "uv": [  0,  3,  3,  4 ], "texture": "#all" },
+                "south": { "uv": [ 13,  3, 16,  4 ], "texture": "#all" },
+                "west":  { "uv": [  2,  3,  3,  4 ], "texture": "#all" },
+                "east":  { "uv": [ 13,  3, 14,  4 ], "texture": "#all", "cullface": "east" }
+            }
+        },
+        {
+            "_comment": "一段右部分",
+            "from": [ 13, 12, 13 ],
+            "to": [ 16, 13, 14 ],
+            "faces": {
+                "down":  { "uv": [ 13, 13, 16, 14 ], "texture": "#all" },
+                "up":    { "uv": [ 13, 13, 16, 14 ], "texture": "#all" },
+                "north": { "uv": [  0,  3,  3,  4 ], "texture": "#all" },
+                "south": { "uv": [ 13,  3, 16,  4 ], "texture": "#all" },
+                "west":  { "uv": [ 13,  3, 14,  4 ], "texture": "#all" },
+                "east":  { "uv": [  2,  3,  3,  4 ], "texture": "#all", "cullface": "east" }
+            }
+        },
+        {
+            "_comment": "一段中间部分",
+            "from": [ 13, 12, 3 ],
+            "to": [ 14, 13, 13 ],
+            "faces": {
+                "down":  { "uv": [ 13,  3, 14, 13 ], "texture": "#all" },
+                "up":    { "uv": [ 13,  3, 14, 13 ], "texture": "#all" },
+                "west":  { "uv": [  3,  3, 13,  4 ], "texture": "#all" },
+                "east":  { "uv": [  3,  3, 13,  4 ], "texture": "#all" }
+            }
+        },
+        {
+            "_comment": "二段左部分",
+            "from": [ 13, 4, 2 ],
+            "to": [ 16, 5, 3 ],
+            "faces": {
+                "down":  { "uv": [ 13,  2, 16,  3 ], "texture": "#all" },
+                "up":    { "uv": [ 13,  2, 16,  3 ], "texture": "#all" },
+                "north": { "uv": [  0, 12,  3, 13 ], "texture": "#all" },
+                "south": { "uv": [ 13, 12, 16, 13 ], "texture": "#all" },
+                "west":  { "uv": [  2, 12,  3, 13 ], "texture": "#all" },
+                "east":  { "uv": [ 13, 12, 14, 13 ], "texture": "#all", "cullface": "east" }
+            }
+        },
+        {
+            "_comment": "二段右部分",
+            "from": [ 13, 4, 13 ],
+            "to": [ 16, 5, 14 ],
+            "faces": {
+                "down":  { "uv": [ 13, 13, 16, 14 ], "texture": "#all" },
+                "up":    { "uv": [ 13, 13, 16, 14 ], "texture": "#all" },
+                "north": { "uv": [  0, 12,  3, 13 ], "texture": "#all" },
+                "south": { "uv": [ 13, 12, 16, 13 ], "texture": "#all" },
+                "west":  { "uv": [ 13, 12, 14, 13 ], "texture": "#all" },
+                "east":  { "uv": [  2, 12,  3, 13 ], "texture": "#all", "cullface": "east" }
+            }
+        },
+        {
+            "_comment": "二段中间部分",
+            "from": [ 13, 4, 3 ],
+            "to": [ 14, 5, 13 ],
+            "faces": {
+                "down":  { "uv": [ 13,  3, 14, 13 ], "texture": "#all" },
+                "up":    { "uv": [ 13,  3, 14, 13 ], "texture": "#all" },
+                "west":  { "uv": [  3, 12, 13, 13 ], "texture": "#all" },
+                "east":  { "uv": [  3, 12, 13, 13 ], "texture": "#all" }
+            }
+        }
+    ]
+}
