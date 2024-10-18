@@ -3,19 +3,19 @@ package marrydream.marisdecoration.init;
 import marrydream.marisdecoration.block.*;
 import marrydream.marisdecoration.block.ComponentWallBlock;
 import marrydream.marisdecoration.block.WallBlock;
+import marrydream.marisdecoration.item.SteelVerticalLadderItem;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.minecraft.block.*;
 import net.minecraft.block.enums.Instrument;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroups;
-import net.minecraft.item.Items;
+import net.minecraft.item.*;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.Identifier;
+
+import java.util.function.Function;
 
 public final class ModBlock {
     public static final Block TEAK_PLANKS = register(
@@ -133,7 +133,7 @@ public final class ModBlock {
     public static final VerticalLadderBlock STEEL_VERTICAL_LADDER = register(
             "steel_vertical_ladder",
             new VerticalLadderBlock( FabricBlockSettings.copy( STEEL_FIXED_LADDER ) ),
-            true
+            block -> new SteelVerticalLadderItem( block, new Item.Settings() )
     ); // 垂直钢爬梯
 
     public static void init( ) {
@@ -184,14 +184,25 @@ public final class ModBlock {
         FuelRegistry.INSTANCE.add( ModBlock.TEAK_TRAPDOOR, 15 * 20 ); // 烧 15s
     }
 
-    public static <T extends Block> T register( String id, T block, boolean shouldRegisterItem ) {
+    private static Identifier registerBlock( String id, Block block ) {
         // 创建这个物体的标识符
         Identifier blockID = new Identifier( ModInfo.MOD_ID, id );
         // 注册这个物体
         Registry.register( Registries.BLOCK, blockID, block );
+        return blockID;
+    }
+
+    public static <T extends Block> T register( String id, T block, boolean shouldRegisterItem ) {
+        Identifier blockID = registerBlock( id, block );
         if ( shouldRegisterItem ) {
             Registry.register( Registries.ITEM, blockID, new BlockItem( block, new Item.Settings() ) );
         }
+        return block;
+    }
+
+    public static <T extends Block> T register( String id, T block, Function<T, BlockItem> blockItemFactory ) {
+        Identifier blockID = registerBlock( id, block );
+        Registry.register( Registries.ITEM, blockID, blockItemFactory.apply( block ) );
         return block;
     }
 

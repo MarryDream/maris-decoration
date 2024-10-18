@@ -1,0 +1,6 @@
+{
+    "parent": "maris-decoration:block/vertical_ladder/normal",
+    "textures": {
+        "all": "maris-decoration:block/steel_block"
+    }
+}

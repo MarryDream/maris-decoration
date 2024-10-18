@@ -19,4 +19,6 @@ public class Properties {
     public static final DirectionProperty BASE_ORIENTATION = DirectionProperty.of( "facing", Direction.Type.HORIZONTAL );
     /** 指定块是否含水 */
     public static final BooleanProperty WATERLOGGED = BooleanProperty.of( "waterlogged" );
+    /** 梯子形状: 开始、中间 */
+    public static final EnumProperty<PropLadderShape> LADDER_SHAPE = EnumProperty.of( "shape", PropLadderShape.class );
 }

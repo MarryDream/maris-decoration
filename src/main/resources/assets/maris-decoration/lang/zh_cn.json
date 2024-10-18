@@ -28,5 +28,6 @@
     "block.maris-decoration.black_steel_guardrail": "黑色钢护栏",
     "block.maris-decoration.cyan_roof_steel_trim_cyan_window_wall": "青色屋顶钢边青色窗墙",
     "block.maris-decoration.steel_fixed_ladder": "钢固定梯",
-    "block.maris-decoration.steel_vertical_ladder": "垂直钢爬梯"
+    "block.maris-decoration.steel_vertical_ladder": "垂直钢爬梯",
+    "block.maris-decoration.steel_vertical_ladder.tooltip": "可以垂直悬空放置的梯子，最上方必须要附着在一个方块的侧面"
 }

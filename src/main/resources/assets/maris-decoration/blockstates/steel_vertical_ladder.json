@@ -1,22 +1,40 @@
 {
     "variants": {
-        "facing=east": {
-            "model": "maris-decoration:block/steel_vertical_ladder",
+        "facing=east,shape=normal": {
+            "model": "maris-decoration:block/steel_vertical_ladder/normal",
             "uvlock": true,
             "y": 180
         },
-        "facing=north": {
-            "model": "maris-decoration:block/steel_vertical_ladder",
+        "facing=east,shape=start": {
+            "model": "maris-decoration:block/steel_vertical_ladder/start",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=north,shape=normal": {
+            "model": "maris-decoration:block/steel_vertical_ladder/normal",
             "uvlock": true,
             "y": 90
         },
-        "facing=south": {
-            "model": "maris-decoration:block/steel_vertical_ladder",
+        "facing=north,shape=start": {
+            "model": "maris-decoration:block/steel_vertical_ladder/start",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=south,shape=normal": {
+            "model": "maris-decoration:block/steel_vertical_ladder/normal",
             "uvlock": true,
             "y": 270
         },
-        "facing=west": {
-            "model": "maris-decoration:block/steel_vertical_ladder"
+        "facing=south,shape=start": {
+            "model": "maris-decoration:block/steel_vertical_ladder/start",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=west,shape=normal": {
+            "model": "maris-decoration:block/steel_vertical_ladder/normal"
+        },
+        "facing=west,shape=start": {
+            "model": "maris-decoration:block/steel_vertical_ladder/start"
         }
     }
 }

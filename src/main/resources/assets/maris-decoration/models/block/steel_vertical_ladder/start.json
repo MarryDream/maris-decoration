@@ -1,5 +1,5 @@
 {
-    "parent": "maris-decoration:block/vertical_ladder",
+    "parent": "maris-decoration:block/vertical_ladder/start",
     "textures": {
         "all": "maris-decoration:block/steel_block"
     }

@@ -28,5 +28,6 @@
     "block.maris-decoration.black_steel_guardrail": "Black Steel Guardrail",
     "block.maris-decoration.cyan_roof_steel_trim_cyan_window_wall": "Cyan Roof Steel Trim Cyan Window Wall",
     "block.maris-decoration.steel_fixed_ladder": "Steel Fixed Ladder",
-    "block.maris-decoration.steel_vertical_ladder": "Vertical Steel Ladder"
+    "block.maris-decoration.steel_vertical_ladder": "Vertical Steel Ladder",
+    "block.maris-decoration.steel_vertical_ladder.tooltip": "A ladder that can be placed vertically in midair, must be attached to the side of a block at the top"
 }
