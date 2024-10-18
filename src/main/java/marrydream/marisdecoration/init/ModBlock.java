@@ -53,6 +53,11 @@ public final class ModBlock {
             new SlabBlock( FabricBlockSettings.copy( STEEL_BLOCK ) ),
             true
     ); // 钢半砖
+    public static final SlabBlock CYAN_STEEL_SLABS = register(
+            "cyan_steel_slab",
+            new SlabBlock( FabricBlockSettings.copy( CYAN_STEEL_BLOCK ) ),
+            true
+    ); // 青色钢半砖
     public static final GuardrailBlock STEEL_GUARDRAIL = register(
             "steel_guardrail",
             new GuardrailBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.create().instrument( Instrument.IRON_XYLOPHONE ).nonOpaque().notSolid() ),
@@ -146,8 +151,9 @@ public final class ModBlock {
 
             /* 钢 */
             content.add( ModBlock.STEEL_BLOCK );
-            content.add( ModBlock.CYAN_STEEL_BLOCK );
             content.add( ModBlock.STEEL_SLABS );
+            content.add( ModBlock.CYAN_STEEL_BLOCK );
+            content.add( ModBlock.CYAN_STEEL_SLABS );
 
             /* 护栏 */
             content.add( ModBlock.STEEL_GUARDRAIL );

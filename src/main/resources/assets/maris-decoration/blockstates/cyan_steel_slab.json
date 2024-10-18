@@ -1,0 +1,13 @@
+{
+    "variants": {
+        "type=bottom": {
+            "model": "maris-decoration:block/cyan_steel_slab/bottom"
+        },
+        "type=double": {
+            "model": "maris-decoration:block/cyan_steel_block"
+        },
+        "type=top": {
+            "model": "maris-decoration:block/cyan_steel_slab/top"
+        }
+    }
+}
