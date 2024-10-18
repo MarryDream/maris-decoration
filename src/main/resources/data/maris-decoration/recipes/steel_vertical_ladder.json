@@ -1,22 +1,19 @@
 {
     "type": "minecraft:crafting_shaped",
-    "category": "building",
-    "group": "guardrail",
+    "category": "misc",
     "key": {
         "#": {
             "item": "maris-decoration:rebar"
-        },
-        "S": {
-            "item": "minecraft:black_wool"
         }
     },
     "pattern": [
-        "#S#",
+        "# #",
+        "###",
         "# #"
     ],
     "result": {
         "count": 6,
-        "item": "maris-decoration:black_steel_guardrail"
+        "item": "maris-decoration:steel_vertical_ladder"
     },
     "show_notification": true
 }

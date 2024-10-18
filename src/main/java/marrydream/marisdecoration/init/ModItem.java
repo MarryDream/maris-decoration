@@ -13,14 +13,20 @@ import net.minecraft.util.Identifier;
 public final class ModItem {
     public static final BubbleTeaItem BUBBLE_TEA = register( BubbleTeaItem.ID, new BubbleTeaItem() ); // 奶茶
     public static final SteelSpatula STEEL_SPATULA = register( SteelSpatula.ID, new SteelSpatula() ); // 钢铲
+    public static final Item REBAR = register( "rebar", new Item( new Item.Settings() ) ); // 钢筋
 
     public static void init( ) {
         // 向饮品食物组添加内容
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.FOOD_AND_DRINK ).register( content -> {
             content.addAfter( Items.MILK_BUCKET, ModItem.BUBBLE_TEA );
         } );
+        // 向工具组添加内容
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.TOOLS ).register( content -> {
             content.add( ModItem.STEEL_SPATULA );
+        } );
+        // 向原材料组添加内容
+        ItemGroupEvents.modifyEntriesEvent( ItemGroups.INGREDIENTS ).register( content -> {
+            content.addAfter( Items.STICK, ModItem.REBAR );
         } );
     }
 

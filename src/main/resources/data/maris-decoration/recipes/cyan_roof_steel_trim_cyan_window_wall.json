@@ -3,18 +3,22 @@
     "category": "building",
     "group": "roof",
     "pattern": [
-        "#S#"
+        " # ",
+        "SBS"
     ],
     "key": {
         "#": {
-            "item": "maris-decoration:steel_block"
+            "item": "maris-decoration:cyan_steel_block"
         },
         "S": {
+            "item": "maris-decoration:rebar"
+        },
+        "B": {
             "item": "minecraft:cyan_stained_glass"
         }
     },
     "result": {
-        "count": 12,
+        "count": 6,
         "item": "maris-decoration:cyan_roof_steel_trim_cyan_window_wall"
     },
     "show_notification": true

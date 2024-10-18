@@ -10,11 +10,11 @@
             "item": "maris-decoration:teak_planks"
         },
         "B": {
-            "item": "maris-decoration:steel_block"
+            "item": "maris-decoration:rebar"
         }
     },
     "result": {
-        "count": 12,
+        "count": 6,
         "item": "maris-decoration:steel_teak_trim_roof"
     },
     "show_notification": true

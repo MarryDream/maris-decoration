@@ -4,7 +4,7 @@
     "group": "guardrail",
     "key": {
         "#": {
-            "item": "maris-decoration:steel_block"
+            "item": "maris-decoration:rebar"
         }
     },
     "pattern": [
@@ -12,7 +12,7 @@
         "# #"
     ],
     "result": {
-        "count": 32,
+        "count": 6,
         "item": "maris-decoration:steel_guardrail"
     },
     "show_notification": true

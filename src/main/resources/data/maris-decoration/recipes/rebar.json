@@ -1,19 +1,19 @@
 {
     "type": "minecraft:crafting_shaped",
     "category": "misc",
+    "group": "sticks",
     "key": {
         "#": {
-            "item": "maris-decoration:rebar"
+            "tag": "maris-decoration:steel_block"
         }
     },
     "pattern": [
-        "###",
-        "",
-        "###"
+        "#",
+        "#"
     ],
     "result": {
-        "count": 6,
-        "item": "maris-decoration:steel_fixed_ladder"
+        "count": 4,
+        "item": "maris-decoration:rebar"
     },
     "show_notification": true
 }
