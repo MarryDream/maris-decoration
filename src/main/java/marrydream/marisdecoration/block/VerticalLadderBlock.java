@@ -28,7 +28,7 @@ public class VerticalLadderBlock extends LadderBlock {
         }
 
         Direction direction = state.get( FACING );
-        // 如果前方不是空气，可以放置
+        // 如果前方不是空气，可以放置（getOpposite 获取相反方向）
         BlockState blockState = world.getBlockState( pos.offset( direction.getOpposite() ) );
         return blockState.isSolid();
     }
