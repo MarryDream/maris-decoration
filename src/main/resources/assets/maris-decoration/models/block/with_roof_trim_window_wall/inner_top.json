@@ -1,0 +1,106 @@
+{
+    "textures": {
+        "particle": "#glass"
+    },
+    "elements": [
+        {
+            "__comment": "顶层墙",
+            "from": [ 0, 15, 0 ],
+            "to": [ 15, 16, 15 ],
+            "faces": {
+                "down":  { "uv": [  0,  0, 15, 15 ], "texture": "#top" },
+                "up":    { "uv": [  0,  0, 15, 15 ], "texture": "#top", "cullface": "up" },
+                "north": { "uv": [  1,  0, 16,  1 ], "texture": "#top", "cullface": "north" },
+                "west":  { "uv": [  0,  0, 15,  1 ], "texture": "#top", "cullface": "west" }
+            }
+        },
+        {
+            "__comment": "东侧顶层墙",
+            "from": [ 15, 15, 0 ],
+            "to": [ 16, 16, 16 ],
+            "faces": {
+                "up":    { "uv": [ 15,  0, 16, 16 ], "texture": "#column", "cullface": "up" },
+                "north": { "uv": [  0,  0,  1,  1 ], "texture": "#column", "cullface": "north" },
+                "south": { "uv": [ 15,  0, 16,  1 ], "texture": "#column", "cullface": "south" },
+                "east":  { "uv": [  0,  0, 16,  1 ], "texture": "#column", "cullface": "east" }
+            }
+        },
+        {
+            "__comment": "南侧顶层墙",
+            "from": [ 0, 15, 15 ],
+            "to": [ 15, 16, 16 ],
+            "faces": {
+                "up":    { "uv": [  0, 15, 15, 16 ], "texture": "#column", "cullface": "up" },
+                "south": { "uv": [  0,  0, 15,  1 ], "texture": "#column", "cullface": "south" },
+                "west":  { "uv": [ 15,  0, 16,  1 ], "texture": "#column", "cullface": "west" }
+            }
+        },
+        {
+            "__comment": "左边柱子，面朝东南角时的左侧，即北边柱子",
+            "from": [ 15, 0, 0 ],
+            "to": [ 16, 15, 1 ],
+            "faces": {
+                "down":  { "uv": [ 15,  0, 16,  1 ], "texture": "#column" },
+                "north": { "uv": [  0,  1,  1, 16 ], "texture": "#column", "cullface": "north" },
+                "south": { "uv": [ 15,  1, 16, 16 ], "texture": "#column" },
+                "west":  { "uv": [  0,  1,  1, 16 ], "texture": "#column" },
+                "east":  { "uv": [ 15,  1, 16, 16 ], "texture": "#column", "cullface": "east" }
+            }
+        },
+        {
+            "__comment": "右边柱子，面朝东南角时的右侧，即西边柱子",
+            "from": [ 0, 0, 15 ],
+            "to": [ 1, 15, 16 ],
+            "faces": {
+                "down":  { "uv": [  0, 15,  1, 16 ], "texture": "#column" },
+                "north": { "uv": [ 15,  1, 16, 16 ], "texture": "#column" },
+                "south": { "uv": [  0,  1,  1, 16 ], "texture": "#column", "cullface": "south" },
+                "west":  { "uv": [ 15,  1, 16, 16 ], "texture": "#column", "cullface": "west" },
+                "east":  { "uv": [  0,  1,  1, 16 ], "texture": "#column" }
+            }
+        },
+        {
+            "__comment": "中间柱子（即东南角柱子）东侧部分",
+            "from": [ 15, 0, 14 ],
+            "to": [ 16, 15, 16 ],
+            "faces": {
+                "down":  { "uv": [ 15, 14, 16, 16 ], "texture": "#column" },
+                "north": { "uv": [  0,  1,  1, 16 ], "texture": "#column" },
+                "south": { "uv": [ 15,  1, 16, 16 ], "texture": "#column", "cullface": "south" },
+                "west":  { "uv": [ 14,  1, 16, 16 ], "texture": "#column" },
+                "east":  { "uv": [  0,  1,  2, 16 ], "texture": "#column", "cullface": "east" }
+            }
+        },
+        {
+            "__comment": "中间柱子（即东南角柱子）南侧部分",
+            "from": [ 14, 0, 15 ],
+            "to": [ 15, 15, 16 ],
+            "faces": {
+                "down":  { "uv": [ 14, 15, 15, 16 ], "texture": "#column" },
+                "north": { "uv": [  1,  1,  2, 16 ], "texture": "#column" },
+                "south": { "uv": [ 14,  1, 15, 16 ], "texture": "#column", "cullface": "south" },
+                "west":  { "uv": [ 15,  1, 16, 16 ], "texture": "#column" }
+            }
+        },
+        {
+            "__comment": "东侧窗",
+            "from": [ 15, 0, 1 ],
+            "to": [ 16, 15, 14 ],
+            "faces": {
+                "down":  { "uv": [ 15,  1, 16, 14 ], "texture": "#glass", "cullface": "down" },
+                "west":  { "uv": [  1,  1, 14, 16 ], "texture": "#glass" },
+                "east":  { "uv": [  2,  1, 15, 16 ], "texture": "#glass", "cullface": "east" }
+            }
+        },
+        {
+            "__comment": "南侧窗",
+            "from": [ 1, 0, 15 ],
+            "to": [ 14, 15, 16 ],
+            "faces": {
+                "down":  { "uv": [  1, 15, 14, 16 ], "texture": "#glass", "cullface": "down" },
+                "north": { "uv": [  2,  1, 15, 16 ], "texture": "#glass" },
+                "south": { "uv": [  1,  1, 14, 16 ], "texture": "#glass", "cullface": "south" }
+            }
+        }
+    ]
+}

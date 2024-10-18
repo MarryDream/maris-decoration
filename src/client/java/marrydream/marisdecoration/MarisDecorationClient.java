@@ -13,6 +13,6 @@ public class MarisDecorationClient implements ClientModInitializer {
         // 如果方块一些部分的材质是半透明的，例如玻璃
         BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL, RenderLayer.getTranslucent() );
         BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_GLASS_ROOF_STEEL_TEAK_COMPONENT_WALL, RenderLayer.getTranslucent() );
-        BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.STEEL_TRIM_CYAN_GLASS_WINDOW, RenderLayer.getTranslucent() );
+        BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_ROOF_STEEL_TRIM_CYAN_WINDOW_WALL, RenderLayer.getTranslucent() );
 	}
 }

@@ -1,0 +1,8 @@
+{
+    "parent": "maris-decoration:block/with_roof_trim_window_wall/inner_top_stripped_left",
+    "textures": {
+        "top": "maris-decoration:block/cyan_steel_block",
+        "column": "maris-decoration:block/steel_block",
+        "glass": "minecraft:block/cyan_stained_glass"
+    }
+}

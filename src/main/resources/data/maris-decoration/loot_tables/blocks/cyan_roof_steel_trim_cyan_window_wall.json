@@ -11,11 +11,11 @@
             "entries": [
                 {
                     "type": "minecraft:item",
-                    "name": "maris-decoration:steel_trim_cyan_glass_window"
+                    "name": "maris-decoration:cyan_roof_steel_trim_cyan_window_wall"
                 }
             ],
             "rolls": 1.0
         }
     ],
-    "random_sequence": "maris-decoration:blocks/steel_trim_cyan_glass_window"
+    "random_sequence": "maris-decoration:blocks/cyan_roof_steel_trim_cyan_window_wall"
 }
