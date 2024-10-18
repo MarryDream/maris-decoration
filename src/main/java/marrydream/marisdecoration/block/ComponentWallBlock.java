@@ -64,7 +64,7 @@ public class ComponentWallBlock extends DirectionShapeHalfConnectBlock {
     }
 
     @Override
-    protected boolean isDirectionShapeHalfConnectBlock( BlockState state ) {
-        return state.getBlock() instanceof ComponentWallBlock;
+    protected boolean isDirectionShapeHalfConnectBlock( BlockState neighborState, BlockState state ) {
+        return neighborState.getBlock() instanceof ComponentWallBlock;
     }
 }

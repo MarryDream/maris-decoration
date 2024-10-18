@@ -34,7 +34,7 @@ public class GuardrailBlock extends DirectionShapeHalfConnectBlock {
     }
 
     @Override
-    protected boolean isDirectionShapeHalfConnectBlock( BlockState state ) {
-        return state.getBlock() instanceof GuardrailBlock;
+    protected boolean isDirectionShapeHalfConnectBlock( BlockState neighborState, BlockState state ) {
+        return neighborState.getBlock() instanceof GuardrailBlock;
     }
 }

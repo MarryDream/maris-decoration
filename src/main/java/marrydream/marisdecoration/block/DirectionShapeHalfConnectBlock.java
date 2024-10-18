@@ -231,7 +231,7 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
     private PropShape getDirectionShapeHalfConnectShape( BlockState state, BlockView world, BlockPos pos ) {
         Direction direction = state.get( FACING );
         BlockState blockState = world.getBlockState( pos.offset( direction ) );
-        if ( isDirectionShapeHalfConnectBlock( blockState ) && ( isOneWayBlock() || state.get( HALF ) == blockState.get( HALF ) ) ) {
+        if ( isDirectionShapeHalfConnectBlock( blockState, state ) && ( isOneWayBlock() || state.get( HALF ) == blockState.get( HALF ) ) ) {
             Direction direction2 = blockState.get( FACING );
             if ( direction2.getAxis() != ( ( Direction ) state.get( FACING ) ).getAxis() && isDifferentOrientation( state, world, pos, direction2.getOpposite() ) ) {
                 if ( direction2 == direction.rotateYCounterclockwise() ) {
@@ -243,7 +243,7 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
         }
 
         BlockState blockState2 = world.getBlockState( pos.offset( direction.getOpposite() ) );
-        if ( isDirectionShapeHalfConnectBlock( blockState2 ) && ( isOneWayBlock() || state.get( HALF ) == blockState2.get( HALF ) ) ) {
+        if ( isDirectionShapeHalfConnectBlock( blockState2, state ) && ( isOneWayBlock() || state.get( HALF ) == blockState2.get( HALF ) ) ) {
             Direction direction3 = blockState2.get( FACING );
             if ( direction3.getAxis() != ( ( Direction ) state.get( FACING ) ).getAxis() && isDifferentOrientation( state, world, pos, direction3 ) ) {
                 if ( direction3 == direction.rotateYCounterclockwise() ) {
@@ -259,11 +259,11 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
 
     private boolean isDifferentOrientation( BlockState state, BlockView world, BlockPos pos, Direction dir ) {
         BlockState blockState = world.getBlockState( pos.offset( dir ) );
-        return !isDirectionShapeHalfConnectBlock( blockState ) || blockState.get( FACING ) != state.get( FACING ) || ( !isOneWayBlock() && blockState.get( HALF ) != state.get( HALF ) );
+        return !isDirectionShapeHalfConnectBlock( blockState, state ) || blockState.get( FACING ) != state.get( FACING ) || ( !isOneWayBlock() && blockState.get( HALF ) != state.get( HALF ) );
     }
 
-    protected boolean isDirectionShapeHalfConnectBlock( BlockState state ) {
-        return state.getBlock() instanceof DirectionShapeHalfConnectBlock;
+    protected boolean isDirectionShapeHalfConnectBlock( BlockState neighborState, BlockState curState ) {
+        return neighborState.getBlock() instanceof DirectionShapeHalfConnectBlock;
     }
 
     @Override

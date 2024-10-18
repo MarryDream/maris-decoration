@@ -3,6 +3,7 @@ package marrydream.marisdecoration.block;
 import marrydream.marisdecoration.block.enums.PropHalf;
 import marrydream.marisdecoration.block.utils.BlockShape;
 import marrydream.marisdecoration.block.utils.DirectionConnectBlockGroup;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
@@ -30,7 +31,16 @@ public class TrimRoofBlock extends DirectionShapeHalfConnectBlock {
     }
 
     @Override
-    protected boolean isDirectionShapeHalfConnectBlock( BlockState state ) {
-        return state.getBlock() instanceof TrimRoofBlock;
+    protected boolean isDirectionShapeHalfConnectBlock( BlockState neighborState, BlockState curState ) {
+        Block neighborBlock = neighborState.getBlock();
+        if ( neighborBlock instanceof TrimRoofBlock ) return true;
+
+        // 允许 top 时，纹理变化与 half 为 top 的墙方块联动
+        if ( curState.get( HALF ) == PropHalf.BOTTOM ) return false;
+
+        if ( neighborBlock instanceof WallBlock && neighborState.get( WallBlock.HALF ) == PropHalf.TOP ) {
+            return true;
+        }
+        return neighborBlock instanceof ComponentWallBlock && neighborState.get( ComponentWallBlock.HALF ) == PropHalf.TOP;
     }
 }
