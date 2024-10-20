@@ -1,0 +1,8 @@
+{
+    "parent": "minecraft:block/outer_stairs",
+    "textures": {
+        "bottom": "maris-decoration:block/black_steel_block",
+        "side": "maris-decoration:block/black_steel_block",
+        "top": "maris-decoration:block/black_steel_block"
+    }
+}

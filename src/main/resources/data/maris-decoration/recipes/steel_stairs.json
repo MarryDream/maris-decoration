@@ -1,0 +1,20 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "building",
+    "group": "wooden_stairs",
+    "key": {
+        "#": {
+            "item": "maris-decoration:steel_block"
+        }
+    },
+    "pattern": [
+        "#  ",
+        "## ",
+        "###"
+    ],
+    "result": {
+        "count": 4,
+        "item": "maris-decoration:steel_stairs"
+    },
+    "show_notification": true
+}

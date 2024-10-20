@@ -58,6 +58,21 @@ public final class ModBlock {
             new SlabBlock( FabricBlockSettings.copy( STEEL_BLOCK ) ),
             true
     ); // 钢半砖
+    public static final StairsBlock STEEL_STAIRS = register(
+            "steel_stairs",
+            new StairsBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_BLOCK ) ),
+            true
+    ); // 钢楼梯
+    public static final StairsBlock CYAN_STEEL_STAIRS = register(
+            "cyan_steel_stairs",
+            new StairsBlock( CYAN_STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( CYAN_STEEL_BLOCK ) ),
+            true
+    ); // 青色钢楼梯
+    public static final StairsBlock BLACK_STEEL_STAIRS = register(
+            "black_steel_stairs",
+            new StairsBlock( BLACK_STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( BLACK_STEEL_BLOCK ) ),
+            true
+    ); // 青色钢楼梯
     public static final SlabBlock CYAN_STEEL_SLABS = register(
             "cyan_steel_slab",
             new SlabBlock( FabricBlockSettings.copy( CYAN_STEEL_BLOCK ) ),
@@ -171,11 +186,14 @@ public final class ModBlock {
 
             /* 钢 */
             content.add( ModBlock.STEEL_BLOCK );
+            content.add( ModBlock.STEEL_STAIRS );
             content.add( ModBlock.STEEL_SLABS );
             content.add( ModBlock.CYAN_STEEL_BLOCK );
+            content.add( ModBlock.CYAN_STEEL_STAIRS );
             content.add( ModBlock.CYAN_STEEL_SLABS );
             content.add( ModBlock.BLACK_STEEL_BLOCK );
             content.add( ModBlock.BLACK_STEEL_SLABS );
+            content.add( ModBlock.BLACK_STEEL_STAIRS);
 
             /* 护栏 */
             content.add( ModBlock.STEEL_GUARDRAIL );
