@@ -1,0 +1,17 @@
+{
+    "type": "minecraft:crafting_shapeless",
+    "category": "building",
+    "ingredients": [
+        {
+            "item": "maris-decoration:steel_block"
+        },
+        {
+            "item": "minecraft:black_dye"
+        }
+    ],
+    "result": {
+        "count": 1,
+        "item": "maris-decoration:black_steel_block"
+    },
+    "show_notification": true
+}

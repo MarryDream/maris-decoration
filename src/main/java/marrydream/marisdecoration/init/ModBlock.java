@@ -48,6 +48,11 @@ public final class ModBlock {
             new Block( FabricBlockSettings.copy( STEEL_BLOCK ).mapColor( state -> MapColor.TERRACOTTA_CYAN ) ),
             true
     ); // 青色钢块
+    public static final Block BLACK_STEEL_BLOCK = register(
+            "black_steel_block",
+            new Block( FabricBlockSettings.copy( STEEL_BLOCK ).mapColor( state -> MapColor.BLACK ) ),
+            true
+    ); // 黑色钢块
     public static final SlabBlock STEEL_SLABS = register(
             "steel_slab",
             new SlabBlock( FabricBlockSettings.copy( STEEL_BLOCK ) ),
@@ -58,16 +63,11 @@ public final class ModBlock {
             new SlabBlock( FabricBlockSettings.copy( CYAN_STEEL_BLOCK ) ),
             true
     ); // 青色钢半砖
-    public static final GuardrailBlock STEEL_GUARDRAIL = register(
-            "steel_guardrail",
-            new GuardrailBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.create().instrument( Instrument.IRON_XYLOPHONE ).nonOpaque().notSolid() ),
+    public static final SlabBlock BLACK_STEEL_SLABS = register(
+            "black_steel_slab",
+            new SlabBlock( FabricBlockSettings.copy( BLACK_STEEL_BLOCK ) ),
             true
-    ); // 钢护栏
-    public static final GuardrailBlock BLACK_STEEL_GUARDRAIL = register(
-            "black_steel_guardrail",
-            new GuardrailBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_GUARDRAIL ) ),
-            true
-    ); // 黑色钢护栏
+    ); // 黑色钢半砖
     public static final WallBlock STEEL_WALL = register(
             "steel_wall",
             new WallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_BLOCK ).strength( 4.0F, 7.5f ) ),
@@ -75,9 +75,14 @@ public final class ModBlock {
     ); // 钢墙
     public static final WallBlock CYAN_ROOF_STEEL_WALL = register(
             "cyan_roof_steel_wall",
-            new WallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( CYAN_STEEL_BLOCK ).strength( 4.0F, 7.5f ) ),
+            new WallBlock( CYAN_STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( CYAN_STEEL_BLOCK ).strength( 4.0F, 7.5f ) ),
             true
     ); // 青色屋顶钢墙
+    public static final WallBlock BLACK_ROOF_STEEL_WALL = register(
+            "black_roof_steel_wall",
+            new WallBlock( BLACK_STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( BLACK_STEEL_BLOCK ).strength( 4.0F, 7.5f ) ),
+            true
+    ); // 黑色屋顶钢墙
     public static final WallBlock CYAN_ROOF_STEEL_TRIM_CYAN_WINDOW_WALL = register(
             "cyan_roof_steel_trim_cyan_window_wall",
             new WallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( CYAN_ROOF_STEEL_WALL ).sounds( BlockSoundGroup.GLASS ).strength( 1.5F, 2.5f ).nonOpaque() ),
@@ -120,6 +125,11 @@ public final class ModBlock {
             new RoofBlock( FabricBlockSettings.copy( CYAN_STEEL_BLOCK ).strength( 3.0F, 5.0F ).solid() ),
             true
     ); // 青色钢屋顶
+    public static final RoofBlock BLACK_STEEL_ROOF = register(
+            "black_steel_roof",
+            new RoofBlock( FabricBlockSettings.copy( BLACK_STEEL_BLOCK ).strength( 3.0F, 5.0F ).solid() ),
+            true
+    ); // 黑色色钢屋顶
     public static final TrimRoofBlock STEEL_TEAK_TRIM_ROOF = register(
             "steel_teak_trim_roof",
             new TrimRoofBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_BLOCK ).mapColor( MapColor.PALE_YELLOW ).strength( 2.0F, 3.0F ).solid() ),
@@ -140,6 +150,16 @@ public final class ModBlock {
             new VerticalLadderBlock( FabricBlockSettings.copy( STEEL_FIXED_LADDER ) ),
             block -> new SteelVerticalLadderItem( block, new Item.Settings() )
     ); // 垂直钢爬梯
+    public static final GuardrailBlock STEEL_GUARDRAIL = register(
+            "steel_guardrail",
+            new GuardrailBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.create().instrument( Instrument.IRON_XYLOPHONE ).nonOpaque().notSolid() ),
+            true
+    ); // 钢护栏
+    public static final GuardrailBlock BLACK_STEEL_GUARDRAIL = register(
+            "black_steel_guardrail",
+            new GuardrailBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_GUARDRAIL ) ),
+            true
+    ); // 黑色钢护栏
 
     public static void init( ) {
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.BUILDING_BLOCKS ).register( content -> {
@@ -154,6 +174,8 @@ public final class ModBlock {
             content.add( ModBlock.STEEL_SLABS );
             content.add( ModBlock.CYAN_STEEL_BLOCK );
             content.add( ModBlock.CYAN_STEEL_SLABS );
+            content.add( ModBlock.BLACK_STEEL_BLOCK );
+            content.add( ModBlock.BLACK_STEEL_SLABS );
 
             /* 护栏 */
             content.add( ModBlock.STEEL_GUARDRAIL );
@@ -163,12 +185,14 @@ public final class ModBlock {
             content.add( ModBlock.TEAK_ROOF );
             content.add( ModBlock.STEEL_ROOF );
             content.add( ModBlock.CYAN_STEEL_ROOF );
+            content.add( ModBlock.BLACK_STEEL_ROOF );
             content.add( ModBlock.STEEL_TEAK_TRIM_ROOF );
             content.add( ModBlock.STEEL_TRIM_CYAN_STEEL_ROOF );
 
             /* 墙 */
             content.add( ModBlock.STEEL_WALL );
             content.add( ModBlock.CYAN_ROOF_STEEL_WALL );
+            content.add( ModBlock.BLACK_ROOF_STEEL_WALL );
             content.add( ModBlock.CYAN_ROOF_STEEL_TRIM_CYAN_WINDOW_WALL );
             content.add( ModBlock.STEEL_TEAK_COMPONENT_WALL );
             content.add( ModBlock.CYAN_ROOF_STEEL_TEAK_COMPONENT_WALL );

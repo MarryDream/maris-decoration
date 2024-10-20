@@ -1,0 +1,6 @@
+{
+    "parent": "minecraft:block/cube_all",
+    "textures": {
+        "all": "maris-decoration:block/black_steel_block"
+    }
+}

@@ -1,0 +1,22 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "building",
+    "group": "wall",
+    "pattern": [
+        "#",
+        "S"
+    ],
+    "key": {
+        "#": {
+            "item": "maris-decoration:black_steel_block"
+        },
+        "S": {
+            "item": "maris-decoration:steel_block"
+        }
+    },
+    "result": {
+        "count": 6,
+        "item": "maris-decoration:black_roof_steel_wall"
+    },
+    "show_notification": true
+}
