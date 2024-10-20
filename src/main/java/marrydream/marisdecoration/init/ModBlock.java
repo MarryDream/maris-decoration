@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.minecraft.block.*;
 import net.minecraft.block.enums.Instrument;
+import net.minecraft.block.piston.PistonBehavior;
 import net.minecraft.item.*;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
@@ -72,7 +73,7 @@ public final class ModBlock {
             "black_steel_stairs",
             new StairsBlock( BLACK_STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( BLACK_STEEL_BLOCK ) ),
             true
-    ); // 青色钢楼梯
+    ); // 黑色钢楼梯
     public static final SlabBlock CYAN_STEEL_SLABS = register(
             "cyan_steel_slab",
             new SlabBlock( FabricBlockSettings.copy( CYAN_STEEL_BLOCK ) ),
@@ -175,6 +176,13 @@ public final class ModBlock {
             new GuardrailBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_GUARDRAIL ) ),
             true
     ); // 黑色钢护栏
+    public static final Block STEEL_PLUG_DOOR = register(
+            "steel_plug_door",
+            new LintelThresholdThinDoorBlock(
+                    AbstractBlock.Settings.create().mapColor( STEEL_BLOCK.getDefaultMapColor() ).strength( 8.0F ).nonOpaque().pistonBehavior( PistonBehavior.DESTROY ),
+                    BlockSetType.STONE
+            ), true
+    ); // 钢内嵌门
 
     public static void init( ) {
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.BUILDING_BLOCKS ).register( content -> {
@@ -193,7 +201,7 @@ public final class ModBlock {
             content.add( ModBlock.CYAN_STEEL_SLABS );
             content.add( ModBlock.BLACK_STEEL_BLOCK );
             content.add( ModBlock.BLACK_STEEL_SLABS );
-            content.add( ModBlock.BLACK_STEEL_STAIRS);
+            content.add( ModBlock.BLACK_STEEL_STAIRS );
 
             /* 护栏 */
             content.add( ModBlock.STEEL_GUARDRAIL );
@@ -216,6 +224,9 @@ public final class ModBlock {
             content.add( ModBlock.CYAN_ROOF_STEEL_TEAK_COMPONENT_WALL );
             content.add( ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL );
             content.add( ModBlock.CYAN_GLASS_ROOF_STEEL_TEAK_COMPONENT_WALL );
+
+            /* 门 */
+            content.add( ModBlock.STEEL_PLUG_DOOR );
         } );
 
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.FUNCTIONAL ).register( content -> {

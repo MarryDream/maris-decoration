@@ -26,6 +26,7 @@
         "maris-decoration:cyan_glass_cyan_roof_steel_teak_component_wall",
         "maris-decoration:cyan_roof_steel_trim_cyan_window_wall",
         "maris-decoration:steel_fixed_ladder",
-        "maris-decoration:steel_vertical_ladder"
+        "maris-decoration:steel_vertical_ladder",
+        "maris-decoration:steel_plug_door"
     ]
 }
