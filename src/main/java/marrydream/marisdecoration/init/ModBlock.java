@@ -183,6 +183,13 @@ public final class ModBlock {
                     BlockSetType.STONE
             ), true
     ); // 钢内嵌门
+    public static final Block STEEL_PLUG_DOOR_WITH_ROOF = register(
+            "steel_plug_door_with_roof",
+            new RoofThresholdThinDoorBlock(
+                    AbstractBlock.Settings.create().mapColor( STEEL_BLOCK.getDefaultMapColor() ).strength( 8.0F ).nonOpaque().pistonBehavior( PistonBehavior.DESTROY ),
+                    BlockSetType.STONE
+            ), true
+    ); // 钢内嵌门（带屋顶）
 
     public static void init( ) {
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.BUILDING_BLOCKS ).register( content -> {
@@ -224,15 +231,18 @@ public final class ModBlock {
             content.add( ModBlock.CYAN_ROOF_STEEL_TEAK_COMPONENT_WALL );
             content.add( ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL );
             content.add( ModBlock.CYAN_GLASS_ROOF_STEEL_TEAK_COMPONENT_WALL );
-
-            /* 门 */
-            content.add( ModBlock.STEEL_PLUG_DOOR );
         } );
 
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.FUNCTIONAL ).register( content -> {
             /* 梯子 */
             content.addAfter( Blocks.LADDER, ModBlock.STEEL_FIXED_LADDER );
             content.addAfter( Blocks.LADDER, ModBlock.STEEL_VERTICAL_LADDER );
+        } );
+
+        ItemGroupEvents.modifyEntriesEvent( ItemGroups.REDSTONE ).register( content -> {
+            /* 门 */
+            content.add( ModBlock.STEEL_PLUG_DOOR );
+            content.add( ModBlock.STEEL_PLUG_DOOR_WITH_ROOF );
         } );
 
         // 注册燃料

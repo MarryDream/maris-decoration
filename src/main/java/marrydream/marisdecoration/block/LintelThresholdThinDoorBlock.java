@@ -1,6 +1,6 @@
 package marrydream.marisdecoration.block;
 
-import marrydream.marisdecoration.block.utils.Door.LintelThresholdDoorShape;
+import marrydream.marisdecoration.block.utils.ThinDoor.LintelThresholdDoorShape;
 import net.minecraft.block.*;
 import net.minecraft.block.enums.DoorHinge;
 import net.minecraft.block.enums.DoubleBlockHalf;
@@ -29,15 +29,15 @@ public class LintelThresholdThinDoorBlock extends DoorBlock {
         super( settings, blockSetType );
     }
 
-    private VoxelShape getShape( LintelThresholdDoorShape shape, boolean isOpen, boolean isLower, boolean isRight ) {
+    protected VoxelShape getShape( LintelThresholdDoorShape shape, boolean isOpen, boolean isLower, boolean isRight ) {
         if ( !isOpen ) {
             return shape.base;
         }
-        if ( isLower ) {
-            return isRight ? shape.open.bottom.right : shape.open.bottom.left;
-        } else {
-            return isRight ? shape.open.top.right : shape.open.top.left;
+
+        if ( isRight ) {
+            return isLower ? shape.open.right.bottom : shape.open.right.top;
         }
+        return isLower ? shape.open.left.bottom : shape.open.left.top;
     }
 
     @Override

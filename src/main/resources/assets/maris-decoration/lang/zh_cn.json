@@ -38,5 +38,6 @@
     "block.maris-decoration.steel_fixed_ladder": "钢固定梯",
     "block.maris-decoration.steel_vertical_ladder": "垂直钢爬梯",
     "block.maris-decoration.steel_vertical_ladder.tooltip": "可以垂直悬空放置的梯子，最上方必须要附着在一个方块的侧面",
-    "block.maris-decoration.steel_plug_door": "钢内嵌门"
+    "block.maris-decoration.steel_plug_door": "钢内嵌门",
+    "block.maris-decoration.steel_plug_door_with_roof": "钢内嵌门(带屋顶)"
 }

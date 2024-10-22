@@ -1,0 +1,22 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "redstone",
+    "key": {
+        "#": {
+            "item": "maris-decoration:steel_block"
+        },
+        "S": {
+            "item": "maris-decoration:rebar"
+        }
+    },
+    "pattern": [
+        "SS",
+        "##",
+        "SS"
+    ],
+    "result": {
+        "count": 3,
+        "item": "maris-decoration:steel_plug_door"
+    },
+    "show_notification": true
+}

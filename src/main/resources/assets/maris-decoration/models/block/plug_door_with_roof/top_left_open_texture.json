@@ -1,0 +1,42 @@
+{
+    "ambientocclusion": false,
+    "textures": {
+        "particle": "#top"
+    },
+    "elements": [
+        {
+            "_comment": "屋顶沿边",
+            "from": [ 0, 15, 15 ],
+            "to": [ 16, 16, 16 ],
+            "faces": {
+                "down":  { "uv": [ 16,  1,  0,  0 ], "texture": "#top" },
+                "up":    { "uv": [  0,  1, 16,  0 ], "texture": "#top", "cullface": "up" },
+                "south": { "uv": [  0,  0, 16,  1 ], "texture": "#top", "cullface": "south" },
+                "west":  { "uv": [  1,  0,  0,  1 ], "texture": "#top", "cullface": "west" },
+                "east":  { "uv": [  0,  0,  1,  1 ], "texture": "#top", "cullface": "east" }
+            }
+        },
+        {
+            "_comment": "屋顶主体",
+            "from": [ 0, 15, 0 ],
+            "to": [ 16, 16, 15 ],
+            "faces": {
+                "down":  { "uv": [  0,  0, 16, 15 ], "texture": "#roof" },
+                "up":    { "uv": [  0,  0, 16, 15 ], "texture": "#roof", "cullface": "up" },
+                "north": { "uv": [  0,  0, 16,  1 ], "texture": "#roof", "cullface": "north" },
+                "west":  { "uv": [  0,  0, 15,  1 ], "texture": "#roof", "cullface": "west" },
+                "east":  { "uv": [  1,  0, 16,  1 ], "texture": "#roof", "cullface": "east" }
+            }
+        },
+        {
+            "from": [ 0, 0, 0 ],
+            "to": [ 2, 15, 16 ],
+            "faces": {
+                "north": { "uv": [  0,  1,  2, 16 ], "texture": "#top", "cullface": "north" },
+                "south": { "uv": [  0,  1,  2, 16 ], "texture": "#top", "cullface": "south" },
+                "west":  { "uv": [ 16,  1,  0, 16 ], "texture": "#top", "cullface": "west" },
+                "east":  { "uv": [  0,  1, 16, 16 ], "texture": "#top" }
+            }
+        }
+    ]
+}

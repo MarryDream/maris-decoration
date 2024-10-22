@@ -1,4 +1,4 @@
-package marrydream.marisdecoration.block.utils.Door;
+package marrydream.marisdecoration.block.utils.ThinDoor;
 
 import net.minecraft.block.Block;
 import net.minecraft.util.shape.VoxelShape;
@@ -6,7 +6,7 @@ import net.minecraft.util.shape.VoxelShapes;
 
 public class LintelThresholdDoorShape {
     public VoxelShape base;
-    public DoorHalfOpenShape open;
+    public DoorLORShape open;
     public VoxelShape topBase;
     public VoxelShape bottomBase;
     private final VoxelShape THRESHOLD_SHAPE;
@@ -20,15 +20,17 @@ public class LintelThresholdDoorShape {
         this.LINTEL_SHAPE = Block.createCuboidShape( minX, 15.0, minZ, maxX, 16.0, maxZ );
     }
 
-    public void setOpenShape( LintelThresholdDoorShape leftOpen, LintelThresholdDoorShape rightOpen ) {
-        DoorOpenShape topOpen = new DoorOpenShape(
-                VoxelShapes.union( this.LINTEL_SHAPE, leftOpen.topBase ),
-                VoxelShapes.union( this.LINTEL_SHAPE, rightOpen.topBase )
+    public void setOpenShape( LintelThresholdDoorShape left, LintelThresholdDoorShape right ) {
+        DoorShape leftOpen = new DoorShape(
+                VoxelShapes.union( this.LINTEL_SHAPE, left.topBase ),
+                VoxelShapes.union( this.THRESHOLD_SHAPE, left.bottomBase )
         );
-        DoorOpenShape bottomOpen = new DoorOpenShape(
-                VoxelShapes.union( this.THRESHOLD_SHAPE, leftOpen.bottomBase ),
-                VoxelShapes.union( this.THRESHOLD_SHAPE, rightOpen.bottomBase )
+
+        DoorShape rightOpen = new DoorShape(
+                VoxelShapes.union( this.LINTEL_SHAPE, right.topBase ),
+                VoxelShapes.union( this.THRESHOLD_SHAPE, right.bottomBase )
         );
-        this.open = new DoorHalfOpenShape( topOpen, bottomOpen );
+
+        this.open = new DoorLORShape( leftOpen, rightOpen );
     }
 }

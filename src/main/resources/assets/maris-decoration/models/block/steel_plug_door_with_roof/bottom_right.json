@@ -1,0 +1,7 @@
+{
+    "parent": "maris-decoration:block/plug_door_with_roof/bottom_right",
+    "textures": {
+        "bottom": "maris-decoration:block/steel_plug_door_bottom",
+        "top": "maris-decoration:block/steel_plug_door_top"
+    }
+}

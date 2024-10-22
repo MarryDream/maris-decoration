@@ -21,4 +21,6 @@ public class Properties {
     public static final BooleanProperty WATERLOGGED = BooleanProperty.of( "waterlogged" );
     /** 梯子形状: 开始、中间 */
     public static final EnumProperty<PropLadderShape> LADDER_SHAPE = EnumProperty.of( "shape", PropLadderShape.class );
+    /** 指定带房顶细门是否有房顶纹理 */
+    public static final BooleanProperty DOOR_TEXTURE = BooleanProperty.of( "texture" );
 }
