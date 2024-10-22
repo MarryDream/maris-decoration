@@ -197,6 +197,13 @@ public final class ModBlock {
                     BlockSetType.STONE
             ), true
     ); // 钢内嵌门（带青色屋顶）
+    public static final Block BLACK_STEEL_PLUG_DOOR_WITH_ROOF = register(
+            "black_steel_plug_door_with_roof",
+            new RoofThresholdThinDoorBlock(
+                    FabricBlockSettings.copy( STEEL_PLUG_DOOR ).mapColor( BLACK_STEEL_BLOCK.getDefaultMapColor() ),
+                    BlockSetType.STONE
+            ), true
+    ); // 钢内嵌门（带黑色屋顶）
 
     public static void init( ) {
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.BUILDING_BLOCKS ).register( content -> {
@@ -251,6 +258,7 @@ public final class ModBlock {
             content.add( ModBlock.STEEL_PLUG_DOOR );
             content.add( ModBlock.STEEL_PLUG_DOOR_WITH_ROOF );
             content.add( ModBlock.CYAN_STEEL_PLUG_DOOR_WITH_ROOF );
+            content.add( ModBlock.BLACK_STEEL_PLUG_DOOR_WITH_ROOF );
         } );
 
         // 注册燃料
