@@ -3,6 +3,7 @@
     "textures": {
         "bottom": "maris-decoration:block/steel_plug_door_bottom",
         "top": "maris-decoration:block/steel_plug_door_top",
-        "roof": "maris-decoration:block/steel_block"
+        "roof": "maris-decoration:block/steel_block",
+        "rim": "maris-decoration:block/steel_block"
     }
 }

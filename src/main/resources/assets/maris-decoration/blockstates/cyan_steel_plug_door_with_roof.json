@@ -8,10 +8,12 @@
         },
         "facing=east,half=lower,hinge=left,open=true,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_left_open",
+            "uvlock": true,
             "y": 90
         },
         "facing=east,half=lower,hinge=left,open=true,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_left_open",
+            "uvlock": true,
             "y": 90
         },
         "facing=east,half=lower,hinge=right,open=false,texture=false": {
@@ -22,10 +24,12 @@
         },
         "facing=east,half=lower,hinge=right,open=true,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_right_open",
+            "uvlock": true,
             "y": 270
         },
         "facing=east,half=lower,hinge=right,open=true,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_right_open",
+            "uvlock": true,
             "y": 270
         },
         "facing=east,half=upper,hinge=left,open=false,texture=false": {
@@ -36,10 +40,12 @@
         },
         "facing=east,half=upper,hinge=left,open=true,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_left_open",
+            "uvlock": true,
             "y": 90
         },
         "facing=east,half=upper,hinge=left,open=true,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_left_open_texture",
+            "uvlock": true,
             "y": 90
         },
         "facing=east,half=upper,hinge=right,open=false,texture=false": {
@@ -50,18 +56,22 @@
         },
         "facing=east,half=upper,hinge=right,open=true,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_right_open",
+            "uvlock": true,
             "y": 270
         },
         "facing=east,half=upper,hinge=right,open=true,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_right_open_texture",
+            "uvlock": true,
             "y": 270
         },
         "facing=north,half=lower,hinge=left,open=false,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_left",
+            "uvlock": true,
             "y": 270
         },
         "facing=north,half=lower,hinge=left,open=false,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_left",
+            "uvlock": true,
             "y": 270
         },
         "facing=north,half=lower,hinge=left,open=true,texture=false": {
@@ -72,26 +82,32 @@
         },
         "facing=north,half=lower,hinge=right,open=false,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_right",
+            "uvlock": true,
             "y": 270
         },
         "facing=north,half=lower,hinge=right,open=false,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_right",
+            "uvlock": true,
             "y": 270
         },
         "facing=north,half=lower,hinge=right,open=true,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_right_open",
+            "uvlock": true,
             "y": 180
         },
         "facing=north,half=lower,hinge=right,open=true,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_right_open",
+            "uvlock": true,
             "y": 180
         },
         "facing=north,half=upper,hinge=left,open=false,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_left",
+            "uvlock": true,
             "y": 270
         },
         "facing=north,half=upper,hinge=left,open=false,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_left_texture",
+            "uvlock": true,
             "y": 270
         },
         "facing=north,half=upper,hinge=left,open=true,texture=false": {
@@ -102,42 +118,52 @@
         },
         "facing=north,half=upper,hinge=right,open=false,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_right",
+            "uvlock": true,
             "y": 270
         },
         "facing=north,half=upper,hinge=right,open=false,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_right_texture",
+            "uvlock": true,
             "y": 270
         },
         "facing=north,half=upper,hinge=right,open=true,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_right_open",
+            "uvlock": true,
             "y": 180
         },
         "facing=north,half=upper,hinge=right,open=true,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_right_open_texture",
+            "uvlock": true,
             "y": 180
         },
         "facing=south,half=lower,hinge=left,open=false,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_left",
+            "uvlock": true,
             "y": 90
         },
         "facing=south,half=lower,hinge=left,open=false,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_left",
+            "uvlock": true,
             "y": 90
         },
         "facing=south,half=lower,hinge=left,open=true,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_left_open",
+            "uvlock": true,
             "y": 180
         },
         "facing=south,half=lower,hinge=left,open=true,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_left_open",
+            "uvlock": true,
             "y": 180
         },
         "facing=south,half=lower,hinge=right,open=false,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_right",
+            "uvlock": true,
             "y": 90
         },
         "facing=south,half=lower,hinge=right,open=false,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_right",
+            "uvlock": true,
             "y": 90
         },
         "facing=south,half=lower,hinge=right,open=true,texture=false": {
@@ -148,26 +174,32 @@
         },
         "facing=south,half=upper,hinge=left,open=false,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_left",
+            "uvlock": true,
             "y": 90
         },
         "facing=south,half=upper,hinge=left,open=false,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_left_texture",
+            "uvlock": true,
             "y": 90
         },
         "facing=south,half=upper,hinge=left,open=true,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_left_open",
+            "uvlock": true,
             "y": 180
         },
         "facing=south,half=upper,hinge=left,open=true,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_left_open_texture",
+            "uvlock": true,
             "y": 180
         },
         "facing=south,half=upper,hinge=right,open=false,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_right",
+            "uvlock": true,
             "y": 90
         },
         "facing=south,half=upper,hinge=right,open=false,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_right_texture",
+            "uvlock": true,
             "y": 90
         },
         "facing=south,half=upper,hinge=right,open=true,texture=false": {
@@ -178,66 +210,82 @@
         },
         "facing=west,half=lower,hinge=left,open=false,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_left",
+            "uvlock": true,
             "y": 180
         },
         "facing=west,half=lower,hinge=left,open=false,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_left",
+            "uvlock": true,
             "y": 180
         },
         "facing=west,half=lower,hinge=left,open=true,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_left_open",
+            "uvlock": true,
             "y": 270
         },
         "facing=west,half=lower,hinge=left,open=true,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_left_open",
+            "uvlock": true,
             "y": 270
         },
         "facing=west,half=lower,hinge=right,open=false,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_right",
+            "uvlock": true,
             "y": 180
         },
         "facing=west,half=lower,hinge=right,open=false,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_right",
+            "uvlock": true,
             "y": 180
         },
         "facing=west,half=lower,hinge=right,open=true,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_right_open",
+            "uvlock": true,
             "y": 90
         },
         "facing=west,half=lower,hinge=right,open=true,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/bottom_right_open",
+            "uvlock": true,
             "y": 90
         },
         "facing=west,half=upper,hinge=left,open=false,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_left",
+            "uvlock": true,
             "y": 180
         },
         "facing=west,half=upper,hinge=left,open=false,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_left_texture",
+            "uvlock": true,
             "y": 180
         },
         "facing=west,half=upper,hinge=left,open=true,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_left_open",
+            "uvlock": true,
             "y": 270
         },
         "facing=west,half=upper,hinge=left,open=true,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_left_open_texture",
+            "uvlock": true,
             "y": 270
         },
         "facing=west,half=upper,hinge=right,open=false,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_right",
+            "uvlock": true,
             "y": 180
         },
         "facing=west,half=upper,hinge=right,open=false,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_right_texture",
+            "uvlock": true,
             "y": 180
         },
         "facing=west,half=upper,hinge=right,open=true,texture=false": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_right_open",
+            "uvlock": true,
             "y": 90
         },
         "facing=west,half=upper,hinge=right,open=true,texture=true": {
             "model": "maris-decoration:block/cyan_steel_plug_door_with_roof/top_right_open_texture",
+            "uvlock": true,
             "y": 90
         }
     }

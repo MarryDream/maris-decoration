@@ -13,18 +13,18 @@
                     "type": "minecraft:item",
                     "conditions": [
                         {
-                            "block": "maris-decoration:black_steel_plug_door_with_roof",
+                            "block": "maris-decoration:teak_steel_plug_door_with_roof",
                             "condition": "minecraft:block_state_property",
                             "properties": {
                                 "half": "lower"
                             }
                         }
                     ],
-                    "name": "maris-decoration:black_steel_plug_door_with_roof"
+                    "name": "maris-decoration:teak_steel_plug_door_with_roof"
                 }
             ],
             "rolls": 1.0
         }
     ],
-    "random_sequence": "maris-decoration:blocks/black_steel_plug_door_with_roof"
+    "random_sequence": "maris-decoration:blocks/teak_steel_plug_door_with_roof"
 }
