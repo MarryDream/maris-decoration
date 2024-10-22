@@ -190,6 +190,13 @@ public final class ModBlock {
                     BlockSetType.STONE
             ), true
     ); // 钢内嵌门（带屋顶）
+    public static final Block TEAK_STEEL_PLUG_DOOR_WITH_ROOF = register(
+            "teak_steel_plug_door_with_roof",
+            new RoofThresholdThinDoorBlock(
+                    FabricBlockSettings.copy( STEEL_PLUG_DOOR ).mapColor( TEAK_PLANKS.getDefaultMapColor() ),
+                    BlockSetType.STONE
+            ), true
+    ); // 钢内嵌门（带柚木屋顶）
     public static final Block CYAN_STEEL_PLUG_DOOR_WITH_ROOF = register(
             "cyan_steel_plug_door_with_roof",
             new RoofThresholdThinDoorBlock(
@@ -257,6 +264,7 @@ public final class ModBlock {
             /* 门 */
             content.add( ModBlock.STEEL_PLUG_DOOR );
             content.add( ModBlock.STEEL_PLUG_DOOR_WITH_ROOF );
+            content.add( ModBlock.TEAK_STEEL_PLUG_DOOR_WITH_ROOF );
             content.add( ModBlock.CYAN_STEEL_PLUG_DOOR_WITH_ROOF );
             content.add( ModBlock.BLACK_STEEL_PLUG_DOOR_WITH_ROOF );
         } );

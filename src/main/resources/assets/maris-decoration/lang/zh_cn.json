@@ -40,6 +40,7 @@
     "block.maris-decoration.steel_vertical_ladder.tooltip": "可以垂直悬空放置的梯子，最上方必须要附着在一个方块的侧面",
     "block.maris-decoration.steel_plug_door": "钢内嵌门",
     "block.maris-decoration.steel_plug_door_with_roof": "钢内嵌门(带屋顶)",
+    "block.maris-decoration.teak_steel_plug_door_with_roof": "钢内嵌门(带柚木屋顶)",
     "block.maris-decoration.cyan_steel_plug_door_with_roof": "钢内嵌门(带青色屋顶)",
     "block.maris-decoration.black_steel_plug_door_with_roof": "钢内嵌门(带黑色屋顶)"
 }
