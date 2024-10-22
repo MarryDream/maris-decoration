@@ -39,5 +39,6 @@
     "block.maris-decoration.steel_vertical_ladder": "Vertical Steel Ladder",
     "block.maris-decoration.steel_vertical_ladder.tooltip": "A ladder that can be placed vertically in midair, must be attached to the side of a block at the top",
     "block.maris-decoration.steel_plug_door": "Steel Plug Door",
-    "block.maris-decoration.steel_plug_door_with_roof": "Steel Plug Door (with Roof)"
+    "block.maris-decoration.steel_plug_door_with_roof": "Steel Plug Door (with Roof)",
+    "block.maris-decoration.cyan_steel_plug_door_with_roof": "Steel Plug Door (with Cyan Roof)"
 }

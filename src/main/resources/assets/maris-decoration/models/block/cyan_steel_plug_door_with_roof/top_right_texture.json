@@ -1,0 +1,8 @@
+{
+    "parent": "maris-decoration:block/plug_door_with_roof/top_right_texture",
+    "textures": {
+        "bottom": "maris-decoration:block/steel_plug_door_bottom",
+        "top": "maris-decoration:block/steel_plug_door_top",
+        "roof": "maris-decoration:block/cyan_steel_block"
+    }
+}

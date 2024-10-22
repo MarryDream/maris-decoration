@@ -186,10 +186,17 @@ public final class ModBlock {
     public static final Block STEEL_PLUG_DOOR_WITH_ROOF = register(
             "steel_plug_door_with_roof",
             new RoofThresholdThinDoorBlock(
-                    AbstractBlock.Settings.create().mapColor( STEEL_BLOCK.getDefaultMapColor() ).strength( 8.0F ).nonOpaque().pistonBehavior( PistonBehavior.DESTROY ),
+                    FabricBlockSettings.copy( STEEL_PLUG_DOOR ),
                     BlockSetType.STONE
             ), true
     ); // 钢内嵌门（带屋顶）
+    public static final Block CYAN_STEEL_PLUG_DOOR_WITH_ROOF = register(
+            "cyan_steel_plug_door_with_roof",
+            new RoofThresholdThinDoorBlock(
+                    FabricBlockSettings.copy( STEEL_PLUG_DOOR ).mapColor( CYAN_STEEL_BLOCK.getDefaultMapColor() ),
+                    BlockSetType.STONE
+            ), true
+    ); // 钢内嵌门（带青色屋顶）
 
     public static void init( ) {
         ItemGroupEvents.modifyEntriesEvent( ItemGroups.BUILDING_BLOCKS ).register( content -> {
@@ -243,6 +250,7 @@ public final class ModBlock {
             /* 门 */
             content.add( ModBlock.STEEL_PLUG_DOOR );
             content.add( ModBlock.STEEL_PLUG_DOOR_WITH_ROOF );
+            content.add( ModBlock.CYAN_STEEL_PLUG_DOOR_WITH_ROOF );
         } );
 
         // 注册燃料

@@ -1,0 +1,23 @@
+{
+    "type": "minecraft:crafting_shapeless",
+    "category": "redstone",
+    "ingredients": [
+        {
+            "item": "maris-decoration:steel_plug_door"
+        },
+        {
+            "item": "maris-decoration:steel_plug_door"
+        },
+        {
+            "item": "maris-decoration:steel_plug_door"
+        },
+        {
+            "item": "maris-decoration:cyan_steel_block"
+        }
+    ],
+    "result": {
+        "count": 3,
+        "item": "maris-decoration:cyan_steel_plug_door_with_roof"
+    },
+    "show_notification": true
+}

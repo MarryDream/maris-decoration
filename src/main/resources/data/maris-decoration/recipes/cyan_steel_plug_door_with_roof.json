@@ -1,0 +1,22 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "redstone",
+    "key": {
+        "#": {
+            "item": "maris-decoration:cyan_steel_block"
+        },
+        "S": {
+            "item": "maris-decoration:rebar"
+        }
+    },
+    "pattern": [
+        "S#S",
+        "## ",
+        "SS "
+    ],
+    "result": {
+        "count": 3,
+        "item": "maris-decoration:cyan_steel_plug_door_with_roof"
+    },
+    "show_notification": true
+}

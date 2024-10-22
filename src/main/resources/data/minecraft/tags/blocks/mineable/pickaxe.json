@@ -28,6 +28,7 @@
         "maris-decoration:steel_fixed_ladder",
         "maris-decoration:steel_vertical_ladder",
         "maris-decoration:steel_plug_door",
-        "maris-decoration:steel_plug_door_with_roof"
+        "maris-decoration:steel_plug_door_with_roof",
+        "maris-decoration:cyan_steel_plug_door_with_roof"
     ]
 }
