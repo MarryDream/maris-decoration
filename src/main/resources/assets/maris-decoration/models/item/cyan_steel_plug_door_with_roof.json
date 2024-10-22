@@ -1,6 +1,6 @@
 {
     "parent": "minecraft:item/generated",
     "textures": {
-        "layer0": "maris-decoration:item/steel_plug_door"
+        "layer0": "maris-decoration:item/cyan_steel_plug_door_with_roof"
     }
 }
