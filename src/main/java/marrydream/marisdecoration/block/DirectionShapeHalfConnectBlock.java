@@ -359,29 +359,52 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
     // 右键时更换形态
     @Override
     public ActionResult onUse( BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit ) {
+        Boolean hasChanged = false;
         // 支持更换纹理条件: 允许变更纹理 + 手持钢铲刀且 + 目标拥有 half 时为上半部分方块
-        if ( !allowSwitchTexture || ( hasHalfState() && state.get( HALF ) == PropHalf.BOTTOM ) || !player.getStackInHand( hand ).isOf( ModItem.STEEL_SPATULA ) ) {
-            return this.baseBlockState.onUse( world, player, hand, hit );
-        }
-        PropTexture textureState = state.get( TEXTURE );
-        PropShape shape = state.get( SHAPE );
-        if ( textureState == PropTexture.NONE ) {
-            // 只有 inner 才有 left 和 right 纹理
-            if ( shape == PropShape.INNER_LEFT || shape == PropShape.INNER_RIGHT ) {
-                state = state.with( TEXTURE, PropTexture.LEFT );
-            } else {
+        if ( allowSwitchTexture && player.getStackInHand( hand ).isOf( ModItem.STEEL_SPATULA ) && ( !hasHalfState() || state.get( HALF ) == PropHalf.TOP ) ) {
+            PropTexture textureState = state.get( TEXTURE );
+            PropShape shape = state.get( SHAPE );
+            if ( textureState == PropTexture.NONE ) {
+                // 只有 inner 才有 left 和 right 纹理
+                if ( shape == PropShape.INNER_LEFT || shape == PropShape.INNER_RIGHT ) {
+                    state = state.with( TEXTURE, PropTexture.LEFT );
+                } else {
+                    state = state.with( TEXTURE, PropTexture.SIDE );
+                }
+            } else if ( textureState == PropTexture.LEFT ) {
+                state = state.with( TEXTURE, PropTexture.RIGHT );
+            } else if ( textureState == PropTexture.RIGHT ) {
                 state = state.with( TEXTURE, PropTexture.SIDE );
+            } else {
+                state = state.with( TEXTURE, PropTexture.NONE );
             }
-        } else if ( textureState == PropTexture.LEFT ) {
-            state = state.with( TEXTURE, PropTexture.RIGHT );
-        } else if ( textureState == PropTexture.RIGHT ) {
-            state = state.with( TEXTURE, PropTexture.SIDE );
-        } else {
-            state = state.with( TEXTURE, PropTexture.NONE );
+
+            hasChanged = true;
         }
 
-        world.setBlockState( pos, state, Block.NOTIFY_LISTENERS | Block.REDRAW_ON_MAIN_THREAD );
-        world.emitGameEvent( player, GameEvent.BLOCK_CHANGE, pos );
-        return ActionResult.success( world.isClient );
+        // 支持更换图形条件: 手持钢锤
+        if ( player.getStackInHand( hand ).isOf( ModItem.STEEL_HAMMER ) ) {
+            PropShape shape = state.get( SHAPE );
+            if ( shape == PropShape.STRAIGHT ) {
+                state = state.with( SHAPE, PropShape.INNER_LEFT );
+            } else if ( shape == PropShape.INNER_LEFT ) {
+                state = state.with( SHAPE, PropShape.INNER_RIGHT );
+            } else if ( shape == PropShape.INNER_RIGHT ) {
+                state = state.with( SHAPE, PropShape.OUTER_LEFT );
+            } else if ( shape == PropShape.OUTER_LEFT ) {
+                state = state.with( SHAPE, PropShape.OUTER_RIGHT );
+            } else {
+                state = state.with( SHAPE, PropShape.STRAIGHT );
+            }
+
+            hasChanged = true;
+        }
+
+        if ( hasChanged ) {
+            world.setBlockState( pos, state, Block.NOTIFY_LISTENERS | Block.REDRAW_ON_MAIN_THREAD );
+            world.emitGameEvent( player, GameEvent.BLOCK_CHANGE, pos );
+            return ActionResult.success( world.isClient );
+        }
+        return this.baseBlockState.onUse( world, player, hand, hit );
     }
 }
