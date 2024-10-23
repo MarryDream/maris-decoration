@@ -1,7 +1,8 @@
 {
-  "parent": "maris-decoration:block/plug_door/bottom_right_open",
-  "textures": {
-    "bottom": "maris-decoration:block/steel_plug_door_bottom",
-    "top": "maris-decoration:block/steel_plug_door_top"
-  }
+    "parent": "maris-decoration:block/plug_door/bottom_right_open",
+    "textures": {
+        "bottom": "maris-decoration:block/steel_plug_door_bottom",
+        "top": "maris-decoration:block/steel_plug_door_top",
+        "threshold": "maris-decoration:block/steel_block"
+    }
 }

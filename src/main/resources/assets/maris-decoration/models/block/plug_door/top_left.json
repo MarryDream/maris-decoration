@@ -4,14 +4,26 @@
         "particle": "#top"
     },
     "elements": [
-        {   "from": [ 0, 0, 0 ],
+        {
+            "_comment": "门楣",
+            "from": [ 0, 15, 0 ],
             "to": [ 2, 16, 16 ],
             "faces": {
-                "up":    { "uv": [  0,  2, 16,  0 ], "texture": "#top", "cullface": "up", "rotation": 90 },
-                "north": { "uv": [  2,  0,  0, 16 ], "texture": "#top", "cullface": "north" },
-                "south": { "uv": [  0,  0,  2, 16 ], "texture": "#top", "cullface": "south" },
-                "west":  { "uv": [  0,  0, 16, 16 ], "texture": "#top", "cullface": "west" },
-                "east":  { "uv": [ 16,  0,  0, 16 ], "texture": "#top" }
+                "up":    { "uv": [  0,  2, 16,  0 ], "texture": "#lintel", "cullface": "up" },
+                "north": { "uv": [  2,  0,  0,  1 ], "texture": "#lintel", "cullface": "north" },
+                "south": { "uv": [  0,  0,  2,  1 ], "texture": "#lintel", "cullface": "south" },
+                "west":  { "uv": [  0,  0, 16,  1 ], "texture": "#lintel", "cullface": "west" },
+                "east":  { "uv": [ 16,  0,  0,  1 ], "texture": "#lintel" }
+            }
+        },
+        {
+            "from": [ 0, 0, 0 ],
+            "to": [ 2, 15, 16 ],
+            "faces": {
+                "north": { "uv": [  2,  1,  0, 16 ], "texture": "#top", "cullface": "north" },
+                "south": { "uv": [  0,  1,  2, 16 ], "texture": "#top", "cullface": "south" },
+                "west":  { "uv": [  0,  1, 16, 16 ], "texture": "#top", "cullface": "west" },
+                "east":  { "uv": [ 16,  1,  0, 16 ], "texture": "#top" }
             }
         }
     ]

@@ -212,21 +212,22 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
             world.scheduleFluidTick( pos, Fluids.WATER, Fluids.WATER.getTickRate( world ) );
         }
 
-        boolean isHorizontal = direction.getAxis().isHorizontal();
-        if ( isHorizontal ) {
-            PropShape shapeState = getDirectionShapeHalfConnectShape( state, world, pos );
-            state = state.with( SHAPE, shapeState );
-
-            // 处理过后若未非 inner 且 TEXTURE 为 left 或 right 则将 TEXTURE 设置为 side
-            if ( allowSwitchTexture && shapeState != PropShape.INNER_LEFT && shapeState != PropShape.INNER_RIGHT ) {
-                PropTexture textureState = state.get( TEXTURE );
-                if ( textureState == PropTexture.LEFT || textureState == PropTexture.RIGHT ) {
-                    return state.with( TEXTURE, PropTexture.SIDE );
-                }
-            }
-
-            return state;
-        }
+        // 暂时注销，因为使用钢锤修改形状后会自动复原
+//        boolean isHorizontal = direction.getAxis().isHorizontal();
+//        if ( isHorizontal ) {
+//            PropShape shapeState = getDirectionShapeHalfConnectShape( state, world, pos );
+//            state = state.with( SHAPE, shapeState );
+//
+//            // 处理过后若未非 inner 且 TEXTURE 为 left 或 right 则将 TEXTURE 设置为 side
+//            if ( allowSwitchTexture && shapeState != PropShape.INNER_LEFT && shapeState != PropShape.INNER_RIGHT ) {
+//                PropTexture textureState = state.get( TEXTURE );
+//                if ( textureState == PropTexture.LEFT || textureState == PropTexture.RIGHT ) {
+//                    return state.with( TEXTURE, PropTexture.SIDE );
+//                }
+//            }
+//
+//            return state;
+//        }
 
         return super.getStateForNeighborUpdate( state, direction, neighborState, world, pos, neighborPos );
     }

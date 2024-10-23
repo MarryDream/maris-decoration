@@ -2,6 +2,7 @@
     "parent": "maris-decoration:block/plug_door_with_roof/bottom_right_open",
     "textures": {
         "bottom": "maris-decoration:block/steel_plug_door_bottom",
-        "top": "maris-decoration:block/steel_plug_door_top"
+        "top": "maris-decoration:block/steel_plug_door_top",
+        "threshold": "maris-decoration:block/steel_block"
     }
 }
