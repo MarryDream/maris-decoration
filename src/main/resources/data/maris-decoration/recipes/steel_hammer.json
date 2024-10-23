@@ -10,12 +10,12 @@
         }
     },
     "pattern": [
-        "XXX",
+        "X#X",
         " # ",
         " # "
     ],
     "result": {
-        "item": "maris-decoration:steel_spatula"
+        "item": "maris-decoration:steel_hammer"
     },
     "show_notification": true
 }
