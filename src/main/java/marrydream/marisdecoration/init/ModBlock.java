@@ -99,14 +99,24 @@ public final class ModBlock {
             new WallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_WALL ) ),
             true
     ); // 钢屋顶柚木墙
+    public static final WallBlock CYAN_STEEL_ROOF_TEAK_WALL = register(
+            "cyan_steel_roof_teak_wall",
+            new WallBlock( CYAN_STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( CYAN_STEEL_BLOCK ).strength( 4.0F, 7.5f ) ),
+            true
+    ); // 青钢屋顶柚木墙
+    public static final WallBlock BLACK_STEEL_ROOF_TEAK_WALL = register(
+            "black_steel_roof_teak_wall",
+            new WallBlock( BLACK_STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( BLACK_STEEL_BLOCK ).strength( 4.0F, 7.5f ) ),
+            true
+    ); // 黑钢屋顶柚木墙
     public static final WallBlock CYAN_ROOF_STEEL_WALL = register(
             "cyan_roof_steel_wall",
-            new WallBlock( CYAN_STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( CYAN_STEEL_BLOCK ).strength( 4.0F, 7.5f ) ),
+            new WallBlock( CYAN_STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( CYAN_STEEL_ROOF_TEAK_WALL ) ),
             true
     ); // 青色屋顶钢墙
     public static final WallBlock BLACK_ROOF_STEEL_WALL = register(
             "black_roof_steel_wall",
-            new WallBlock( BLACK_STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( BLACK_STEEL_BLOCK ).strength( 4.0F, 7.5f ) ),
+            new WallBlock( BLACK_STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( BLACK_STEEL_ROOF_TEAK_WALL ) ),
             true
     ); // 黑色屋顶钢墙
     public static final WallBlock CYAN_ROOF_STEEL_TRIM_CYAN_WINDOW_WALL = register(
@@ -257,6 +267,8 @@ public final class ModBlock {
             content.add( ModBlock.TEAK_WALL );
             content.add( ModBlock.STEEL_WALL );
             content.add( ModBlock.STEEL_ROOF_TEAK_WALL );
+            content.add( ModBlock.CYAN_STEEL_ROOF_TEAK_WALL );
+            content.add( ModBlock.BLACK_STEEL_ROOF_TEAK_WALL );
             content.add( ModBlock.CYAN_ROOF_STEEL_WALL );
             content.add( ModBlock.BLACK_ROOF_STEEL_WALL );
             content.add( ModBlock.CYAN_ROOF_STEEL_TRIM_CYAN_WINDOW_WALL );

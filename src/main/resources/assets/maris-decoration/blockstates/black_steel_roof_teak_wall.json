@@ -1,0 +1,454 @@
+{
+    "variants": {
+        "facing=east,half=bottom,shape=inner_left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_bottom",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=east,half=bottom,shape=inner_right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_bottom"
+        },
+        "facing=east,half=bottom,shape=outer_left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_bottom",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=east,half=bottom,shape=outer_right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_bottom"
+        },
+        "facing=east,half=bottom,shape=straight": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_bottom"
+        },
+        "facing=east,half=top,shape=inner_left,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=east,half=top,shape=inner_left,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_left",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=east,half=top,shape=inner_left,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_right",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=east,half=top,shape=inner_left,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_side",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=east,half=top,shape=inner_right,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top"
+        },
+        "facing=east,half=top,shape=inner_right,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_left"
+        },
+        "facing=east,half=top,shape=inner_right,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_right"
+        },
+        "facing=east,half=top,shape=inner_right,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_side"
+        },
+        "facing=east,half=top,shape=outer_left,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=east,half=top,shape=outer_left,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=east,half=top,shape=outer_left,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=east,half=top,shape=outer_left,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=east,half=top,shape=outer_right,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top"
+        },
+        "facing=east,half=top,shape=outer_right,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped"
+        },
+        "facing=east,half=top,shape=outer_right,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped"
+        },
+        "facing=east,half=top,shape=outer_right,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped"
+        },
+        "facing=east,half=top,shape=straight,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_top"
+        },
+        "facing=east,half=top,shape=straight,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_top_stripped"
+        },
+        "facing=east,half=top,shape=straight,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_top_stripped"
+        },
+        "facing=east,half=top,shape=straight,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_top_stripped"
+        },
+        "facing=north,half=bottom,shape=inner_left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_bottom",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=north,half=bottom,shape=inner_right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_bottom",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=north,half=bottom,shape=outer_left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_bottom",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=north,half=bottom,shape=outer_right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_bottom",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=north,half=bottom,shape=straight": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_bottom",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=north,half=top,shape=inner_left,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=north,half=top,shape=inner_left,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_left",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=north,half=top,shape=inner_left,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_right",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=north,half=top,shape=inner_left,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_side",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=north,half=top,shape=inner_right,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=north,half=top,shape=inner_right,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_left",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=north,half=top,shape=inner_right,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_right",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=north,half=top,shape=inner_right,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_side",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=north,half=top,shape=outer_left,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=north,half=top,shape=outer_left,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=north,half=top,shape=outer_left,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=north,half=top,shape=outer_left,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=north,half=top,shape=outer_right,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=north,half=top,shape=outer_right,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=north,half=top,shape=outer_right,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=north,half=top,shape=outer_right,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=north,half=top,shape=straight,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_top",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=north,half=top,shape=straight,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_top_stripped",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=north,half=top,shape=straight,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_top_stripped",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=north,half=top,shape=straight,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_top_stripped",
+            "uvlock": true,
+            "y": 270
+        },
+        "facing=south,half=bottom,shape=inner_left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_bottom"
+        },
+        "facing=south,half=bottom,shape=inner_right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_bottom",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=south,half=bottom,shape=outer_left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_bottom"
+        },
+        "facing=south,half=bottom,shape=outer_right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_bottom",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=south,half=bottom,shape=straight": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_bottom",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=south,half=top,shape=inner_left,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top"
+        },
+        "facing=south,half=top,shape=inner_left,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_left"
+        },
+        "facing=south,half=top,shape=inner_left,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_right"
+        },
+        "facing=south,half=top,shape=inner_left,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_side"
+        },
+        "facing=south,half=top,shape=inner_right,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=south,half=top,shape=inner_right,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_left",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=south,half=top,shape=inner_right,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_right",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=south,half=top,shape=inner_right,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_side",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=south,half=top,shape=outer_left,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top"
+        },
+        "facing=south,half=top,shape=outer_left,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped"
+        },
+        "facing=south,half=top,shape=outer_left,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped"
+        },
+        "facing=south,half=top,shape=outer_left,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped"
+        },
+        "facing=south,half=top,shape=outer_right,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=south,half=top,shape=outer_right,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=south,half=top,shape=outer_right,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=south,half=top,shape=outer_right,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=south,half=top,shape=straight,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_top",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=south,half=top,shape=straight,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_top_stripped",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=south,half=top,shape=straight,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_top_stripped",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=south,half=top,shape=straight,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_top_stripped",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=west,half=bottom,shape=inner_left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_bottom",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=west,half=bottom,shape=inner_right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_bottom",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=west,half=bottom,shape=outer_left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_bottom",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=west,half=bottom,shape=outer_right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_bottom",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=west,half=bottom,shape=straight": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_bottom",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=west,half=top,shape=inner_left,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=west,half=top,shape=inner_left,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_left",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=west,half=top,shape=inner_left,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_right",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=west,half=top,shape=inner_left,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_side",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=west,half=top,shape=inner_right,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=west,half=top,shape=inner_right,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_left",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=west,half=top,shape=inner_right,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_right",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=west,half=top,shape=inner_right,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/inner_top_stripped_side",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=west,half=top,shape=outer_left,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=west,half=top,shape=outer_left,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=west,half=top,shape=outer_left,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=west,half=top,shape=outer_left,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 90
+        },
+        "facing=west,half=top,shape=outer_right,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=west,half=top,shape=outer_right,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=west,half=top,shape=outer_right,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=west,half=top,shape=outer_right,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/outer_top_stripped",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=west,half=top,shape=straight,texture=none": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_top",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=west,half=top,shape=straight,texture=left": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_top_stripped",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=west,half=top,shape=straight,texture=right": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_top_stripped",
+            "uvlock": true,
+            "y": 180
+        },
+        "facing=west,half=top,shape=straight,texture=side": {
+            "model": "maris-decoration:block/black_steel_roof_teak_wall/straight_top_stripped",
+            "uvlock": true,
+            "y": 180
+        }
+    }
+}
