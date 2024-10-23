@@ -7,6 +7,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
+import net.minecraft.state.StateManager;
 import net.minecraft.util.math.Direction;
 
 // 带修边的房顶
@@ -20,8 +21,8 @@ public class TrimRoofBlock extends DirectionShapeHalfConnectBlock {
     }
 
     @Override
-    protected boolean isOneWayBlock() {
-        return false;
+    protected boolean hasHalfState() {
+        return true;
     }
 
     // 永远都只返回这一个，不做处理了
@@ -42,5 +43,10 @@ public class TrimRoofBlock extends DirectionShapeHalfConnectBlock {
             return true;
         }
         return neighborBlock instanceof ComponentWallBlock && neighborState.get( ComponentWallBlock.HALF ) == PropHalf.TOP;
+    }
+
+    @Override
+    protected void appendProperties( StateManager.Builder<Block, BlockState> builder ) {
+        builder.add( FACING, HALF, SHAPE, WATERLOGGED );
     }
 }

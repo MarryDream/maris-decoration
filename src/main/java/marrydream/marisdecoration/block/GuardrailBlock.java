@@ -3,6 +3,7 @@ package marrydream.marisdecoration.block;
 import marrydream.marisdecoration.block.utils.BlockShape;
 import marrydream.marisdecoration.block.utils.DirectionConnectBlockGroup;
 import net.minecraft.block.*;
+import net.minecraft.state.StateManager;
 
 public class GuardrailBlock extends DirectionShapeHalfConnectBlock {
     // 直线
@@ -36,5 +37,10 @@ public class GuardrailBlock extends DirectionShapeHalfConnectBlock {
     @Override
     protected boolean isDirectionShapeHalfConnectBlock( BlockState neighborState, BlockState state ) {
         return neighborState.getBlock() instanceof GuardrailBlock;
+    }
+
+    @Override
+    protected void appendProperties( StateManager.Builder<Block, BlockState> builder ) {
+        builder.add( FACING, SHAPE, WATERLOGGED );
     }
 }

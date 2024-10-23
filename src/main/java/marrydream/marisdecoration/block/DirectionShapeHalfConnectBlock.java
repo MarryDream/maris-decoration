@@ -71,22 +71,25 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
         this.upShapeGroup = upShapeGroup;
         this.allowSwitchTexture = allowSwitchTexture;
 
-        this.setDefaultState(
-                this.stateManager
-                        .getDefaultState()
-                        .with( FACING, Direction.NORTH )
-                        .with( HALF, PropHalf.BOTTOM )
-                        .with( SHAPE, PropShape.STRAIGHT )
-                        .with( TEXTURE, PropTexture.NONE )
-                        .with( WATERLOGGED, false ) // 默认不含水
-        );
+        BlockState state = this.stateManager
+                .getDefaultState()
+                .with( FACING, Direction.NORTH )
+                .with( SHAPE, PropShape.STRAIGHT )
+                .with( WATERLOGGED, false ); //
+        if ( hasHalfState() ) {
+            state = state.with( HALF, PropHalf.BOTTOM );
+        }
+        if ( allowSwitchTexture ) {
+            state = state.with( TEXTURE, PropTexture.NONE );
+        }
+        this.setDefaultState( state );
         this.baseBlock = baseBlockState.getBlock();
         this.baseBlockState = baseBlockState;
     }
 
-    // 是否是单向方块（即只有底部）
-    protected boolean isOneWayBlock( ) {
-        return this.upShapeGroup == null;
+    // 是否拥有上下状态
+    protected boolean hasHalfState( ) {
+        return this.upShapeGroup != null;
     }
 
     // 具有侧面透明度
@@ -109,7 +112,7 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
 
     // 根据形状和朝向状态获取碰撞体积
     protected BlockShape getShapeByState( BlockState state ) {
-        DirectionConnectBlockGroup shapeGroup = ( isOneWayBlock() || state.get( HALF ) == PropHalf.BOTTOM ) ? this.bottomShapeGroup : this.upShapeGroup;
+        DirectionConnectBlockGroup shapeGroup = ( !hasHalfState() || state.get( HALF ) == PropHalf.BOTTOM ) ? this.bottomShapeGroup : this.upShapeGroup;
         return shapeGroup.getShapeByShapeAndFacing( state.get( SHAPE ).ordinal(), state.get( FACING ).getHorizontal() );
     }
 
@@ -183,18 +186,19 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
         BlockPos blockPos = ctx.getBlockPos();
         FluidState fluidState = ctx.getWorld().getFluidState( blockPos );
 
-        PropHalf halfValue;
-        if ( isOneWayBlock() ) {
-            halfValue = PropHalf.BOTTOM;
-        } else {
-            halfValue = direction != Direction.DOWN && ( direction == Direction.UP || !( ctx.getHitPos().y - ( double ) blockPos.getY() > 0.5 ) ) ? PropHalf.BOTTOM : PropHalf.TOP;
-        }
         // 要获取最新的 blockState 必须重新赋值，with 不会改变原有的 blockState（坑了我两个小时）
         BlockState blockState = this.getDefaultState()
                 .with( FACING, ctx.getHorizontalPlayerFacing() )
-                .with( HALF, halfValue )
-                .with( TEXTURE, PropTexture.NONE ) // 放置时默认无纹理
                 .with( WATERLOGGED, fluidState.getFluid() == Fluids.WATER );
+        if ( hasHalfState() ) {
+            blockState = blockState.with(
+                    HALF,
+                    direction != Direction.DOWN && ( direction == Direction.UP || !( ctx.getHitPos().y - ( double ) blockPos.getY() > 0.5 ) ) ? PropHalf.BOTTOM : PropHalf.TOP
+            );
+        }
+        if ( allowSwitchTexture ) {
+            blockState = blockState.with( TEXTURE, PropTexture.NONE ); // 放置时默认无纹理
+        }
         return blockState.with( SHAPE, getDirectionShapeHalfConnectShape( blockState, ctx.getWorld(), blockPos ) );
     }
 
@@ -214,7 +218,7 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
             state = state.with( SHAPE, shapeState );
 
             // 处理过后若未非 inner 且 TEXTURE 为 left 或 right 则将 TEXTURE 设置为 side
-            if ( shapeState != PropShape.INNER_LEFT && shapeState != PropShape.INNER_RIGHT ) {
+            if ( allowSwitchTexture && shapeState != PropShape.INNER_LEFT && shapeState != PropShape.INNER_RIGHT ) {
                 PropTexture textureState = state.get( TEXTURE );
                 if ( textureState == PropTexture.LEFT || textureState == PropTexture.RIGHT ) {
                     return state.with( TEXTURE, PropTexture.SIDE );
@@ -231,7 +235,7 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
     private PropShape getDirectionShapeHalfConnectShape( BlockState state, BlockView world, BlockPos pos ) {
         Direction direction = state.get( FACING );
         BlockState blockState = world.getBlockState( pos.offset( direction ) );
-        if ( isDirectionShapeHalfConnectBlock( blockState, state ) && ( isOneWayBlock() || state.get( HALF ) == blockState.get( HALF ) ) ) {
+        if ( isDirectionShapeHalfConnectBlock( blockState, state ) && ( !hasHalfState() || state.get( HALF ) == blockState.get( HALF ) ) ) {
             Direction direction2 = blockState.get( FACING );
             if ( direction2.getAxis() != ( ( Direction ) state.get( FACING ) ).getAxis() && isDifferentOrientation( state, world, pos, direction2.getOpposite() ) ) {
                 if ( direction2 == direction.rotateYCounterclockwise() ) {
@@ -243,7 +247,7 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
         }
 
         BlockState blockState2 = world.getBlockState( pos.offset( direction.getOpposite() ) );
-        if ( isDirectionShapeHalfConnectBlock( blockState2, state ) && ( isOneWayBlock() || state.get( HALF ) == blockState2.get( HALF ) ) ) {
+        if ( isDirectionShapeHalfConnectBlock( blockState2, state ) && ( !hasHalfState() || state.get( HALF ) == blockState2.get( HALF ) ) ) {
             Direction direction3 = blockState2.get( FACING );
             if ( direction3.getAxis() != ( ( Direction ) state.get( FACING ) ).getAxis() && isDifferentOrientation( state, world, pos, direction3 ) ) {
                 if ( direction3 == direction.rotateYCounterclockwise() ) {
@@ -259,7 +263,7 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
 
     private boolean isDifferentOrientation( BlockState state, BlockView world, BlockPos pos, Direction dir ) {
         BlockState blockState = world.getBlockState( pos.offset( dir ) );
-        return !isDirectionShapeHalfConnectBlock( blockState, state ) || blockState.get( FACING ) != state.get( FACING ) || ( !isOneWayBlock() && blockState.get( HALF ) != state.get( HALF ) );
+        return !isDirectionShapeHalfConnectBlock( blockState, state ) || blockState.get( FACING ) != state.get( FACING ) || ( hasHalfState() && blockState.get( HALF ) != state.get( HALF ) );
     }
 
     protected boolean isDirectionShapeHalfConnectBlock( BlockState neighborState, BlockState curState ) {
@@ -320,6 +324,7 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
     }
 
     // 注册状态属性，让方块认识这些属性
+    // 若不需要变更纹理、HALF 上下状态，则需要重写该方法，避免注册这些属性
     @Override
     protected void appendProperties( StateManager.Builder<Block, BlockState> builder ) {
         builder.add( FACING, HALF, SHAPE, TEXTURE, WATERLOGGED );
@@ -340,8 +345,8 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
     // 右键时更换形态
     @Override
     public ActionResult onUse( BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit ) {
-        // 只有手持钢铲刀且目标为上半部分方块时，才支持更换纹理
-        if ( !allowSwitchTexture || state.get( HALF ) == PropHalf.BOTTOM || !player.getStackInHand( hand ).isOf( ModItem.STEEL_SPATULA ) ) {
+        // 支持更换纹理条件: 允许变更纹理 + 手持钢铲刀且 + 目标拥有 half 时为上半部分方块
+        if ( !allowSwitchTexture || ( hasHalfState() && state.get( HALF ) == PropHalf.BOTTOM ) || !player.getStackInHand( hand ).isOf( ModItem.STEEL_SPATULA ) ) {
             return this.baseBlockState.onUse( world, player, hand, hit );
         }
         PropTexture textureState = state.get( TEXTURE );
