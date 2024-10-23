@@ -94,6 +94,11 @@ public final class ModBlock {
             new WallWithoutSwitchTextureBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_BLOCK ).strength( 4.0F, 7.5f ) ),
             true
     ); // 钢墙
+    public static final WallBlock STEEL_ROOF_TEAK_WALL = register(
+            "steel_roof_teak_wall",
+            new WallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_WALL ) ),
+            true
+    ); // 钢屋顶柚木墙
     public static final WallBlock CYAN_ROOF_STEEL_WALL = register(
             "cyan_roof_steel_wall",
             new WallBlock( CYAN_STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( CYAN_STEEL_BLOCK ).strength( 4.0F, 7.5f ) ),
@@ -251,6 +256,7 @@ public final class ModBlock {
             /* 墙 */
             content.add( ModBlock.TEAK_WALL );
             content.add( ModBlock.STEEL_WALL );
+            content.add( ModBlock.STEEL_ROOF_TEAK_WALL );
             content.add( ModBlock.CYAN_ROOF_STEEL_WALL );
             content.add( ModBlock.BLACK_ROOF_STEEL_WALL );
             content.add( ModBlock.CYAN_ROOF_STEEL_TRIM_CYAN_WINDOW_WALL );

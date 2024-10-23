@@ -1,0 +1,22 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "building",
+    "group": "wall",
+    "pattern": [
+        "#",
+        "S"
+    ],
+    "key": {
+        "#": {
+            "item": "maris-decoration:steel_block"
+        },
+        "S": {
+            "item": "maris-decoration:teak_planks"
+        }
+    },
+    "result": {
+        "count": 6,
+        "item": "maris-decoration:steel_roof_teak_wall"
+    },
+    "show_notification": true
+}
