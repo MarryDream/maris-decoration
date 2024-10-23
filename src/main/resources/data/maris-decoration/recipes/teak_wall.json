@@ -1,0 +1,19 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "category": "building",
+    "group": "wall",
+    "pattern": [
+        "#",
+        "#"
+    ],
+    "key": {
+        "#": {
+            "item": "maris-decoration:teak_planks"
+        }
+    },
+    "result": {
+        "count": 6,
+        "item": "maris-decoration:teak_wall"
+    },
+    "show_notification": true
+}

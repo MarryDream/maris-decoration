@@ -84,9 +84,14 @@ public final class ModBlock {
             new SlabBlock( FabricBlockSettings.copy( BLACK_STEEL_BLOCK ) ),
             true
     ); // 黑色钢半砖
-    public static final WallBlock STEEL_WALL = register(
+    public static final WallWithoutSwitchTextureBlock TEAK_WALL = register(
+            "teak_wall",
+            new WallWithoutSwitchTextureBlock( TEAK_PLANKS.getDefaultState(), FabricBlockSettings.copy( TEAK_PLANKS ).strength( 2.0F, 2.5f ) ),
+            true
+    ); // 柚木墙
+    public static final WallWithoutSwitchTextureBlock STEEL_WALL = register(
             "steel_wall",
-            new WallBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_BLOCK ).strength( 4.0F, 7.5f ) ),
+            new WallWithoutSwitchTextureBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_BLOCK ).strength( 4.0F, 7.5f ) ),
             true
     ); // 钢墙
     public static final WallBlock CYAN_ROOF_STEEL_WALL = register(
@@ -244,6 +249,7 @@ public final class ModBlock {
             content.add( ModBlock.STEEL_TRIM_CYAN_STEEL_ROOF );
 
             /* 墙 */
+            content.add( ModBlock.TEAK_WALL );
             content.add( ModBlock.STEEL_WALL );
             content.add( ModBlock.CYAN_ROOF_STEEL_WALL );
             content.add( ModBlock.BLACK_ROOF_STEEL_WALL );
@@ -273,6 +279,7 @@ public final class ModBlock {
         FuelRegistry.INSTANCE.add( ModBlock.TEAK_PLANKS, 30 * 20 ); // 烧 30s
         FuelRegistry.INSTANCE.add( ModBlock.TEAK_STAIRS, 15 * 20 ); // 烧 15s
         FuelRegistry.INSTANCE.add( ModBlock.TEAK_SLABS, 75 * 2 ); // 烧 7.5s
+        FuelRegistry.INSTANCE.add( ModBlock.TEAK_WALL, 6 * 20 ); // 烧 6s
         FuelRegistry.INSTANCE.add( ModBlock.TEAK_ROOF, 3 * 20 ); // 烧 3s
         FuelRegistry.INSTANCE.add( ModBlock.TEAK_TRAPDOOR, 15 * 20 ); // 烧 15s
     }
