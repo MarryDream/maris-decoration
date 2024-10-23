@@ -6,6 +6,10 @@
         "maris-decoration:teak_stairs",
         "maris-decoration:teak_trapdoor",
         "maris-decoration:teak_roof",
-        "maris-decoration:teak_wall"
+        "maris-decoration:teak_wall",
+        "maris-decoration:steel_teak_trim_roof",
+        "maris-decoration:steel_roof_teak_wall",
+        "maris-decoration:cyan_steel_roof_teak_wall",
+        "maris-decoration:black_steel_roof_teak_wall"
     ]
 }
