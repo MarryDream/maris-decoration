@@ -66,9 +66,4 @@ public class WallBlock extends DirectionShapeHalfConnectBlock {
     protected WallBlock( BlockState baseBlockState, Settings settings, boolean allowSwitchTexture ) {
         super( baseBlockState, settings, bottomShapeGroup, topShapeGroup, allowSwitchTexture );
     }
-
-    @Override
-    protected boolean isDirectionShapeHalfConnectBlock( BlockState neighborState, BlockState state ) {
-        return neighborState.getBlock() instanceof WallBlock;
-    }
 }

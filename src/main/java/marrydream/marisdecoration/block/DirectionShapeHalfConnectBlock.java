@@ -266,8 +266,22 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
         return !isDirectionShapeHalfConnectBlock( blockState, state ) || blockState.get( FACING ) != state.get( FACING ) || ( hasHalfState() && blockState.get( HALF ) != state.get( HALF ) );
     }
 
-    protected boolean isDirectionShapeHalfConnectBlock( BlockState neighborState, BlockState curState ) {
-        return neighborState.getBlock() instanceof DirectionShapeHalfConnectBlock;
+    /**
+     * 检查两个 DirectionShapeHalfConnectBlock 是否可以连接
+     * @param curState 当前方块状态
+     * @param neighborState 发起检查的连接方块状态
+     * @return 是否可以连接
+     */
+    protected boolean canBeConnected( BlockState curState, BlockState neighborState ) {
+        return true;
+    }
+
+    private boolean isDirectionShapeHalfConnectBlock( BlockState neighborState, BlockState curState ) {
+        if ( neighborState.getBlock() instanceof DirectionShapeHalfConnectBlock ) {
+            return ( ( DirectionShapeHalfConnectBlock ) curState.getBlock() ).canBeConnected( curState, neighborState ) &&
+                    ( ( DirectionShapeHalfConnectBlock ) neighborState.getBlock() ).canBeConnected( neighborState, curState );
+        }
+        return false;
     }
 
     @Override

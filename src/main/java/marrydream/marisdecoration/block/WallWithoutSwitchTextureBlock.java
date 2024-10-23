@@ -11,11 +11,6 @@ public class WallWithoutSwitchTextureBlock extends WallBlock {
     }
 
     @Override
-    protected boolean isDirectionShapeHalfConnectBlock( BlockState neighborState, BlockState state ) {
-        return neighborState.getBlock() instanceof WallWithoutSwitchTextureBlock;
-    }
-
-    @Override
     protected void appendProperties( StateManager.Builder<Block, BlockState> builder ) {
         builder.add( FACING, HALF, SHAPE, WATERLOGGED );
     }
