@@ -2,6 +2,7 @@ package marrydream.marisdecoration;
 
 import marrydream.marisdecoration.init.ModBlock;
 import marrydream.marisdecoration.init.ModItem;
+import marrydream.marisdecoration.init.ModItemGroup;
 import net.fabricmc.api.ModInitializer;
 
 import org.slf4j.Logger;
@@ -19,6 +20,7 @@ public class MarisDecoration implements ModInitializer {
     public void onInitialize( ) {
         ModItem.init();
         ModBlock.init();
-        LOGGER.info( "Hello Fabric world! This is Mari" );
+        ModItemGroup.init();
+        LOGGER.info("Initialized Maris' Decoration");
     }
 }

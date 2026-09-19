@@ -4,7 +4,6 @@ import marrydream.marisdecoration.block.*;
 import marrydream.marisdecoration.block.ComponentWallBlock;
 import marrydream.marisdecoration.block.WallBlock;
 import marrydream.marisdecoration.item.SteelVerticalLadderItem;
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.minecraft.block.*;
@@ -17,8 +16,13 @@ import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.Identifier;
 
 import java.util.function.Function;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public final class ModBlock {
+    private static final List<Block> REGISTERED_BLOCKS = new ArrayList<>();
+    private static final List<Item> REGISTERED_ITEMS = new ArrayList<>();
     public static final Block TEAK_PLANKS = register(
             "teak_planks",
             new Block( FabricBlockSettings.create().mapColor( state -> MapColor.PALE_YELLOW ).instrument( Instrument.BASS ).strength( 2.0F, 3.0F ).sounds( BlockSoundGroup.WOOD ).burnable() ),
@@ -233,67 +237,6 @@ public final class ModBlock {
     ); // 钢内嵌门（带黑色屋顶）
 
     public static void init( ) {
-        ItemGroupEvents.modifyEntriesEvent( ItemGroups.BUILDING_BLOCKS ).register( content -> {
-            /* 柚木 */
-            content.addAfter( Items.CHERRY_BUTTON, ModBlock.TEAK_PLANKS );
-            content.addAfter( ModBlock.TEAK_PLANKS, ModBlock.TEAK_STAIRS );
-            content.addAfter( ModBlock.TEAK_STAIRS, ModBlock.TEAK_SLABS );
-            content.addAfter( ModBlock.TEAK_SLABS, ModBlock.TEAK_TRAPDOOR );
-
-            /* 钢 */
-            content.add( ModBlock.STEEL_BLOCK );
-            content.add( ModBlock.STEEL_STAIRS );
-            content.add( ModBlock.STEEL_SLABS );
-            content.add( ModBlock.CYAN_STEEL_BLOCK );
-            content.add( ModBlock.CYAN_STEEL_STAIRS );
-            content.add( ModBlock.CYAN_STEEL_SLABS );
-            content.add( ModBlock.BLACK_STEEL_BLOCK );
-            content.add( ModBlock.BLACK_STEEL_SLABS );
-            content.add( ModBlock.BLACK_STEEL_STAIRS );
-
-            /* 护栏 */
-            content.add( ModBlock.STEEL_GUARDRAIL );
-            content.add( ModBlock.BLACK_STEEL_GUARDRAIL );
-
-            /* 屋顶 */
-            content.add( ModBlock.TEAK_ROOF );
-            content.add( ModBlock.STEEL_ROOF );
-            content.add( ModBlock.CYAN_STEEL_ROOF );
-            content.add( ModBlock.BLACK_STEEL_ROOF );
-            content.add( ModBlock.STEEL_TEAK_TRIM_ROOF );
-            content.add( ModBlock.STEEL_TRIM_CYAN_STEEL_ROOF );
-
-            /* 墙 */
-            content.add( ModBlock.TEAK_WALL );
-            content.add( ModBlock.STEEL_WALL );
-            content.add( ModBlock.STEEL_ROOF_TEAK_WALL );
-            content.add( ModBlock.CYAN_STEEL_ROOF_TEAK_WALL );
-            content.add( ModBlock.BLACK_STEEL_ROOF_TEAK_WALL );
-            content.add( ModBlock.CYAN_ROOF_STEEL_WALL );
-            content.add( ModBlock.BLACK_ROOF_STEEL_WALL );
-            content.add( ModBlock.CYAN_ROOF_STEEL_TRIM_CYAN_WINDOW_WALL );
-            content.add( ModBlock.STEEL_TEAK_COMPONENT_WALL );
-            content.add( ModBlock.CYAN_ROOF_STEEL_TEAK_COMPONENT_WALL );
-            content.add( ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL );
-            content.add( ModBlock.CYAN_GLASS_ROOF_STEEL_TEAK_COMPONENT_WALL );
-        } );
-
-        ItemGroupEvents.modifyEntriesEvent( ItemGroups.FUNCTIONAL ).register( content -> {
-            /* 梯子 */
-            content.addAfter( Blocks.LADDER, ModBlock.STEEL_FIXED_LADDER );
-            content.addAfter( Blocks.LADDER, ModBlock.STEEL_VERTICAL_LADDER );
-        } );
-
-        ItemGroupEvents.modifyEntriesEvent( ItemGroups.REDSTONE ).register( content -> {
-            /* 门 */
-            content.add( ModBlock.STEEL_PLUG_DOOR );
-            content.add( ModBlock.STEEL_PLUG_DOOR_WITH_ROOF );
-            content.add( ModBlock.TEAK_STEEL_PLUG_DOOR_WITH_ROOF );
-            content.add( ModBlock.CYAN_STEEL_PLUG_DOOR_WITH_ROOF );
-            content.add( ModBlock.BLACK_STEEL_PLUG_DOOR_WITH_ROOF );
-        } );
-
-        // 注册燃料
         FuelRegistry.INSTANCE.add( ModBlock.TEAK_PLANKS, 30 * 20 ); // 烧 30s
         FuelRegistry.INSTANCE.add( ModBlock.TEAK_STAIRS, 15 * 20 ); // 烧 15s
         FuelRegistry.INSTANCE.add( ModBlock.TEAK_SLABS, 75 * 2 ); // 烧 7.5s
@@ -304,24 +247,33 @@ public final class ModBlock {
 
     private static Identifier registerBlock( String id, Block block ) {
         // 创建这个物体的标识符
-        Identifier blockID = new Identifier( ModInfo.MOD_ID, id );
+        Identifier blockID = ModInfo.id(id);
         // 注册这个物体
         Registry.register( Registries.BLOCK, blockID, block );
+        REGISTERED_BLOCKS.add(block);
         return blockID;
     }
 
     public static <T extends Block> T register( String id, T block, boolean shouldRegisterItem ) {
         Identifier blockID = registerBlock( id, block );
         if ( shouldRegisterItem ) {
-            Registry.register( Registries.ITEM, blockID, new BlockItem( block, new Item.Settings() ) );
+            REGISTERED_ITEMS.add(Registry.register( Registries.ITEM, blockID, new BlockItem( block, new Item.Settings() ) ));
         }
         return block;
     }
 
     public static <T extends Block> T register( String id, T block, Function<T, BlockItem> blockItemFactory ) {
         Identifier blockID = registerBlock( id, block );
-        Registry.register( Registries.ITEM, blockID, blockItemFactory.apply( block ) );
+        REGISTERED_ITEMS.add(Registry.register( Registries.ITEM, blockID, blockItemFactory.apply( block ) ));
         return block;
+    }
+
+    public static List<Item> registeredItems() {
+        return Collections.unmodifiableList(REGISTERED_ITEMS);
+    }
+
+    public static List<Block> registeredBlocks() {
+        return Collections.unmodifiableList(REGISTERED_BLOCKS);
     }
 
 }

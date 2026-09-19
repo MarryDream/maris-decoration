@@ -1,8 +1,8 @@
 {
 	"schemaVersion": 1,
 	"id": "maris-decoration",
-	"version": "0.0.1",
-	"name": "Mari's Decoration",
+	"version": "${version}",
+	"name": "Maris' Decoration",
 	"description": "Contains some decorative blocks I need",
 	"authors": [
 		"MarryDream"
@@ -20,15 +20,11 @@
 		],
 		"client": [
 			"marrydream.marisdecoration.MarisDecorationClient"
+		],
+		"fabric-datagen": [
+			"marrydream.marisdecoration.datagen.ModDataGenerator"
 		]
 	},
-	"mixins": [
-		"maris-decoration.mixins.json",
-		{
-			"config": "maris-decoration.client.mixins.json",
-			"environment": "client"
-		}
-	],
 	"depends": {
 		"fabricloader": ">=0.16.5",
 		"minecraft": "~1.20.1",

@@ -3,41 +3,36 @@ package marrydream.marisdecoration.init;
 import marrydream.marisdecoration.item.BubbleTeaItem;
 import marrydream.marisdecoration.item.SteelHammer;
 import marrydream.marisdecoration.item.SteelSpatula;
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroups;
-import net.minecraft.item.Items;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
-import net.minecraft.util.Identifier;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public final class ModItem {
-    public static final BubbleTeaItem BUBBLE_TEA = register( BubbleTeaItem.ID, new BubbleTeaItem() ); // 奶茶
-    public static final SteelSpatula STEEL_SPATULA = register( SteelSpatula.ID, new SteelSpatula() ); // 钢铲
-    public static final SteelHammer STEEL_HAMMER = register( SteelHammer.ID, new SteelHammer() ); // 钢锤
-    public static final Item REBAR = register( "rebar", new Item( new Item.Settings() ) ); // 钢筋
+    private static final List<Item> REGISTERED_ITEMS = new ArrayList<>();
 
-    public static void init( ) {
-        // 向饮品食物组添加内容
-        ItemGroupEvents.modifyEntriesEvent( ItemGroups.FOOD_AND_DRINK ).register( content -> {
-            content.addAfter( Items.MILK_BUCKET, ModItem.BUBBLE_TEA );
-        } );
-        // 向工具组添加内容
-        ItemGroupEvents.modifyEntriesEvent( ItemGroups.TOOLS ).register( content -> {
-            content.add( ModItem.STEEL_SPATULA );
-            content.add( ModItem.STEEL_HAMMER );
-        } );
-        // 向原材料组添加内容
-        ItemGroupEvents.modifyEntriesEvent( ItemGroups.INGREDIENTS ).register( content -> {
-            content.addAfter( Items.STICK, ModItem.REBAR );
-        } );
+    public static final BubbleTeaItem BUBBLE_TEA = register(BubbleTeaItem.ID, new BubbleTeaItem());
+    public static final SteelSpatula STEEL_SPATULA = register(SteelSpatula.ID, new SteelSpatula());
+    public static final SteelHammer STEEL_HAMMER = register(SteelHammer.ID, new SteelHammer());
+    public static final Item REBAR = register("rebar", new Item(new Item.Settings()));
+
+    private ModItem() {
     }
 
-    public static <T extends Item> T register( String id, T item ) {
-        // 创建这个物体的标识符
-        Identifier itemID = new Identifier( ModInfo.MOD_ID, id );
-        // 注册这个物体
-        return Registry.register( Registries.ITEM, itemID, item );
+    public static void init() {
+        // Loading this class performs registration through the static fields above.
     }
 
+    public static <T extends Item> T register(String id, T item) {
+        T registered = Registry.register(Registries.ITEM, ModInfo.id(id), item);
+        REGISTERED_ITEMS.add(registered);
+        return registered;
+    }
+
+    public static List<Item> registeredItems() {
+        return Collections.unmodifiableList(REGISTERED_ITEMS);
+    }
 }
