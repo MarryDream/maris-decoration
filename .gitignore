@@ -44,6 +44,7 @@ output/
 
 # deepseek
 dump-config-before.txt
+dump-config-after.txt
 
 # data generation cache
 src/main/generated/.cache/
