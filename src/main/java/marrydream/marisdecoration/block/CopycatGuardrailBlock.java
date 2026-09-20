@@ -99,8 +99,12 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
      */
     private static final boolean COPYCATS_LOADED = FabricLoader.getInstance().isModLoaded("copycats");
 
-    /** 顶面点击落在方块中心这个半径内时，角度没有意义，走「延续下层方向」的回落。 */
-    private static final double STACK_CENTER_DEAD_ZONE = 2.0 / 16.0;
+    /**
+     * 顶面沿长轴三等分的边界，坐标是相对该方块、归一化到 0..1 的<b>局部</b>坐标
+     * （即 1/3 = 5.333 像素、2/3 = 10.667 像素处）。
+     */
+    private static final double STACK_SPLIT_LOW = 1.0 / 3.0;
+    private static final double STACK_SPLIT_HIGH = 2.0 / 3.0;
 
     /** 「贴在某个面上」的距离阈值，沿用 Create: Copycats+ 伪装薄板的 2/16。 */
     private static final double FACE_PROXIMITY = 2.0 / 16.0;
@@ -209,31 +213,40 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
     /**
      * 点击已有护栏顶面时，决定上层护栏放在哪一侧。
      *
-     * <p>参考 Quark 竖半砖 {@code VerticalSlabBlock#getDirectionForPlacement}：点击面是竖直面
-     * 时直接用它；是水平面时，把点击位置换算成<b>以方块中心为原点</b>的水平偏移，再取
-     * {@code atan2(x, z)} 的角度交给 {@code Direction.fromRotation} 得到方向。
+     * <p>顶面是一条贴着方块边缘的窄条，沿护栏方向的长轴铺开。判定就是沿这条长轴<b>三等分</b>：
+     * 中间 1/3 继承下层方向，两端 1/3 各自对应那一侧的垂直方向。
      *
-     * <p>方向语义要转一道：Quark 返回的是「半砖朝哪一面」（所以它自己取了一次 opposite），
-     * 而我们要的是「护栏在哪一侧」，正好是那个方向的反面——两次 opposite 抵消，
-     * 于是直接用 {@code fromRotation} 的结果：点顶面的南半边得到 SOUTH，北半边得到 NORTH。
-     *
-     * <p>唯一与 Quark 不同的一点：它的竖半砖是「半砖」，顶面任何一点都明确落在某一半里；
-     * 我们的护栏贴着方块边缘，正中央那一点点区域角度没有意义，此时延续下层已有的方向
-     * （下层只有一个面时），否则回落到玩家朝向。
+     * <p>为什么不用角度判定：这条窄条离方块中心很远，相对中心的横向偏移恒定接近 0.5，
+     * 以中心算 {@code atan2} 时角度被这个恒定偏移主导——只有点到最边角才能落进侧向扇区，
+     * 侧向堆叠几乎点不出来。三等分只用长轴上的归一化坐标，与窄条离中心多远无关，
+     * 所以两侧各占满 1/3，手感是均匀的。
      */
     private static Direction directionForStacking(ItemPlacementContext context, BlockState below) {
-        BlockPos clicked = context.getBlockPos().offset(Direction.DOWN);
-        Vec3d hit = context.getHitPos();
-        double localX = hit.x - clicked.getX() - 0.5;
-        double localZ = hit.z - clicked.getZ() - 0.5;
-
-        if (Math.abs(localX) < STACK_CENTER_DEAD_ZONE && Math.abs(localZ) < STACK_CENTER_DEAD_ZONE) {
-            Direction only = singleFace(below);
-            return only != null ? only : context.getHorizontalPlayerFacing();
+        Direction current = singleFace(below);
+        if (current == null) {
+            // 下层不止一个面，没有唯一的长轴可言，退回玩家朝向作为参照
+            current = context.getHorizontalPlayerFacing();
         }
 
-        double angle = Math.atan2(localX, localZ) * -180.0 / Math.PI;
-        return Direction.fromRotation(angle);
+        // 长轴 = 护栏所在轴的另一个水平轴：
+        // 朝 NORTH/SOUTH 的护栏，顶面长条沿 X 铺开；朝 EAST/WEST 的，沿 Z 铺开。
+        Direction.Axis longAxis = current.getAxis() == Direction.Axis.X
+                ? Direction.Axis.Z
+                : Direction.Axis.X;
+
+        BlockPos clicked = context.getBlockPos().offset(Direction.DOWN);
+        Vec3d hit = context.getHitPos();
+        double along = longAxis == Direction.Axis.X
+                ? hit.x - clicked.getX()
+                : hit.z - clicked.getZ();
+
+        if (along < STACK_SPLIT_LOW) {
+            return Direction.from(longAxis, Direction.AxisDirection.NEGATIVE);
+        }
+        if (along > STACK_SPLIT_HIGH) {
+            return Direction.from(longAxis, Direction.AxisDirection.POSITIVE);
+        }
+        return current;
     }
 
     /**
