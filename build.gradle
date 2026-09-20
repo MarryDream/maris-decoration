@@ -27,6 +27,11 @@ repositories {
 	maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven" }
 	// reach-entity-attributes（Create 的运行时依赖，Porting Lib:attributes 传递引入）
 	maven { url = "https://maven.jamieswhiteshirt.com/libs-release" }
+	// Copycats+ —— 仅用于可选的兼容判断
+	maven {
+		url = "https://api.modrinth.com/maven"
+		content { includeGroup "maven.modrinth" }
+	}
 }
 
 loom {
@@ -67,6 +72,11 @@ dependencies {
 	modImplementation "com.simibubi.create:create-fabric:${project.create_version}"
 	// Create Fabric 的依赖声明里要求 forgeconfigapiport，显式引入以免解析不到
 	modApi "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:${project.forge_config_api_port_version}"
+
+	// Copycats+：只做编译期引用，用于把其它伪装方块也挡在材质之外。
+	// 用 modCompileOnly 而不是 modImplementation —— 这是可选的兼容而非依赖，
+	// 运行时会用 isModLoaded 判断，没装 Copycats+ 也照常工作。
+	modCompileOnly "maven.modrinth:copycats:${project.copycats_version}"
 }
 
 processResources {
