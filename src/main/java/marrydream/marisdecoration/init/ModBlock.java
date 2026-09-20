@@ -200,6 +200,11 @@ public final class ModBlock {
             new GuardrailBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.copy( STEEL_GUARDRAIL ) ),
             true
     ); // 黑色钢护栏
+    public static final CopycatGuardrailBlock COPYCAT_GUARDRAIL = register(
+            "copycat_guardrail",
+            new CopycatGuardrailBlock( FabricBlockSettings.copy( STEEL_GUARDRAIL ).strength( 2.0F, 3.0F ) ),
+            true
+    ); // 伪装护栏（可贴任意方块材质，四向可叠加）
     public static final Block STEEL_PLUG_DOOR = register(
             "steel_plug_door",
             new LintelThresholdThinDoorBlock(

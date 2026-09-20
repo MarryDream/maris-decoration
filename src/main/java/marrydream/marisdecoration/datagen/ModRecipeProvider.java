@@ -1,16 +1,31 @@
 package marrydream.marisdecoration.datagen;
 
 import marrydream.marisdecoration.init.ModBlock;
+import marrydream.marisdecoration.init.ModInfo;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricRecipeProvider;
 import net.minecraft.data.server.recipe.RecipeJsonProvider;
 import net.minecraft.data.server.recipe.ShapedRecipeJsonBuilder;
+import net.minecraft.data.server.recipe.SingleItemRecipeJsonBuilder;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemConvertible;
+import net.minecraft.recipe.Ingredient;
 import net.minecraft.recipe.book.RecipeCategory;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.tag.TagKey;
+import net.minecraft.util.Identifier;
 
 import java.util.function.Consumer;
 
 public final class ModRecipeProvider extends FabricRecipeProvider {
+
+    /**
+     * 锌锭标签。用标签而不是直接引用 {@code create:zinc_ingot}，与 Create 自己的伪装板配方保持一致，
+     * 这样其它把锌锭加进该标签的模组也能通用。
+     */
+    private static final TagKey<Item> ZINC_INGOTS =
+            TagKey.of(RegistryKeys.ITEM, new Identifier("c", "zinc_ingots"));
+
     public ModRecipeProvider(FabricDataOutput output) {
         super(output);
     }
@@ -25,6 +40,13 @@ public final class ModRecipeProvider extends FabricRecipeProvider {
         offerSlab(exporter, ModBlock.STEEL_SLABS, ModBlock.STEEL_BLOCK);
         offerSlab(exporter, ModBlock.CYAN_STEEL_SLABS, ModBlock.CYAN_STEEL_BLOCK);
         offerSlab(exporter, ModBlock.BLACK_STEEL_SLABS, ModBlock.BLACK_STEEL_BLOCK);
+
+        // 伪装护栏：与 Create 的伪装板规则一致——切石机，1 个锌锭出 4 个。
+        SingleItemRecipeJsonBuilder
+                .createStonecutting(Ingredient.fromTag(ZINC_INGOTS), RecipeCategory.BUILDING_BLOCKS,
+                        ModBlock.COPYCAT_GUARDRAIL, 4)
+                .criterion("has_zinc_ingot", conditionsFromTag(ZINC_INGOTS))
+                .offerTo(exporter, ModInfo.id("copycat_guardrail_from_zinc_ingots_stonecutting"));
     }
 
     private static void offerStairs(Consumer<RecipeJsonProvider> exporter, ItemConvertible result, ItemConvertible input) {

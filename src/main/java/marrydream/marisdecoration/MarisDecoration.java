@@ -1,6 +1,7 @@
 package marrydream.marisdecoration;
 
 import marrydream.marisdecoration.init.ModBlock;
+import marrydream.marisdecoration.init.ModBlockEntity;
 import marrydream.marisdecoration.init.ModItem;
 import marrydream.marisdecoration.init.ModItemGroup;
 import net.fabricmc.api.ModInitializer;
@@ -20,6 +21,8 @@ public class MarisDecoration implements ModInitializer {
     public void onInitialize( ) {
         ModItem.init();
         ModBlock.init();
+        // 必须在 ModBlock.init() 之后：方块实体类型要引用已注册的方块
+        ModBlockEntity.init();
         ModItemGroup.init();
         LOGGER.info("Initialized Maris' Decoration");
     }

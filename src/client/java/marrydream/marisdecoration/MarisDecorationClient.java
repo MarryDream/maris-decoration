@@ -1,9 +1,16 @@
 package marrydream.marisdecoration;
 
+import marrydream.marisdecoration.client.CopycatGuardrailModel;
+import marrydream.marisdecoration.block.CopycatGuardrailBlock;
 import marrydream.marisdecoration.init.ModBlock;
+import marrydream.marisdecoration.init.ModInfo;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
+import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
+import net.fabricmc.fabric.api.client.model.loading.v1.ModelModifier;
 import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.util.ModelIdentifier;
+import net.minecraft.util.Identifier;
 
 public class MarisDecorationClient implements ClientModInitializer {
 	@Override
@@ -14,5 +21,48 @@ public class MarisDecorationClient implements ClientModInitializer {
         BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL, RenderLayer.getTranslucent() );
         BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_GLASS_ROOF_STEEL_TEAK_COMPONENT_WALL, RenderLayer.getTranslucent() );
         BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_ROOF_STEEL_TRIM_CYAN_WINDOW_WALL, RenderLayer.getTranslucent() );
+
+        // copycat_guardrail 的几何由模板模型描述（每个方向一个单面模型，按角柱归属规则
+        // 组合成 16 个变体），真正的贴图在渲染时根据方块实体里的伪装材质动态替换。
+        //
+        // 注意匹配条件：方块模型在 AfterBake 阶段的 id **不是模型文件路径**，而是
+        // blockstate 变体位置，形如 maris-decoration:copycat_guardrail#north=true,...。
+        // Create 自己的 ModelSwapper 也是按 BlockModelShaper.stateToModelLocation 建表匹配的，
+        // 这里沿用同一套判定。
+        ModelLoadingPlugin.register( context -> context.modifyModelAfterBake().register(
+                ModelModifier.WRAP_PHASE,
+                ( model, ctx ) -> {
+                    Identifier id = ctx.id();
+                    if ( id == null || !ModInfo.MOD_ID.equals( id.getNamespace() ) ) {
+                        return model;
+                    }
+                    String path = id.getPath();
+                    boolean variantModel = CopycatGuardrailBlock.ID_PATH.equals( path );
+                    boolean jsonModel = path.startsWith( "block/copycat_guardrail/" );
+                    if ( !variantModel && !jsonModel ) {
+                        return model;
+                    }
+                    // 物品模型（变体的 inventory、以及它依赖的 block/.../item）必须保持静态：
+                    // 物品渲染没有方块实体，走动态模型没有意义还容易出问题。
+                    if ( path.endsWith( "/item" ) ) {
+                        return model;
+                    }
+                    if ( id instanceof ModelIdentifier modelId && "inventory".equals( modelId.getVariant() ) ) {
+                        return model;
+                    }
+                    // 变体模型与其依赖的 JSON 模型都可能命中，避免嵌套包装
+                    if ( model instanceof CopycatGuardrailModel ) {
+                        return model;
+                    }
+                    if ( !LOGGED_WRAP ) {
+                        LOGGED_WRAP = true;
+                        // 只打一次：确认模型匹配条件写对了。这行不出现就说明 id 判定仍然不匹配。
+                        MarisDecoration.LOGGER.info( "[copycat_guardrail] 已包装动态模型，首个匹配 id = {}", id );
+                    }
+                    return new CopycatGuardrailModel( model );
+                }
+        ) );
 	}
+
+    private static volatile boolean LOGGED_WRAP = false;
 }

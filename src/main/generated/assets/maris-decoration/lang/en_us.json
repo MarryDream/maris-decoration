@@ -7,6 +7,8 @@
   "block.maris-decoration.black_steel_roof_teak_wall": "Black Steel Roof Teak Wall",
   "block.maris-decoration.black_steel_slab": "Black Steel Slab",
   "block.maris-decoration.black_steel_stairs": "Black Steel Stairs",
+  "block.maris-decoration.copycat_guardrail": "Copycat Guardrail",
+  "block.maris-decoration.copycat_guardrail.tooltip": "Place with a block in your off hand to camouflage it. Face a direction to add a rail on that side; up to four per block.",
   "block.maris-decoration.cyan_glass_cyan_roof_steel_teak_component_wall": "Cyan Glass Windows Roof Steel Teak Component Wall",
   "block.maris-decoration.cyan_glass_steel_teak_component_wall": "Cyan Glass Windows Steel Teak Component Wall",
   "block.maris-decoration.cyan_roof_steel_teak_component_wall": "Cyan Roof Steel Teak Component Wall",

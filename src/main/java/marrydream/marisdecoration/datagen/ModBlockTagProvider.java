@@ -25,7 +25,7 @@ public final class ModBlockTagProvider extends FabricTagProvider.BlockTagProvide
             ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL, ModBlock.CYAN_GLASS_ROOF_STEEL_TEAK_COMPONENT_WALL,
             ModBlock.STEEL_ROOF, ModBlock.CYAN_STEEL_ROOF, ModBlock.BLACK_STEEL_ROOF,
             ModBlock.STEEL_TEAK_TRIM_ROOF, ModBlock.STEEL_TRIM_CYAN_STEEL_ROOF,
-            ModBlock.STEEL_GUARDRAIL, ModBlock.BLACK_STEEL_GUARDRAIL,
+            ModBlock.STEEL_GUARDRAIL, ModBlock.BLACK_STEEL_GUARDRAIL, ModBlock.COPYCAT_GUARDRAIL,
             ModBlock.STEEL_FIXED_LADDER, ModBlock.STEEL_VERTICAL_LADDER,
             ModBlock.STEEL_PLUG_DOOR, ModBlock.STEEL_PLUG_DOOR_WITH_ROOF,
             ModBlock.TEAK_STEEL_PLUG_DOOR_WITH_ROOF, ModBlock.CYAN_STEEL_PLUG_DOOR_WITH_ROOF,

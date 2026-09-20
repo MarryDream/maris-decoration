@@ -41,6 +41,8 @@
     "block.maris-decoration.cyan_glass_cyan_roof_steel_teak_component_wall":  "Cyan Glass Windows Roof Steel Teak Component Wall",
     "block.maris-decoration.steel_guardrail":  "Steel Guardrail",
     "block.maris-decoration.black_steel_guardrail":  "Black Steel Guardrail",
+    "block.maris-decoration.copycat_guardrail":  "Copycat Guardrail",
+    "block.maris-decoration.copycat_guardrail.tooltip":  "Place with a block in your off hand to camouflage it. Face a direction to add a rail on that side; up to four per block.",
     "block.maris-decoration.cyan_roof_steel_trim_cyan_window_wall":  "Cyan Roof Steel Trim Cyan Window Wall",
     "block.maris-decoration.steel_fixed_ladder":  "Steel Fixed Ladder",
     "block.maris-decoration.steel_vertical_ladder":  "Vertical Steel Ladder",

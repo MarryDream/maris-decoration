@@ -41,6 +41,8 @@
     "block.maris-decoration.cyan_glass_cyan_roof_steel_teak_component_wall":  "青色玻璃窗屋顶钢柚木组件墙",
     "block.maris-decoration.steel_guardrail":  "钢护栏",
     "block.maris-decoration.black_steel_guardrail":  "黑色钢护栏",
+    "block.maris-decoration.copycat_guardrail":  "伪装护栏",
+    "block.maris-decoration.copycat_guardrail.tooltip":  "用副手持方块放置会自动伪装；面对某个方向放置即在该面生成护栏，同一格最多四面",
     "block.maris-decoration.cyan_roof_steel_trim_cyan_window_wall":  "青色屋顶钢边青色窗墙",
     "block.maris-decoration.steel_fixed_ladder":  "钢固定梯",
     "block.maris-decoration.steel_vertical_ladder":  "垂直钢爬梯",

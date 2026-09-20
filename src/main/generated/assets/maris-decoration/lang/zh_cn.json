@@ -7,6 +7,8 @@
   "block.maris-decoration.black_steel_roof_teak_wall": "黑钢屋顶柚木墙",
   "block.maris-decoration.black_steel_slab": "黑色钢台阶",
   "block.maris-decoration.black_steel_stairs": "黑色钢楼梯",
+  "block.maris-decoration.copycat_guardrail": "伪装护栏",
+  "block.maris-decoration.copycat_guardrail.tooltip": "用副手持方块放置会自动伪装；面对某个方向放置即在该面生成护栏，同一格最多四面",
   "block.maris-decoration.cyan_glass_cyan_roof_steel_teak_component_wall": "青色玻璃窗屋顶钢柚木组件墙",
   "block.maris-decoration.cyan_glass_steel_teak_component_wall": "青色玻璃窗钢柚木组件墙",
   "block.maris-decoration.cyan_roof_steel_teak_component_wall": "青色屋顶钢层柚木组件墙",

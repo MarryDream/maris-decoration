@@ -1,0 +1,52 @@
+{
+    "variants": {
+        "north=false,east=false,south=false,west=false": {
+            "model": "minecraft:block/air"
+        },
+        "north=false,east=false,south=false,west=true": {
+            "model": "maris-decoration:block/copycat_guardrail/w"
+        },
+        "north=false,east=false,south=true,west=false": {
+            "model": "maris-decoration:block/copycat_guardrail/s"
+        },
+        "north=false,east=false,south=true,west=true": {
+            "model": "maris-decoration:block/copycat_guardrail/sw"
+        },
+        "north=false,east=true,south=false,west=false": {
+            "model": "maris-decoration:block/copycat_guardrail/e"
+        },
+        "north=false,east=true,south=false,west=true": {
+            "model": "maris-decoration:block/copycat_guardrail/ew"
+        },
+        "north=false,east=true,south=true,west=false": {
+            "model": "maris-decoration:block/copycat_guardrail/es"
+        },
+        "north=false,east=true,south=true,west=true": {
+            "model": "maris-decoration:block/copycat_guardrail/esw"
+        },
+        "north=true,east=false,south=false,west=false": {
+            "model": "maris-decoration:block/copycat_guardrail/n"
+        },
+        "north=true,east=false,south=false,west=true": {
+            "model": "maris-decoration:block/copycat_guardrail/nw"
+        },
+        "north=true,east=false,south=true,west=false": {
+            "model": "maris-decoration:block/copycat_guardrail/ns"
+        },
+        "north=true,east=false,south=true,west=true": {
+            "model": "maris-decoration:block/copycat_guardrail/nsw"
+        },
+        "north=true,east=true,south=false,west=false": {
+            "model": "maris-decoration:block/copycat_guardrail/ne"
+        },
+        "north=true,east=true,south=false,west=true": {
+            "model": "maris-decoration:block/copycat_guardrail/new"
+        },
+        "north=true,east=true,south=true,west=false": {
+            "model": "maris-decoration:block/copycat_guardrail/nes"
+        },
+        "north=true,east=true,south=true,west=true": {
+            "model": "maris-decoration:block/copycat_guardrail/nesw"
+        }
+    }
+}
