@@ -16,6 +16,17 @@ repositories {
 	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
 	// for more information about repositories.
+
+	// Create Fabric 本体
+	maven { url = "https://mvn.devos.one/snapshots" }
+	// Porting Lib
+	maven { url = "https://mvn.devos.one/releases" }
+	// net.createmod（Catnip/Ponder）与 Flywheel
+	maven { url = "https://maven.createmod.net" }
+	// ForgeConfigApiPort
+	maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven" }
+	// reach-entity-attributes（Create 的运行时依赖，Porting Lib:attributes 传递引入）
+	maven { url = "https://maven.jamieswhiteshirt.com/libs-release" }
 }
 
 loom {
@@ -50,7 +61,12 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	
+
+	// Create —— 伪装方块必需依赖（与 Create: Copycats+ 做法一致）
+	// Flywheel / Ponder / Registrate / Porting Lib 由 Create 传递引入
+	modImplementation "com.simibubi.create:create-fabric:${project.create_version}"
+	// Create Fabric 的依赖声明里要求 forgeconfigapiport，显式引入以免解析不到
+	modApi "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:${project.forge_config_api_port_version}"
 }
 
 processResources {
