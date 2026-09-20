@@ -7,13 +7,17 @@ import marrydream.marisdecoration.MarisDecoration;
 import marrydream.marisdecoration.block.CopycatGuardrailBlockEntity.RenderData;
 import marrydream.marisdecoration.block.utils.GuardrailParts;
 import net.fabricmc.fabric.api.renderer.v1.RendererAccess;
+import net.fabricmc.fabric.api.renderer.v1.material.BlendMode;
+import net.fabricmc.fabric.api.renderer.v1.material.RenderMaterial;
 import net.fabricmc.fabric.api.renderer.v1.mesh.MeshBuilder;
+import net.fabricmc.fabric.api.renderer.v1.mesh.MutableQuadView;
 import net.fabricmc.fabric.api.renderer.v1.mesh.QuadEmitter;
 import net.fabricmc.fabric.api.renderer.v1.model.ForwardingBakedModel;
 import net.fabricmc.fabric.api.renderer.v1.model.SpriteFinder;
 import net.fabricmc.fabric.api.renderer.v1.render.RenderContext;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.RenderLayers;
 import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.texture.SpriteAtlasTexture;
@@ -94,8 +98,20 @@ public class CopycatGuardrailModel extends ForwardingBakedModel implements Custo
 
         grouped.forEach((material, list) -> {
             BakedModel model = MinecraftClient.getInstance().getBlockRenderManager().getModel(material);
+            // 材质自己的 render layer，必须在 quad 被搬进 mesh 之前就换上
+            RenderMaterial materialBlendMode = blendModeOf(material);
             // 四边形不能在 transform 里直接发射，所以先收集进 mesh，最后一次性输出
             context.pushTransform(quad -> {
+                // 材质模型发出的 quad 都带 BlendMode.DEFAULT，意思是「用本方块注册的那个层」。
+                // 本方块注册在默认层，于是草方块/树叶的 alpha 会被当成不透明、玻璃会被当成实心，
+                // 表现就是树叶和草方块侧面覆盖层糊成黑块、玻璃丢掉透明。
+                // 这里把它换成伪装材质自己 render layer 对应的 blend mode——与 Create 的
+                // CopycatModel#MaterialFixer 完全一致，对任何材质通用，不需要按方块特判。
+                if (quad.material().blendMode() == BlendMode.DEFAULT) {
+                    quad.material(materialBlendMode);
+                }
+                // tint 也必须跟着 quad 自己的材质走，见 applyMaterialTint
+                applyMaterialTint(quad, material, blockView, pos);
                 for (Box box : list) {
                     emitter.copyFrom(quad);
                     BakedModelHelper.cropAndMove(emitter, spriteFinder.find(emitter), box, Vec3d.ZERO);
@@ -108,6 +124,69 @@ public class CopycatGuardrailModel extends ForwardingBakedModel implements Custo
         });
 
         meshBuilder.build().outputTo(context.getEmitter());
+    }
+
+    /**
+     * 伪装材质自己那套 render layer 对应的 {@link RenderMaterial}。
+     *
+     * <p>照搬 Create 的 {@code CopycatModel.MaterialFixer}：用
+     * {@code RenderLayers.getBlockLayer(material)} 取材质真正会被画进哪一个层，再转成 FRAPI 的
+     * {@link BlendMode}。草方块与树叶是 {@code cutout_mipped}（草方块侧面的覆盖层贴图带 alpha，
+     * 所以原版把它们放在这个层），玻璃是 {@code translucent}——只有跟着材质走才对。
+     */
+    private static RenderMaterial blendModeOf(BlockState material) {
+        BlendMode blendMode = BlendMode.fromRenderLayer(RenderLayers.getBlockLayer(material));
+        return RendererAccess.INSTANCE.getRenderer().materialFinder().blendMode(blendMode).find();
+    }
+
+    /**
+     * 把伪装材质自己的 tint 烘进 quad 的顶点色。
+     *
+     * <p><b>为什么必须在这里做</b>：tint 不是模型算的，是<b>渲染器</b>按「方块状态对应的
+     * {@code BlockColorProvider}」算的——quad 上的 colorIndex 只是提问，答案由方块提供器给。
+     * 草方块、树叶的颜色就是这么来的。Create 的解决方式是给伪装方块注册一个提供器
+     * （{@code CopycatBlock#wrappedColor}），它从方块实体取出材质、再把问题<b>转发</b>给材质自己的提供器。
+     *
+     * <p><b>为什么不能照搬</b>：那个提供器的签名只有 {@code (state, world, pos, tintIndex)}，
+     * 拿不到「这个 quad 属于哪个部件」。Create 一个伪装方块只有一个材质，所以够用；我们一个方块最多
+     * 八份材质（四根横梁按方向 + 四根柱子按角点），方块级提供器根本分不清该用哪一份
+     * ——给整块注册一个统一颜色，要么串色、要么全都变成同一种颜色。
+     *
+     * <p>所以这里把能力下移到 quad 级：每个 quad 都已经知道自己来自哪个 material，
+     * 就用那个 material 去问同一个 {@code BlockColors}，把答案乘进顶点色，然后清掉 colorIndex。
+     * 这样每个部件各自颜色独立，也<b>不会</b>再被护栏自己的状态算第二次错误 tint。
+     *
+     * <p>对普通 solid 方块（tint = -1 或没有 colorIndex）这里什么都不做，与之前完全一致。
+     */
+    private static void applyMaterialTint(MutableQuadView quad, BlockState material,
+                                          BlockRenderView blockView, BlockPos pos) {
+        int colorIndex = quad.colorIndex();
+        if (colorIndex < 0) {
+            return;
+        }
+        // 与 Create 的 WrappedBlockColor 问的是同一个来源：材质自己的颜色提供器
+        int tint = MinecraftClient.getInstance().getBlockColors().getColor(material, blockView, pos, colorIndex);
+        if (tint != -1) {
+            for (int vertex = 0; vertex < 4; vertex++) {
+                quad.color(vertex, multiplyRgb(quad.color(vertex), tint));
+            }
+        }
+        // 颜色已经烘进顶点色，清掉 colorIndex，避免渲染器再按护栏自己的状态算一遍
+        quad.colorIndex(-1);
+    }
+
+    /**
+     * 逐通道相乘，保留原顶点色的 alpha。
+     *
+     * <p>原版 tint 的 alpha 位是 0（草色是 {@code 0x91BD59} 这种 RGB），所以不能连 alpha 一起乘，
+     * 否则整个 quad 会变透明。保留顶点色自己的 alpha 最稳妥，也与「乘到原本的顶点颜色上」一致。
+     */
+    private static int multiplyRgb(int color, int tint) {
+        int a = (color >>> 24) & 0xFF;
+        int r = (((color >> 16) & 0xFF) * ((tint >> 16) & 0xFF)) / 255;
+        int g = (((color >> 8) & 0xFF) * ((tint >> 8) & 0xFF)) / 255;
+        int b = ((color & 0xFF) * (tint & 0xFF)) / 255;
+        return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
     private static volatile boolean DIAGNOSED = false;
