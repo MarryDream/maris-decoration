@@ -241,10 +241,18 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
 
     private void sync() {
         markDirty();
-        if (world != null && !world.isClient) {
+        if (world == null) {
+            return;
+        }
+        if (!world.isClient) {
             // Create 的同步入口：把方块实体数据推给客户端
             notifyUpdate();
+            return;
         }
+        // 客户端：本地改动（例如右键旋转材质，这个动作两端都会执行）必须自己重烘焙。
+        // 只等同步包是不行的——客户端的映射已经先被本地改动更新过，read() 里的变化检测
+        // 会因此判定「没变化」而跳过重绘，表现为「材质变了但画面不动，直到方块状态变化」。
+        redraw();
     }
 
     /**
