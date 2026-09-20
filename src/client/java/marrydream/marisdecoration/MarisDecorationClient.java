@@ -1,6 +1,8 @@
 package marrydream.marisdecoration;
 
 import marrydream.marisdecoration.client.CopycatGuardrailModel;
+import marrydream.marisdecoration.client.tooltip.MarisTooltip;
+import marrydream.marisdecoration.client.tooltip.MarisTooltip.MarisCharacteristic;
 import marrydream.marisdecoration.block.CopycatGuardrailBlock;
 import marrydream.marisdecoration.init.ModBlock;
 import marrydream.marisdecoration.init.ModInfo;
@@ -21,6 +23,15 @@ public class MarisDecorationClient implements ClientModInitializer {
         BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL, RenderLayer.getTranslucent() );
         BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_GLASS_ROOF_STEEL_TEAK_COMPONENT_WALL, RenderLayer.getTranslucent() );
         BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_ROOF_STEEL_TRIM_CYAN_WINDOW_WALL, RenderLayer.getTranslucent() );
+
+        // 说明文案走 Create 的 TooltipModifier 注册表：Create 的客户端事件会统一把它应用到物品上，
+        // 所以我们不用自己挂 tooltip 回调。这里只声明「这个方块有哪几条特性」——
+        // 标题取自共用的特性枚举，说明文字按特性名从语言文件里取，顺序就是这里的书写顺序。
+        MarisTooltip.register( ModBlock.COPYCAT_GUARDRAIL.asItem(),
+                MarisCharacteristic.CAMOUFLAGE,
+                MarisCharacteristic.COMPOSITE_STATE,
+                MarisCharacteristic.SEGMENT_CAMOUFLAGE,
+                MarisCharacteristic.ADJUSTABLE_STATE );
 
         // copycat_guardrail 的几何由模板模型描述（每个方向一个单面模型，按角柱归属规则
         // 组合成 16 个变体），真正的贴图在渲染时根据方块实体里的伪装材质动态替换。

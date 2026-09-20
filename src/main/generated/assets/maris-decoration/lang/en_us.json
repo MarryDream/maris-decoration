@@ -8,7 +8,7 @@
   "block.maris-decoration.black_steel_slab": "Black Steel Slab",
   "block.maris-decoration.black_steel_stairs": "Black Steel Stairs",
   "block.maris-decoration.copycat_guardrail": "Copycat Guardrail",
-  "block.maris-decoration.copycat_guardrail.tooltip": "Place with a block in your off hand to camouflage it. Face a direction to add a rail on that side; up to four per block.",
+  "block.maris-decoration.copycat_guardrail.tooltip.adjustable_state": "right-click a post to hide it; ",
   "block.maris-decoration.cyan_glass_cyan_roof_steel_teak_component_wall": "Cyan Glass Windows Roof Steel Teak Component Wall",
   "block.maris-decoration.cyan_glass_steel_teak_component_wall": "Cyan Glass Windows Steel Teak Component Wall",
   "block.maris-decoration.cyan_roof_steel_teak_component_wall": "Cyan Roof Steel Teak Component Wall",
@@ -52,5 +52,14 @@
   "item.maris-decoration.steel_hammer": "Steel Hammer",
   "item.maris-decoration.steel_hammer.remark.tooltip": "— \"Eighty!\"",
   "item.maris-decoration.steel_hammer.tooltip": "Right-click on [Guardrail], [Wall], [Roof], etc. to switch their connection shape",
-  "itemGroup.maris-decoration.maris_decoration": "Maris' Decoration"
+  "itemGroup.maris-decoration.maris_decoration": "Maris' Decoration",
+  "maris-decoration.characteristic.adjustable_state.prefix": "Use the _Detail Chisel_ to adjust the state: ",
+  "maris-decoration.characteristic.adjustable_state.suffix": "_Shift + right-click_ restores the block's state.",
+  "maris-decoration.characteristic.adjustable_state.title": "Adjustable State",
+  "maris-decoration.characteristic.camouflage.description": "Right-click a part with a block in hand to give it that material; right-click with a _Create Wrench_ to remove the camouflage and get the material back.",
+  "maris-decoration.characteristic.camouflage.title": "Camouflage",
+  "maris-decoration.characteristic.composite_state.description": "Several parts can share one block space, each keeping its own state.",
+  "maris-decoration.characteristic.composite_state.title": "Composite State",
+  "maris-decoration.characteristic.segment_camouflage.description": "Different parts of the same structure can be given their own material, independently of one another.",
+  "maris-decoration.characteristic.segment_camouflage.title": "Segment Camouflage"
 }
