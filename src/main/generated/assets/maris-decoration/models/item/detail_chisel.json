@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "maris-decoration:item/steel_spatula"
+    "layer0": "maris-decoration:item/detail_chisel"
   }
 }

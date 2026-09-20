@@ -35,7 +35,7 @@ public final class ModModelProvider extends FabricModelProvider {
     @Override
     public void generateItemModels(ItemModelGenerator generator) {
         generator.register(ModItem.BUBBLE_TEA, Models.GENERATED);
-        generator.register(ModItem.STEEL_SPATULA, Models.GENERATED);
+        generator.register(ModItem.DETAIL_CHISEL, Models.GENERATED);
         generator.register(ModItem.STEEL_HAMMER, Models.GENERATED);
         generator.register(ModItem.REBAR, Models.GENERATED);
     }

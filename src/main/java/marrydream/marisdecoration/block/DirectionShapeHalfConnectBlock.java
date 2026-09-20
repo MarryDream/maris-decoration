@@ -361,8 +361,8 @@ public class DirectionShapeHalfConnectBlock extends Block implements Waterloggab
     @Override
     public ActionResult onUse( BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit ) {
         Boolean hasChanged = false;
-        // 支持更换纹理条件: 允许变更纹理 + 手持钢铲刀且 + 目标拥有 half 时为上半部分方块
-        if ( allowSwitchTexture && player.getStackInHand( hand ).isOf( ModItem.STEEL_SPATULA ) && ( !hasHalfState() || state.get( HALF ) == PropHalf.TOP ) ) {
+        // 支持更换纹理条件: 允许变更纹理 + 手持细工凿且 + 目标拥有 half 时为上半部分方块
+        if ( allowSwitchTexture && player.getStackInHand( hand ).isOf( ModItem.DETAIL_CHISEL ) && ( !hasHalfState() || state.get( HALF ) == PropHalf.TOP ) ) {
             PropTexture textureState = state.get( TEXTURE );
             PropShape shape = state.get( SHAPE );
             if ( textureState == PropTexture.NONE ) {

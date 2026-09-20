@@ -86,8 +86,8 @@ public class RoofThresholdThinDoorBlock extends DoorBlock {
     // 右键时更换纹理
     @Override
     public ActionResult onUse( BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit ) {
-        // 只有手持钢铲刀且目标为上半部分方块时，才支持更换纹理
-        if ( state.get( HALF ) == DoubleBlockHalf.UPPER && player.getStackInHand( hand ).isOf( ModItem.STEEL_SPATULA ) ) {
+        // 只有手持细工凿且目标为上半部分方块时，才支持更换纹理
+        if ( state.get( HALF ) == DoubleBlockHalf.UPPER && player.getStackInHand( hand ).isOf( ModItem.DETAIL_CHISEL ) ) {
             state = state.with( TEXTURE, !state.get( TEXTURE ) );
 
             world.setBlockState( pos, state, Block.NOTIFY_LISTENERS | Block.REDRAW_ON_MAIN_THREAD );

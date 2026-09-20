@@ -2,7 +2,7 @@ package marrydream.marisdecoration.init;
 
 import marrydream.marisdecoration.item.BubbleTeaItem;
 import marrydream.marisdecoration.item.SteelHammer;
-import marrydream.marisdecoration.item.SteelSpatula;
+import marrydream.marisdecoration.item.DetailChisel;
 import net.minecraft.item.Item;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
@@ -15,7 +15,7 @@ public final class ModItem {
     private static final List<Item> REGISTERED_ITEMS = new ArrayList<>();
 
     public static final BubbleTeaItem BUBBLE_TEA = register(BubbleTeaItem.ID, new BubbleTeaItem());
-    public static final SteelSpatula STEEL_SPATULA = register(SteelSpatula.ID, new SteelSpatula());
+    public static final DetailChisel DETAIL_CHISEL = register(DetailChisel.ID, new DetailChisel());
     public static final SteelHammer STEEL_HAMMER = register(SteelHammer.ID, new SteelHammer());
     public static final Item REBAR = register("rebar", new Item(new Item.Settings()));
 
