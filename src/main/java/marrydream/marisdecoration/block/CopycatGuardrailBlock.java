@@ -102,6 +102,9 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
     /** 顶面点击落在方块中心这个半径内时，角度没有意义，走「延续下层方向」的回落。 */
     private static final double STACK_CENTER_DEAD_ZONE = 2.0 / 16.0;
 
+    /** 「贴在某个面上」的距离阈值，沿用 Create: Copycats+ 伪装薄板的 2/16。 */
+    private static final double FACE_PROXIMITY = 2.0 / 16.0;
+
     public CopycatGuardrailBlock(AbstractBlock.Settings settings) {
         super(settings);
         // 默认四面全 false。放置时由 getPlacementState 显式置位，
@@ -233,6 +236,47 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
         return Direction.fromRotation(angle);
     }
 
+    /**
+     * 点击位置是否几乎贴在「某一侧空闲面所在的平面」上。
+     *
+     * <p>判定照搬 Create: Copycats+ 的 {@code CopycatBoardBlock#canBeReplaced}。伪装薄板与护栏
+     * 的几何是同一种「贴着方块边缘、1 像素厚的板」，所以它用的两个 {@code 2/16} 距离阈值可以直接沿用。
+     *
+     * <p>思路：薄板/护栏只有 1 像素厚，所以「点在外侧面上」和「点在内侧面上」在<b>方向</b>上无法区分
+     * ——两次点击的 {@code getSide()} 都是同一个方向。真正能区分的是<b>点击位置离哪道平面更近</b>：
+     * <ul>
+     *   <li>点在朝外的那个面上 → 离方块边界 0 像素，离内侧那道空闲平面有 1 格远 → 判为相邻格；</li>
+     *   <li>点在朝内的那个面上 → 紧贴内侧那道空闲平面（差 1/16）→ 判为同格追加。</li>
+     * </ul>
+     */
+    private static boolean isFlushWithAFreeFace(BlockState state, ItemPlacementContext context, Direction side) {
+        // ① 点击面的反面那一侧还空着，且点击位置贴在那道平面上
+        Direction inner = side.getOpposite();
+        BooleanProperty innerProperty = PROPERTY_BY_DIRECTION.get(inner);
+        if (innerProperty != null && !state.get(innerProperty)) {
+            double plane = context.getBlockPos().getComponentAlongAxis(inner.getAxis());
+            if (inner.getDirection().offset() > 0) {
+                plane += 1;
+            }
+            double hit = context.getHitPos().getComponentAlongAxis(inner.getAxis());
+            if (Math.abs(plane - hit) < FACE_PROXIMITY) {
+                return true;
+            }
+        }
+
+        // ② 点击面那一侧还空着，且点击位置贴在点击面自己所在的平面上
+        BooleanProperty sideProperty = PROPERTY_BY_DIRECTION.get(side);
+        if (sideProperty != null && !state.get(sideProperty)) {
+            double hit = context.getHitPos().getComponentAlongAxis(side.getAxis());
+            double offset = hit - Math.round(hit);
+            if (Math.signum(side.getDirection().offset()) == Math.signum(offset)
+                    && Math.abs(offset) < FACE_PROXIMITY) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** 该状态只存在一个面时返回那个方向，否则返回 null。 */
     private static @Nullable Direction singleFace(BlockState state) {
         Direction found = null;
@@ -261,19 +305,28 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
         if (!state.isOf(this) || !context.getStack().isOf(this.asItem())) {
             return false;
         }
-        // 顶面专门表示「向上堆叠」，不参与同格扩展——但只在「这一格就是被点击的那个方块」时成立。
-        //
-        // canReplace 会被原版以两种语境调用，两次的 getSide() 完全相同，只有拿到的 state 不同：
-        //   1) ItemPlacementContext 构造时，对「命中位置」的方块调用。此时 canReplaceExisting()
-        //      为 true（构造器先置位、拿到结果后才覆盖），这次的结果决定目标落在命中格还是相邻格。
-        //      在这里返回 false，原版就会把目标算成上方一格。
-        //   2) canPlace() 里对「目标位置」的方块再调一次，此时 canReplaceExisting() 为 false
-        //      （canPlace 用 || 短路，为 true 时根本不会走到这里）。它的语义是「这个目标格本身
-        //      能不能接受放置」。若在这里也套用顶面规则，点击地面顶面时目标格里的护栏会被判成
-        //      不可放置，导致整次放置失败——护栏必须仍然可被追加新面。
-        if (context.canReplaceExisting() && context.getSide() == Direction.UP) {
-            return false;
+        // 下面这些只在「被问的是命中格自己」时生效。canReplace 会被原版以两种语境调用，
+        // 两次的 getSide()/getHitPos() 完全相同，只有 state 不同：
+        //   1) ItemPlacementContext 构造时对「命中位置」的方块调用，此时 canReplaceExisting()
+        //      为 true（构造器先置位、拿到结果后才覆盖），这次的结果决定目标落在命中格还是相邻格；
+        //   2) canPlace() 里对「目标位置」的方块再调一次，此时为 false（canPlace 用 || 短路）。
+        // 它的语义是「这个目标格本身能不能接受放置」——护栏必须仍然可被追加新面，
+        // 否则点地面顶面时整次放置会直接失败。
+        if (context.canReplaceExisting()) {
+            Direction side = context.getSide();
+
+            // 顶面 → 向上堆叠（目标算成上方一格）
+            if (side == Direction.UP) {
+                return false;
+            }
+
+            // 竖直面 → 只有点击位置几乎贴在「该侧那道空闲平面」上，才算在同一格继续追加；
+            // 否则视为点在护栏的**外侧面**上，应当放到该面相邻的一格。
+            if (side.getAxis().isHorizontal() && !isFlushWithAFreeFace(state, context, side)) {
+                return false;
+            }
         }
+
         Direction facing = context.getHorizontalPlayerFacing();
         BooleanProperty property = PROPERTY_BY_DIRECTION.get(facing);
         if (property == null) {
