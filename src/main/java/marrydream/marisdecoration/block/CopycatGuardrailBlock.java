@@ -220,11 +220,18 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
      * 以中心算 {@code atan2} 时角度被这个恒定偏移主导——只有点到最边角才能落进侧向扇区，
      * 侧向堆叠几乎点不出来。三等分只用长轴上的归一化坐标，与窄条离中心多远无关，
      * 所以两侧各占满 1/3，手感是均匀的。
+     *
+     * <p>遗留项：下层护栏不止一个面时没有唯一长轴，见方法体内的 TODO。
      */
     private static Direction directionForStacking(ItemPlacementContext context, BlockState below) {
         Direction current = singleFace(below);
         if (current == null) {
             // 下层不止一个面，没有唯一的长轴可言，退回玩家朝向作为参照
+            // TODO 多面下层时的参照方向：现在只拿玩家朝向顶替，玩家背对着点、或者从
+            //  斜角点的时候，选中的长轴可能不是他眼睛盯着的那条，「中 1/3 继承」就继承到了
+            //  一个他没在看的方向。想改成优先取玩家正对的那个面（在下面的面里挑一个最接近
+            //  getHorizontalPlayerFacing() 的），都落空时再退到玩家朝向。
+            //  顺带一并想清楚：两个垂直面时该以哪条为长轴、以及是否干脆不给继承区。
             current = context.getHorizontalPlayerFacing();
         }
 
