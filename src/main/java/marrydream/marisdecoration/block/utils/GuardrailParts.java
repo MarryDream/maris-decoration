@@ -153,24 +153,52 @@ public final class GuardrailParts {
         return Math.round(box.minX * 16) + "_" + Math.round(box.minZ * 16);
     }
 
-    /**
-     * 材质槽的键名。整块共有 8 个槽位（4 个方向 × 柱/横梁），每个槽位独立存一份伪装材质。
-     *
-     * <p>键名同时是渲染数据的键，生成脚本按同样的规则给每个几何体分配占位贴图，
-     * 两边必须保持一致。
-     */
-    public static String key(Direction face, Slot slot) {
-        return face.asString() + (slot == Slot.COLUMN ? "_column" : "_row");
+    /** 横梁槽位键名：每个方向一根，例如 {@code north_row}。 */
+    public static String rowKey(Direction face) {
+        return face.asString() + "_row";
     }
 
-    /** 全部 8 个槽位键名。 */
+    /**
+     * 柱子槽位键名：四个角点各一个，就是 {@link #columnKey(Box)} 给出的角点身份
+     * （{@code 0_0} / {@code 15_0} / {@code 15_15} / {@code 0_15}）。
+     *
+     * <p>柱子<b>刻意不按方向归属</b>。一个角点在几何上可能由两个方向之一画出来——自有柱，
+     * 或者归属方向缺席时由相邻方向的共享柱补上。若按方向存材质，「这根共享柱到底用哪一面的柱材质」
+     * 就没有答案，而且 NORTH + EAST 都存一份就会存出两份互相打架的材质。按角点存则天然只有一份，
+     * 共享它的两个方向看到的是同一根柱子、同一份材质。
+     */
+    public static List<String> columnKeys() {
+        List<String> keys = new ArrayList<>(4);
+        for (Direction dir : CopycatGuardrailBlock.FACES) {
+            String key = columnKey(PARTS.get(dir).owned().box());
+            if (!keys.contains(key)) {
+                keys.add(key);
+            }
+        }
+        return keys;
+    }
+
+    /** 一个部件对应的材质槽键名：横梁按方向，柱子按角点。 */
+    public static String materialKey(Direction face, Part part) {
+        return part.slot() == Slot.COLUMN ? columnKey(part.box()) : rowKey(face);
+    }
+
+    /** 一次命中对应的材质槽键名。 */
+    public static String materialKey(Hit hit) {
+        return hit.slot() == Slot.COLUMN ? hit.columnKey() : rowKey(hit.face());
+    }
+
+    /**
+     * 全部 8 个槽位键名：4 根横梁（按方向）+ 4 根柱子（按角点）。
+     *
+     * <p>键名同时是渲染数据的键，两边必须保持一致。
+     */
     public static List<String> allKeys() {
         List<String> keys = new ArrayList<>(8);
         for (Direction dir : CopycatGuardrailBlock.FACES) {
-            for (Slot slot : Slot.values()) {
-                keys.add(key(dir, slot));
-            }
+            keys.add(rowKey(dir));
         }
+        keys.addAll(columnKeys());
         return keys;
     }
 
@@ -184,7 +212,7 @@ public final class GuardrailParts {
         Map<String, List<Box>> out = new LinkedHashMap<>();
         for (Direction dir : CopycatGuardrailBlock.FACES) {
             for (Part part : directionParts(mask, dir, hiddenColumns)) {
-                out.computeIfAbsent(key(dir, part.slot()), unused -> new ArrayList<>()).add(part.box());
+                out.computeIfAbsent(materialKey(dir, part), unused -> new ArrayList<>()).add(part.box());
             }
         }
         return out;

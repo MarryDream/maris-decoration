@@ -4,7 +4,6 @@ import com.copycatsplus.copycats.foundation.copycat.ICopycatBlock;
 import com.simibubi.create.content.decoration.copycat.CopycatBlock;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import marrydream.marisdecoration.block.utils.GuardrailParts;
-import marrydream.marisdecoration.block.utils.GuardrailParts.Slot;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
@@ -55,8 +54,9 @@ import java.util.Set;
  * {@code copycat_board} 范式——每个面一个 {@link BooleanProperty}，由
  * {@link #canReplace} 放行，交给原版消耗物品并重新进入放置流程。
  *
- * <p>伪装部分参照 Create 的 copycat：整块共享「柱」和「横梁」两个材质槽，
- * 副手持方块放置时自动伪装，右键可以按命中部位单独更换其中一个槽位。
+ * <p>伪装部分参照 Create 的 copycat：<b>横梁按方向、柱子按角点</b>各存一份独立材质
+ * （角柱可能被两个方向共用，材质必须跟着角点而不是方向走），副手持方块放置时自动伪装横梁，
+ * 右键可以按命中部位单独更换一个槽位的材质，每个槽位独立消耗、独立返还。
  * 扳手交互实现 Create 的 {@link IWrenchable}：直接右键还原伪装并返还材质，
  * 潜行右键拆掉命中的那一面。
  *
@@ -487,7 +487,9 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
         if (part == null) {
             return ActionResult.PASS;
         }
-        String key = GuardrailParts.key(part.face(), part.slot());
+        // 材质槽的身份跟着部件走：横梁按方向，柱子按角点。
+        // 柱子按角点意味着两个方向共用的那根角柱只有一个槽位，不会存出两份材质。
+        String key = GuardrailParts.materialKey(part);
 
         // 手里拿的方块和这一槽已有的材质是「同一种方块」时：旋转它的朝向，而不是再贴一次。
         // 判据是方块相同而非状态相同，所以贴了原木之后反复右键就能 X→Y→Z 循环。
@@ -505,11 +507,11 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
         }
 
         if (!world.isClient) {
-            // 沿用 Create 的规则：整块里只要有部件为同种物品付过账，之后就不再扣物品
-            boolean freeToApply = blockEntity.alreadyPaidWith(stack);
-            blockEntity.setMaterial(key, material, freeToApply ? ItemStack.EMPTY : stack);
+            // 每个部件独立付账：贴一次扣一个物品，四根柱子分别贴就是四个。
+            // 不做「同种材料只付一次」的去重——那样拆掉整块时也只能还回一份，与逐根独立消耗对不上。
+            blockEntity.setMaterial(key, material, stack);
             world.playSound(null, pos, material.getSoundGroup().getPlaceSound(), SoundCategory.BLOCKS, 1.0F, 0.75F);
-            if (!player.isCreative() && !freeToApply) {
+            if (!player.isCreative()) {
                 stack.decrement(1);
             }
         }
@@ -530,20 +532,19 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
         if (!(world.getBlockEntity(pos) instanceof CopycatGuardrailBlockEntity blockEntity)) {
             return;
         }
-        // 副手只填横梁，柱子留空。
+        // 副手只填横梁，柱子留空——柱子按角点独立付账，不跟着副手一起铺。
         // 与 Copycats+ 的 setPlacedBy 一样：遍历所有存在的部件，跳过已经有材质的，
         // 每个部件消耗一个物品。放置瞬间通常只有一个面存在，所以实际就是「填这一面的横梁」。
         for (Direction dir : FACES) {
             if (!hasFace(state, dir)) {
                 continue;
             }
-            String key = GuardrailParts.key(dir, Slot.ROW);
+            String key = GuardrailParts.rowKey(dir);
             if (blockEntity.hasMaterial(key)) {
                 continue;
             }
-            boolean freeToApply = blockEntity.alreadyPaidWith(offhand);
-            blockEntity.setMaterial(key, material, freeToApply ? ItemStack.EMPTY : offhand);
-            if (player.isCreative() || freeToApply) {
+            blockEntity.setMaterial(key, material, offhand);
+            if (player.isCreative()) {
                 continue;
             }
             offhand.decrement(1);
@@ -570,7 +571,7 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
         if (part == null) {
             return ActionResult.PASS;
         }
-        String key = GuardrailParts.key(part.face(), part.slot());
+        String key = GuardrailParts.materialKey(part);
         if (!blockEntity.hasMaterial(key)) {
             return ActionResult.PASS;
         }

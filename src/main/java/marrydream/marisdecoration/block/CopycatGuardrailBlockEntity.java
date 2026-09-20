@@ -31,9 +31,16 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * {@code copycat_guardrail} 的方块实体。
  *
- * <p>整块有 <b>8 个互相独立的伪装材质槽</b>——4 个方向 × 柱/横梁，键名形如
- * {@code north_column} / {@code north_row}。这与 Create: Copycats+ 的
- * {@code MaterialItemStorage} 是同一套思路：以部件名为键的映射，NBT 存成一个
+ * <p>整块有 <b>8 个互相独立的伪装材质槽</b>，但两类部件的身份规则不同：
+ * <ul>
+ *   <li><b>横梁</b>按方向，4 个槽：{@code north_row} / {@code east_row} / {@code south_row} / {@code west_row}；</li>
+ *   <li><b>柱子</b>按角点，4 个槽：{@code 0_0} / {@code 15_0} / {@code 15_15} / {@code 0_15}。</li>
+ * </ul>
+ * 柱子不按方向归属，是因为一个角点会被两个方向共用（NORTH + EAST 的东北角只有一根柱子）：
+ * 按方向存就会出现「这根共享柱到底用哪一面的柱材质」的歧义，两个方向各存一份还会存出两份。
+ *
+ * <p>这套「以部件名为键的映射」与 Create: Copycats+ 的
+ * {@code MaterialItemStorage} 是同一套思路：NBT 存成一个
  * {@code material_data} 复合标签，每个部件一个子标签，子标签里放材质和「被消耗的那个物品」。
  *
  * <p><b>为什么继承 Create 的 {@link SmartBlockEntity} 而不是原版 {@code BlockEntity}</b>：
@@ -99,17 +106,6 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
     }
 
     /**
-     * 是否已经有槽位为同种物品付过账。
-     *
-     * <p>沿用 Create 的规则：整块里只要有任何一个部件已经消耗过同种物品，之后再用同种物品
-     * 伪装其它部件就不再扣物品。
-     */
-    public boolean alreadyPaidWith(ItemStack stack) {
-        return consumedItems.values().stream()
-                .anyMatch(paid -> !paid.isEmpty() && paid.getItem() == stack.getItem());
-    }
-
-    /**
      * 给某个槽位附着伪装材质；{@code consumed} 是被消耗的那个物品堆。
      *
      * <p>沿用 Create 的 {@code CopycatBlockEntity#setMaterial} 与 Create: Copycats+ 的
@@ -157,27 +153,12 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
     /**
      * 拆掉某个槽位时决定实际要返还的物品。
      *
-     * <p>沿用 Create: Copycats+ 的做法：整块里同一种材质只会在「第一个」槽位上留下被消耗物品的
-     * 记录（后续槽位因为已经付过账，记录为空）。所以拆一个槽位时，先把这条记录<b>迁移</b>到另一个
-     * 材质相同、记录为空的槽位上——迁移成功就说明这块里还有同材质的部件，本次不返还；
-     * 只有拆掉最后一个同材质槽位、记录无处可迁时，才真的把物品还回去。
+     * <p>每个槽位都是<b>独立付账、独立返还</b>：谁消耗的就记在谁头上，拆谁就还谁那一份。
+     * 所以这里直接返回本槽位自己记录的被消耗物品，不做任何迁移或去重——
+     * 四根柱子分别用了石头就是四条记录，拆掉整块时如实还回四个石头，不会因为材质相同被并成一份。
      */
     public ItemStack takeConsumedItemForRemoval(String key) {
         ItemStack returned = consumedItem(key);
-        if (!returned.isEmpty()) {
-            Block block = material(key).getBlock();
-            for (String other : GuardrailParts.allKeys()) {
-                if (other.equals(key)) {
-                    continue;
-                }
-                if (material(other).getBlock() != block || !consumedItem(other).isEmpty()) {
-                    continue;
-                }
-                consumedItems.put(other, returned);
-                returned = ItemStack.EMPTY;
-                break;
-            }
-        }
         materials.put(key, NO_MATERIAL);
         consumedItems.put(key, ItemStack.EMPTY);
         sync();
@@ -395,7 +376,7 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
      *
      * <p>两份数据必须一起给：渲染层要按材质分组发射模型，同时要把隐藏的柱子从几何里剔掉。
      *
-     * <p>键名与 {@link GuardrailParts#key} 一致，生成脚本按同样的键名给每个几何体分配了占位贴图。
+     * <p>键名与 {@link GuardrailParts#materialKey} 一致：横梁按方向，柱子按角点。
      */
     public record RenderData(Map<String, BlockState> materials, Set<String> hiddenColumns) {
     }

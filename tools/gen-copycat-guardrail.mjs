@@ -24,11 +24,18 @@ const STALE_MARKER_DIR = join(ASSETS, 'textures/block/copycat_guardrail/marker')
 /** 未伪装时的默认外观，与 Create 的 copycat 保持一致。 */
 const DEFAULT_TEXTURE = 'create:block/copycat_base';
 
-/** 整块有 4 方向 × 柱/横梁 = 8 个互相独立的材质槽，键名与 Java 侧 GuardrailParts.key 一致。 */
-const SLOT_KEYS = [];
-for (const dir of ['north', 'east', 'south', 'west']) {
-    for (const slot of ['column', 'row']) SLOT_KEYS.push(`${dir}_${slot}`);
-}
+/**
+ * 全部 8 个材质槽位，键名与 Java 侧 GuardrailParts.materialKey 一致：
+ * 4 根横梁按<b>方向</b>（{@code north_row}…），4 根柱子按<b>角点</b>（{@code 0_0}…）。
+ * 柱子不按方向归属——一个角点会被两个方向共用，两个方向各存一份就会存出两份材质。
+ */
+const SLOT_KEYS = [
+    ...['north', 'east', 'south', 'west'].map((dir) => `${dir}_row`),
+    ...['15_0', '15_15', '0_15', '0_0'],
+];
+
+/** 角落代号 → 角点键名（与 Java 侧 columnKey 一致：角点在 1/16 单位下的 (x, z)）。 */
+const CORNER_KEY = { NE: '15_0', SE: '15_15', SW: '0_15', NW: '0_0' };
 
 /** 基准单面模型 = guardrail/straight.json 的东面（facing=east，不旋转）。 */
 const BASE = {
@@ -48,6 +55,14 @@ const FACINGS = {
     south: { rot: 90, sharedOwner: 'east' },   // 共享角 = 东南，归 east
     west: { rot: 180, sharedOwner: 'south' },  // 共享角 = 西南，归 south
     north: { rot: 270, sharedOwner: 'west' },  // 共享角 = 西北，归 west
+};
+
+/** 各方向的自有柱 / 共享柱分别落在哪个角落。 */
+const CORNER_OF = {
+    east: { owned: 'SE', shared: 'NE' },
+    south: { owned: 'SW', shared: 'SE' },
+    west: { owned: 'NW', shared: 'SW' },
+    north: { owned: 'NE', shared: 'NW' },
 };
 
 const ORDER = ['north', 'east', 'south', 'west'];
@@ -108,15 +123,16 @@ function toElement(box, texture) {
     };
 }
 
-/** 某个方向在本组合下的几何贡献。 */
+/** 某个方向在本组合下的几何贡献。柱子按角点而不是方向命名槽位。 */
 function contributions(dir, present) {
     const { rot, sharedOwner } = FACINGS[dir];
+    const corners = CORNER_OF[dir];
     const out = [];
     for (const rail of BASE.rails) out.push({ box: rotateBox(rail, rot), key: `${dir}_row` });
-    out.push({ box: rotateBox(BASE.postOwned, rot), key: `${dir}_column` });
+    out.push({ box: rotateBox(BASE.postOwned, rot), key: CORNER_KEY[corners.owned] });
     // 共享柱：只有归属方向缺席时才补画，避免与对方重合。
     if (!present.has(sharedOwner)) {
-        out.push({ box: rotateBox(BASE.postShared, rot), key: `${dir}_column` });
+        out.push({ box: rotateBox(BASE.postShared, rot), key: CORNER_KEY[corners.shared] });
     }
     return out;
 }
@@ -178,13 +194,6 @@ if (existsSync(STALE_MARKER_DIR)) {
 }
 
 // ---- 自检：角柱归属规则 ----
-
-const CORNER_OF = {
-    east: { owned: 'SE', shared: 'NE' },
-    south: { owned: 'SW', shared: 'SE' },
-    west: { owned: 'NW', shared: 'SW' },
-    north: { owned: 'NE', shared: 'NW' },
-};
 
 let failed = 0;
 console.log('combo  柱数  角柱分布                     结果');
