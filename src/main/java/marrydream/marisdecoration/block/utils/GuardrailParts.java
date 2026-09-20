@@ -7,9 +7,11 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -130,7 +132,48 @@ public final class GuardrailParts {
         }
     }
 
-    /** 某个方向在当前状态下实际可见的几何。 */
+    /** 一次命中定位的结果：命中哪个方向的护栏、以及是柱还是横梁。 */
+    public record Hit(Direction face, Slot slot) {
+    }
+
+    /**
+     * 材质槽的键名。整块共有 8 个槽位（4 个方向 × 柱/横梁），每个槽位独立存一份伪装材质。
+     *
+     * <p>键名同时是渲染数据的键，生成脚本按同样的规则给每个几何体分配占位贴图，
+     * 两边必须保持一致。
+     */
+    public static String key(Direction face, Slot slot) {
+        return face.asString() + (slot == Slot.COLUMN ? "_column" : "_row");
+    }
+
+    /** 全部 8 个槽位键名。 */
+    public static List<String> allKeys() {
+        List<String> keys = new ArrayList<>(8);
+        for (Direction dir : CopycatGuardrailBlock.FACES) {
+            for (Slot slot : Slot.values()) {
+                keys.add(key(dir, slot));
+            }
+        }
+        return keys;
+    }
+
+    /**
+     * 当前状态下每个槽位键对应的几何体盒子。
+     *
+     * <p>渲染层按这个分组：同一种材质的所有盒子共用一次材质模型发射，再把每个面裁剪进各自的盒子。
+     */
+    public static Map<String, List<Box>> boxesByKey(BlockState state) {
+        int mask = CopycatGuardrailBlock.maskOf(state);
+        Map<String, List<Box>> out = new LinkedHashMap<>();
+        for (Direction dir : CopycatGuardrailBlock.FACES) {
+            for (Part part : directionParts(mask, dir)) {
+                out.computeIfAbsent(key(dir, part.slot()), unused -> new ArrayList<>()).add(part.box());
+            }
+        }
+        return out;
+    }
+
+    /** 某个方向在本状态下实际可见的几何。 */
     private static List<Part> directionParts(int mask, Direction dir) {
         if (!CopycatGuardrailBlock.maskHas(mask, dir)) {
             return List.of();
@@ -154,23 +197,6 @@ public final class GuardrailParts {
         return out;
     }
 
-    /** 命中点落在哪个方向的几何上；用于扳手拆除单个面。 */
-    public static Direction faceAt(BlockState state, Vec3d hit) {
-        int mask = CopycatGuardrailBlock.maskOf(state);
-        Direction best = null;
-        double bestDistance = Double.MAX_VALUE;
-        for (Direction dir : CopycatGuardrailBlock.FACES) {
-            for (Part part : directionParts(mask, dir)) {
-                double d = distanceSquared(part.box(), hit);
-                if (d < bestDistance) {
-                    bestDistance = d;
-                    best = dir;
-                }
-            }
-        }
-        return best;
-    }
-
     public static List<Part> parts(BlockState state) {
         return partsFor(CopycatGuardrailBlock.maskOf(state));
     }
@@ -188,18 +214,24 @@ public final class GuardrailParts {
     }
 
     /**
-     * 判断右键点到的是柱还是横梁。
+     * 判断命中点落在哪一个部件上——既给出方向，也给出柱/横梁。
      *
-     * <p>角柱与横梁在几何上互不重叠，因此取距离最近的部件即可稳定判定。
+     * <p>各部件在几何上互不重叠，取距离最近的那个即可稳定判定。
+     * 注意选取箱是「完整一面」，命中点在整面表面上，所以这里比的到实际几何体的距离，
+     * 而不是到选取箱的距离：打面中段会落到横梁上，打两端 1/16 范围才落到柱子上。
      */
-    public static Slot slotAt(BlockState state, Vec3d hit) {
-        Slot best = Slot.ROW;
+    @Nullable
+    public static Hit partAt(BlockState state, Vec3d hit) {
+        int mask = CopycatGuardrailBlock.maskOf(state);
+        Hit best = null;
         double bestDistance = Double.MAX_VALUE;
-        for (Part part : parts(state)) {
-            double d = distanceSquared(part.box(), hit);
-            if (d < bestDistance) {
-                bestDistance = d;
-                best = part.slot();
+        for (Direction dir : CopycatGuardrailBlock.FACES) {
+            for (Part part : directionParts(mask, dir)) {
+                double d = distanceSquared(part.box(), hit);
+                if (d < bestDistance) {
+                    bestDistance = d;
+                    best = new Hit(dir, part.slot());
+                }
             }
         }
         return best;

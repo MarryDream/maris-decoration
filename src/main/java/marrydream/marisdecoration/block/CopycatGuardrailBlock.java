@@ -1,9 +1,11 @@
 package marrydream.marisdecoration.block;
 
+import com.copycatsplus.copycats.foundation.copycat.ICopycatBlock;
 import com.simibubi.create.content.decoration.copycat.CopycatBlock;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import marrydream.marisdecoration.block.utils.GuardrailParts;
 import marrydream.marisdecoration.block.utils.GuardrailParts.Slot;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockEntityProvider;
@@ -24,6 +26,7 @@ import net.minecraft.item.ItemUsageContext;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.util.ActionResult;
@@ -88,6 +91,14 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
     private static final TagKey<Block> COPYCAT_DENY =
             TagKey.of(RegistryKeys.BLOCK, new Identifier("create", "copycat_deny"));
 
+    /**
+     * Copycats+ 是否在场。
+     *
+     * <p>这是<b>可选兼容</b>而不是依赖：build.gradle 里用 {@code modCompileOnly} 引入，
+     * 所以没装 Copycats+ 也能正常加载；下面引用它的类之前会先看这个标志。
+     */
+    private static final boolean COPYCATS_LOADED = FabricLoader.getInstance().isModLoaded("copycats");
+
     public CopycatGuardrailBlock(AbstractBlock.Settings settings) {
         super(settings);
         // 默认四面全 false。放置时由 getPlacementState 显式置位，
@@ -139,6 +150,11 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
         return context.getHitPos().subtract(pos.getX(), pos.getY(), pos.getZ());
     }
 
+    /** 把命中点换算到方块本地坐标（0..1）。 */
+    private static Vec3d localHit(BlockHitResult hit, BlockPos pos) {
+        return hit.getPos().subtract(pos.getX(), pos.getY(), pos.getZ());
+    }
+
     // ---------------------------------------------------------------- 放置
 
     @Override
@@ -148,15 +164,22 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
 
     @Override
     public @Nullable BlockState getPlacementState(ItemPlacementContext context) {
-        BooleanProperty property = PROPERTY_BY_DIRECTION.get(context.getHorizontalPlayerFacing());
+        Direction facing = context.getHorizontalPlayerFacing();
+        BooleanProperty property = PROPERTY_BY_DIRECTION.get(facing);
         if (property == null) {
             return null;
         }
         BlockPos pos = context.getBlockPos();
         BlockState existing = context.getWorld().getBlockState(pos);
         if (existing.isOf(this)) {
-            // 同一个方块内换一个方向继续叠加（保留原有的含水状态）
-            return existing.with(property, true);
+            // 同一个方块内继续叠加（保留原有的含水状态）。
+            // 朝向那一面已经占了就退到对立面：正对着已放好的护栏再右键时应该在对侧补一根，
+            // 而不是跑到旁边另起一个新方块。
+            if (!existing.get(property)) {
+                return existing.with(property, true);
+            }
+            BooleanProperty opposite = PROPERTY_BY_DIRECTION.get(facing.getOpposite());
+            return opposite == null ? null : existing.with(opposite, true);
         }
         // 必须从「四面全 false」出发，否则默认状态里预置的面会一起出现
         BlockState fresh = getDefaultState();
@@ -170,14 +193,27 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
     /**
      * 让原版认为「这个位置还可以再放一个」。返回 true 时，原版会消耗一个物品并重新调用
      * {@link #getPlacementState}，这正是多面叠加所需的行为。
+     *
+     * <p>注意：这个方法由 {@code ItemPlacementContext} 的构造器对<b>命中位置的方块</b>调用，
+     * 那个方块未必是本方块（手里拿着护栏右键石头时也会走到这里），所以必须先确认类型，
+     * 否则读取不具备的方块属性会抛异常。
      */
     @Override
     public boolean canReplace(BlockState state, ItemPlacementContext context) {
-        if (!context.getStack().isOf(this.asItem())) {
+        if (!state.isOf(this) || !context.getStack().isOf(this.asItem())) {
             return false;
         }
-        BooleanProperty property = PROPERTY_BY_DIRECTION.get(context.getHorizontalPlayerFacing());
-        return property != null && !state.get(property);
+        Direction facing = context.getHorizontalPlayerFacing();
+        BooleanProperty property = PROPERTY_BY_DIRECTION.get(facing);
+        if (property == null) {
+            return false;
+        }
+        if (!state.get(property)) {
+            return true;
+        }
+        // 朝向那一面已占时，允许改放到对立面——仍然是同一个方块
+        BooleanProperty opposite = PROPERTY_BY_DIRECTION.get(facing.getOpposite());
+        return opposite != null && !state.get(opposite);
     }
 
     @Override
@@ -243,6 +279,12 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
         if (block instanceof CopycatBlock || block instanceof CopycatGuardrailBlock) {
             return null;
         }
+        // Copycats+ 的伪装方块不是 Create CopycatBlock 的子类（它们自己定义了 ICopycatBlock），
+        // 所以得单独挡一次，否则一个填满的伪装小方块能通过下面的完整立方体检查被当成材质。
+        // 装了就生效，没装时这行不会执行。
+        if (COPYCATS_LOADED && block instanceof ICopycatBlock) {
+            return null;
+        }
 
         BlockState state = block.getDefaultState();
         if (!state.isIn(COPYCAT_ALLOW)) {
@@ -296,17 +338,33 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
             return ActionResult.PASS;
         }
 
-        Vec3d localHit = hit.getPos().subtract(pos.getX(), pos.getY(), pos.getZ());
-        Slot slot = GuardrailParts.slotAt(state, localHit);
-        if (blockEntity.hasMaterial(slot)) {
-            // 想换材质先用扳手还原
+        GuardrailParts.Hit part = GuardrailParts.partAt(state, localHit(hit, pos));
+        if (part == null) {
+            return ActionResult.PASS;
+        }
+        String key = GuardrailParts.key(part.face(), part.slot());
+
+        // 手里拿的方块和这一槽已有的材质是「同一种方块」时：旋转它的朝向，而不是再贴一次。
+        // 判据是方块相同而非状态相同，所以贴了原木之后反复右键就能 X→Y→Z 循环。
+        if (blockEntity.material(key).isOf(material.getBlock())) {
+            if (!blockEntity.cycleMaterial(key)) {
+                // 这个材质没有任何可旋转的属性，交还给原版（手里的方块会被正常放置）
+                return ActionResult.PASS;
+            }
+            world.playSound(null, pos, SoundEvents.ENTITY_ITEM_FRAME_ADD_ITEM, SoundCategory.BLOCKS, 0.75F, 0.95F);
+            return ActionResult.SUCCESS;
+        }
+        // 已经有材质的部件要先用扳手还原，和 Create 的伪装板一致
+        if (blockEntity.hasMaterial(key)) {
             return ActionResult.PASS;
         }
 
         if (!world.isClient) {
-            blockEntity.applyMaterial(slot, material, stack);
+            // 沿用 Create 的规则：整块里只要有部件为同种物品付过账，之后就不再扣物品
+            boolean freeToApply = blockEntity.alreadyPaidWith(stack);
+            blockEntity.setMaterial(key, material, freeToApply ? ItemStack.EMPTY : stack);
             world.playSound(null, pos, material.getSoundGroup().getPlaceSound(), SoundCategory.BLOCKS, 1.0F, 0.75F);
-            if (!player.isCreative()) {
+            if (!player.isCreative() && !freeToApply) {
                 stack.decrement(1);
             }
         }
@@ -327,32 +385,60 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
         if (!(world.getBlockEntity(pos) instanceof CopycatGuardrailBlockEntity blockEntity)) {
             return;
         }
-        // 副手只伪装横梁，柱子保持未伪装状态
-        blockEntity.applyMaterial(Slot.ROW, material, offhand);
-        if (!player.isCreative()) {
+        // 副手只填横梁，柱子留空。
+        // 与 Copycats+ 的 setPlacedBy 一样：遍历所有存在的部件，跳过已经有材质的，
+        // 每个部件消耗一个物品。放置瞬间通常只有一个面存在，所以实际就是「填这一面的横梁」。
+        for (Direction dir : FACES) {
+            if (!hasFace(state, dir)) {
+                continue;
+            }
+            String key = GuardrailParts.key(dir, Slot.ROW);
+            if (blockEntity.hasMaterial(key)) {
+                continue;
+            }
+            boolean freeToApply = blockEntity.alreadyPaidWith(offhand);
+            blockEntity.setMaterial(key, material, freeToApply ? ItemStack.EMPTY : offhand);
+            if (player.isCreative() || freeToApply) {
+                continue;
+            }
             offhand.decrement(1);
+            if (offhand.isEmpty()) {
+                player.setStackInHand(Hand.OFF_HAND, ItemStack.EMPTY);
+                break;
+            }
         }
     }
 
     // ---------------------------------------------------------------- 扳手
 
-    /** 直接右键：还原伪装并返还材质（创造模式不返还）。 */
+    /** 直接右键：只还原当前对着的那一个部件的材质（创造模式不返还）。 */
     @Override
     public ActionResult onWrenched(BlockState state, ItemUsageContext context) {
         World world = context.getWorld();
         BlockPos pos = context.getBlockPos();
         PlayerEntity player = context.getPlayer();
 
-        if (!(world.getBlockEntity(pos) instanceof CopycatGuardrailBlockEntity blockEntity)
-                || !blockEntity.hasAnyMaterial()) {
+        if (!(world.getBlockEntity(pos) instanceof CopycatGuardrailBlockEntity blockEntity)) {
             return ActionResult.PASS;
         }
+        GuardrailParts.Hit part = GuardrailParts.partAt(state, localHit(context));
+        if (part == null) {
+            return ActionResult.PASS;
+        }
+        String key = GuardrailParts.key(part.face(), part.slot());
+        if (!blockEntity.hasMaterial(key)) {
+            return ActionResult.PASS;
+        }
+
         if (!world.isClient) {
-            if (player != null && !player.isCreative()) {
+            BlockState material = blockEntity.material(key);
+            ItemStack returned = blockEntity.takeConsumedItemForRemoval(key);
+            if (player != null && !player.isCreative() && !returned.isEmpty()) {
                 // 直接进背包，不是掉在地上——Create 扳手的原生行为
-                blockEntity.giveMaterialsTo(player);
+                player.getInventory().offerOrDrop(returned);
             }
-            blockEntity.clearAllMaterials();
+            // 播放「被敲掉的那个材质」的破坏粒子，让撞掉的是什么一目了然
+            world.syncWorldEvent(2001, pos, Block.getRawIdFromState(material));
             IWrenchable.playRemoveSound(world, pos);
         }
         return ActionResult.SUCCESS;
@@ -370,7 +456,8 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
             return IWrenchable.super.onSneakWrenched(state, context);
         }
 
-        Direction target = GuardrailParts.faceAt(state, localHit(context));
+        GuardrailParts.Hit hitPart = GuardrailParts.partAt(state, localHit(context));
+        Direction target = hitPart == null ? null : hitPart.face();
         if (target == null || !hasFace(state, target)) {
             return ActionResult.PASS;
         }
@@ -392,7 +479,7 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
         if (player.isCreative() && world.getBlockEntity(pos) instanceof CopycatGuardrailBlockEntity blockEntity) {
             // 创造模式不掉落任何东西，包括伪装材质。
             // onBreak 在方块被移除之前调用，且带着玩家，是唯一能拿到游戏模式的地方。
-            blockEntity.clearAllMaterials();
+            blockEntity.clearConsumedItems();
         }
         super.onBreak(world, pos, state, player);
     }
@@ -405,9 +492,9 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
         }
         if (!state.isOf(newState.getBlock()) && !world.isClient && !moved) {
             // 护栏方块本体由战利品表按「每个存在的面一个」发放（这样创造模式自动不掉落）；
-            // 这里只负责两个伪装材质。
+            // 这里只负责 8 个槽位记录下来的伪装材质。
             if (world.getBlockEntity(pos) instanceof CopycatGuardrailBlockEntity blockEntity) {
-                blockEntity.dropMaterials(world, pos);
+                blockEntity.dropAllMaterials(world, pos);
             }
         }
         super.onStateReplaced(state, world, pos, newState, moved);
@@ -417,9 +504,11 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
     @Override
     public ItemStack getPickStack(BlockView world, BlockPos pos, BlockState state) {
         if (world.getBlockEntity(pos) instanceof CopycatGuardrailBlockEntity blockEntity) {
-            BlockState material = blockEntity.material(Slot.COLUMN);
-            if (!material.isAir()) {
-                return new ItemStack(material.getBlock());
+            for (String key : GuardrailParts.allKeys()) {
+                BlockState material = blockEntity.material(key);
+                if (!material.isAir()) {
+                    return new ItemStack(material.getBlock());
+                }
             }
         }
         return super.getPickStack(world, pos, state);

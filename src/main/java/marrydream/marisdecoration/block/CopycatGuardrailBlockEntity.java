@@ -1,8 +1,9 @@
 package marrydream.marisdecoration.block;
 
+import com.simibubi.create.content.redstone.RoseQuartzLampBlock;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import marrydream.marisdecoration.block.utils.GuardrailParts.Slot;
+import marrydream.marisdecoration.block.utils.GuardrailParts;
 import marrydream.marisdecoration.init.ModBlockEntity;
 import net.fabricmc.fabric.api.blockview.v2.RenderDataBlockEntity;
 import net.minecraft.block.Block;
@@ -13,43 +14,52 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtHelper;
 import net.minecraft.registry.Registries;
+import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * {@code copycat_guardrail} 的方块实体，保存整块共享的两个伪装材质槽：柱与横梁。
+ * {@code copycat_guardrail} 的方块实体。
+ *
+ * <p>整块有 <b>8 个互相独立的伪装材质槽</b>——4 个方向 × 柱/横梁，键名形如
+ * {@code north_column} / {@code north_row}。这与 Create: Copycats+ 的
+ * {@code MaterialItemStorage} 是同一套思路：以部件名为键的映射，NBT 存成一个
+ * {@code material_data} 复合标签，每个部件一个子标签，子标签里放材质和「被消耗的那个物品」。
  *
  * <p><b>为什么继承 Create 的 {@link SmartBlockEntity} 而不是原版 {@code BlockEntity}</b>：
- * 伪装材质必须同步到客户端才能渲染出来。原版方块实体的 NBT 默认不会随方块更新发给客户端，
- * 结果就是服务端改了材质、客户端依旧渲染成未伪装的样子。Create 的
- * {@code SyncedBlockEntity} 提供了 {@code toInitialChunkDataNbt()} / {@code getUpdatePacket()} /
- * {@code sendData()} 这一整套同步路径，正是伪装板能生效的前提。
+ * 伪装材质必须同步到客户端才能渲染。原版方块实体的 NBT 默认不会随方块更新发给客户端，
+ * 结果就是服务端改了材质、客户端依旧渲染成旧的样子。Create 的 {@code SyncedBlockEntity}
+ * 提供了 {@code toInitialChunkDataNbt()} / {@code getUpdatePacket()} / {@code sendData()} /
+ * {@code notifyUpdate()} 这一整套同步路径。
  *
- * <p>注意：{@code SmartBlockEntity} 把 {@code writeNbt}/{@code readNbt} 标记为 final，
+ * <p>还要注意：{@code SmartBlockEntity} 把 {@code writeNbt}/{@code readNbt} 标记为 final，
  * 要覆写的是带 {@code clientPacket} 参数的 {@code write}/{@code read}。
- *
- * <p>无材质的哨兵是空气；渲染层在无材质时回退到 {@code create:block/copycat_base}。
  */
 public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements RenderDataBlockEntity {
 
-    private static final String KEY_COLUMN_MATERIAL = "ColumnMaterial";
-    private static final String KEY_COLUMN_ITEM = "ColumnItem";
-    private static final String KEY_ROW_MATERIAL = "RowMaterial";
-    private static final String KEY_ROW_ITEM = "RowItem";
+    private static final String KEY_MATERIAL_DATA = "material_data";
+    private static final String KEY_MATERIAL = "material";
+    private static final String KEY_CONSUMED_ITEM = "consumedItem";
 
-    /** 没有任何材质。 */
+    /** 没有材质。 */
     public static final BlockState NO_MATERIAL = Blocks.AIR.getDefaultState();
 
-    private BlockState columnMaterial = NO_MATERIAL;
-    private BlockState rowMaterial = NO_MATERIAL;
-    private ItemStack columnItem = ItemStack.EMPTY;
-    private ItemStack rowItem = ItemStack.EMPTY;
+    /** 渲染线程会读，所以用并发映射；键集合固定为 8 个。 */
+    private final Map<String, BlockState> materials = new ConcurrentHashMap<>();
+    private final Map<String, ItemStack> consumedItems = new ConcurrentHashMap<>();
 
     public CopycatGuardrailBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntity.COPYCAT_GUARDRAIL, pos, state);
+        for (String key : GuardrailParts.allKeys()) {
+            materials.put(key, NO_MATERIAL);
+            consumedItems.put(key, ItemStack.EMPTY);
+        }
     }
 
     @Override
@@ -59,61 +69,170 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
 
     // ---------------------------------------------------------------- 材质读写
 
-    public BlockState material(Slot slot) {
-        return slot == Slot.COLUMN ? columnMaterial : rowMaterial;
+    public BlockState material(String key) {
+        return materials.getOrDefault(key, NO_MATERIAL);
     }
 
-    public boolean hasMaterial(Slot slot) {
-        return !material(slot).isAir();
+    public boolean hasMaterial(String key) {
+        return !material(key).isAir();
     }
 
     public boolean hasAnyMaterial() {
-        return hasMaterial(Slot.COLUMN) || hasMaterial(Slot.ROW);
+        return materials.values().stream().anyMatch(state -> !state.isAir());
     }
 
-    public ItemStack consumedItem(Slot slot) {
-        return slot == Slot.COLUMN ? columnItem : rowItem;
+    public ItemStack consumedItem(String key) {
+        return consumedItems.getOrDefault(key, ItemStack.EMPTY);
     }
 
-    /** 给某个槽位附着伪装材质；{@code consumed} 是被消耗的那个物品堆。 */
-    public void applyMaterial(Slot slot, BlockState material, ItemStack consumed) {
-        if (slot == Slot.COLUMN) {
-            columnMaterial = material;
-            columnItem = consumed.copyWithCount(1);
-        } else {
-            rowMaterial = material;
-            rowItem = consumed.copyWithCount(1);
+    /**
+     * 是否已经有槽位为同种物品付过账。
+     *
+     * <p>沿用 Create 的规则：整块里只要有任何一个部件已经消耗过同种物品，之后再用同种物品
+     * 伪装其它部件就不再扣物品。
+     */
+    public boolean alreadyPaidWith(ItemStack stack) {
+        return consumedItems.values().stream()
+                .anyMatch(paid -> !paid.isEmpty() && paid.getItem() == stack.getItem());
+    }
+
+    /**
+     * 给某个槽位附着伪装材质；{@code consumed} 是被消耗的那个物品堆。
+     *
+     * <p>沿用 Create 的 {@code CopycatBlockEntity#setMaterial} 与 Create: Copycats+ 的
+     * {@code setMaterial(property, state)} 里的「邻居继承」：如果紧挨着的同类伪装方块在同一个
+     * 槽位上已经是同一种方块，就直接沿用邻居的完整状态。这样一排护栏摆在一起时材质朝向自动一致，
+     * 不会出现相邻两块原木纹理方向互不相同的情况。
+     */
+    public void setMaterial(String key, BlockState material, ItemStack consumed) {
+        BlockState applied = inheritFromNeighbour(key, material);
+        materials.put(key, applied);
+        if (!consumed.isEmpty()) {
+            consumedItems.put(key, consumed.copyWithCount(1));
         }
         sync();
     }
 
-    /** 清空所有槽位并返回其中记录的物品，由调用方决定是否生成掉落物。 */
-    public void clearAllMaterials() {
-        columnMaterial = NO_MATERIAL;
-        rowMaterial = NO_MATERIAL;
-        columnItem = ItemStack.EMPTY;
-        rowItem = ItemStack.EMPTY;
+    /**
+     * 邻居继承。返回应当真正使用的材质状态。
+     *
+     * <p>判定条件与上游一致：邻居必须与本方块<b>状态完全相同</b>（同一个 BlockState 实例，
+     * 即方块与全部属性都一致），且它在同一个槽位上已经是同一种方块，才沿用它的状态。
+     */
+    private BlockState inheritFromNeighbour(String key, BlockState material) {
+        if (world == null || material(key).isOf(material.getBlock())) {
+            return material;
+        }
+        BlockState ownState = getCachedState();
+        for (Direction side : Direction.values()) {
+            BlockPos neighbour = pos.offset(side);
+            if (world.getBlockState(neighbour) != ownState) {
+                continue;
+            }
+            if (!(world.getBlockEntity(neighbour) instanceof CopycatGuardrailBlockEntity other)) {
+                continue;
+            }
+            BlockState otherMaterial = other.material(key);
+            if (!otherMaterial.isOf(material.getBlock())) {
+                continue;
+            }
+            return otherMaterial;
+        }
+        return material;
+    }
+
+    /**
+     * 拆掉某个槽位时决定实际要返还的物品。
+     *
+     * <p>沿用 Create: Copycats+ 的做法：整块里同一种材质只会在「第一个」槽位上留下被消耗物品的
+     * 记录（后续槽位因为已经付过账，记录为空）。所以拆一个槽位时，先把这条记录<b>迁移</b>到另一个
+     * 材质相同、记录为空的槽位上——迁移成功就说明这块里还有同材质的部件，本次不返还；
+     * 只有拆掉最后一个同材质槽位、记录无处可迁时，才真的把物品还回去。
+     */
+    public ItemStack takeConsumedItemForRemoval(String key) {
+        ItemStack returned = consumedItem(key);
+        if (!returned.isEmpty()) {
+            Block block = material(key).getBlock();
+            for (String other : GuardrailParts.allKeys()) {
+                if (other.equals(key)) {
+                    continue;
+                }
+                if (material(other).getBlock() != block || !consumedItem(other).isEmpty()) {
+                    continue;
+                }
+                consumedItems.put(other, returned);
+                returned = ItemStack.EMPTY;
+                break;
+            }
+        }
+        materials.put(key, NO_MATERIAL);
+        consumedItems.put(key, ItemStack.EMPTY);
+        sync();
+        return returned;
+    }
+
+    /**
+     * 旋转某个槽位的伪装贴图朝向。
+     *
+     * <p>照搬 Create 的 {@code CopycatBlockEntity#cycleMaterial()} 与 Create: Copycats+ 的
+     * {@code IMultiStateCopycatBlockEntity#cycleMaterial(property)}，级联顺序和特例都一致。
+     * 返回 false 表示这个材质没有任何可旋转的属性，调用方应当把操作交还给原版。
+     */
+    public boolean cycleMaterial(String key) {
+        BlockState material = material(key);
+
+        if (material.contains(Properties.BLOCK_HALF) && material.getOrEmpty(Properties.OPEN).orElse(false)) {
+            setMaterialState(key, material.cycle(Properties.BLOCK_HALF));
+        } else if (material.contains(Properties.FACING)) {
+            setMaterialState(key, material.cycle(Properties.FACING));
+        } else if (material.contains(Properties.HORIZONTAL_FACING)) {
+            // 这里不能用 cycle()：Direction 的枚举顺序是 下/上/北/南/西/东，
+            // 对水平朝向会转出「北→南」这种跳法。显式取顺时针才是 北→东→南→西。
+            setMaterialState(key,
+                    material.with(Properties.HORIZONTAL_FACING,
+                            material.get(Properties.HORIZONTAL_FACING).rotateYClockwise()));
+        } else if (material.contains(Properties.AXIS)) {
+            setMaterialState(key, material.cycle(Properties.AXIS));
+        } else if (material.contains(Properties.HORIZONTAL_AXIS)) {
+            setMaterialState(key, material.cycle(Properties.HORIZONTAL_AXIS));
+        } else if (material.contains(Properties.LIT)) {
+            setMaterialState(key, material.cycle(Properties.LIT));
+        } else if (material.contains(RoseQuartzLampBlock.POWERING)) {
+            setMaterialState(key, material.cycle(RoseQuartzLampBlock.POWERING));
+        } else {
+            return false;
+        }
+        return true;
+    }
+
+    /** 只替换材质本身，保留该槽位记录的被消耗物品（旋转不该改变「付过账」的记录）。 */
+    private void setMaterialState(String key, BlockState material) {
+        materials.put(key, material);
         sync();
     }
 
-    /** 把两个槽位已消耗的物品都掉出来（整块被破坏时）。 */
-    public void dropMaterials(World world, BlockPos pos) {
-        for (Slot slot : Slot.values()) {
-            ItemStack stack = consumedItem(slot);
+    /** 创造模式破坏时用：清掉所有「被消耗物品」记录，这样什么都不会掉。 */
+    public void clearConsumedItems() {
+        for (String key : GuardrailParts.allKeys()) {
+            consumedItems.put(key, ItemStack.EMPTY);
+        }
+        markDirty();
+    }
+
+    /** 整块被破坏时把所有已消耗的物品掉出来。 */
+    public void dropAllMaterials(World world, BlockPos pos) {
+        for (String key : GuardrailParts.allKeys()) {
+            ItemStack stack = consumedItem(key);
             if (!stack.isEmpty()) {
                 Block.dropStack(world, pos, stack.copy());
             }
         }
     }
 
-    /**
-     * 扳手拆除时把已消耗的物品直接塞进玩家背包。
-     *
-     * <p>这是 Create 伪装板/扳手的原生行为：扳手拆除返还的材料直接进背包，而不是掉在地上。
-     */
+    /** 扳手拆除时把已消耗的物品直接塞进玩家背包（Create 的原生行为）。 */
     public void giveMaterialsTo(PlayerEntity player) {
-        for (Slot slot : Slot.values()) {
-            ItemStack stack = consumedItem(slot);
+        for (String key : GuardrailParts.allKeys()) {
+            ItemStack stack = consumedItem(key);
             if (!stack.isEmpty()) {
                 player.getInventory().offerOrDrop(stack.copy());
             }
@@ -131,18 +250,15 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
     /**
      * 让本方块所在的区块重新烘焙。
      *
-     * <p>客户端渲染模型时才去读 {@code getRenderData()}，而区块网格是烘焙后缓存起来的。
-     * 只把新材质同步过来、不主动让区块重烘焙的话，画面要等到下一次方块状态变化才会更新——
-     * 表现为「材质已经生效（能掉落、能消耗），但外观还是旧的」。Create 的伪装板同样在
-     * 客户端收到新材质后调这一步。
+     * <p>客户端渲染时才去读 {@code getRenderData()}，而区块网格是烘焙后缓存起来的。
+     * 只把新材质同步过来、不主动让区块重烘焙的话，画面要等到下一次方块状态变化才会更新。
+     * {@code ClientWorld.updateListeners} 内部就是 {@code worldRenderer.updateBlock(...)}，
+     * 本身会触发重绘，所以用通用 API 就够了，不需要碰客户端类。
      */
     private void redraw() {
         if (world == null || !world.isClient) {
             return;
         }
-        // ClientWorld.updateListeners 内部就是 worldRenderer.updateBlock(...)，本身就触发重绘，
-        // 所以这里用通用 API 就够了，不需要碰客户端类。
-        // 这也是 Create 的伪装板在 Fabric 上的做法（sendBlockUpdated + 光照重新评估）。
         world.updateListeners(pos, getCachedState(), getCachedState(), Block.NOTIFY_LISTENERS);
         world.getLightingProvider().checkBlock(pos);
     }
@@ -152,28 +268,33 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
     @Override
     protected void write(NbtCompound nbt, boolean clientPacket) {
         super.write(nbt, clientPacket);
-        nbt.put(KEY_COLUMN_MATERIAL, NbtHelper.fromBlockState(columnMaterial));
-        nbt.put(KEY_ROW_MATERIAL, NbtHelper.fromBlockState(rowMaterial));
-        if (!clientPacket) {
-            // 被消耗的物品只在服务端保存，没必要发给客户端
-            nbt.put(KEY_COLUMN_ITEM, columnItem.writeNbt(new NbtCompound()));
-            nbt.put(KEY_ROW_ITEM, rowItem.writeNbt(new NbtCompound()));
+        NbtCompound data = new NbtCompound();
+        for (String key : GuardrailParts.allKeys()) {
+            NbtCompound entry = new NbtCompound();
+            entry.put(KEY_MATERIAL, NbtHelper.fromBlockState(material(key)));
+            if (!clientPacket) {
+                // 被消耗的物品只在服务端保存，没必要发给客户端
+                entry.put(KEY_CONSUMED_ITEM, consumedItem(key).writeNbt(new NbtCompound()));
+            }
+            data.put(key, entry);
         }
+        nbt.put(KEY_MATERIAL_DATA, data);
     }
 
     @Override
     protected void read(NbtCompound nbt, boolean clientPacket) {
-        BlockState previousColumn = columnMaterial;
-        BlockState previousRow = rowMaterial;
+        Map<String, BlockState> previous = Map.copyOf(materials);
         super.read(nbt, clientPacket);
-        columnMaterial = readMaterial(nbt, KEY_COLUMN_MATERIAL);
-        rowMaterial = readMaterial(nbt, KEY_ROW_MATERIAL);
-        if (!clientPacket) {
-            columnItem = readStack(nbt, KEY_COLUMN_ITEM);
-            rowItem = readStack(nbt, KEY_ROW_ITEM);
+        NbtCompound data = nbt.getCompound(KEY_MATERIAL_DATA);
+        for (String key : GuardrailParts.allKeys()) {
+            NbtCompound entry = data.getCompound(key);
+            materials.put(key, readMaterial(entry, KEY_MATERIAL));
+            if (!clientPacket) {
+                consumedItems.put(key, readStack(entry, KEY_CONSUMED_ITEM));
+            }
         }
         // 客户端拿到新材质后必须主动重烘焙，否则要等下次方块状态变化才刷新外观
-        if (clientPacket && (previousColumn != columnMaterial || previousRow != rowMaterial)) {
+        if (clientPacket && !previous.equals(materials)) {
             redraw();
         }
     }
@@ -195,12 +316,12 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
 
     // ---------------------------------------------------------------- 渲染数据
 
-    /** 交给渲染层的材质数据，通过 Fabric 的 block entity render data 通道传给模型。 */
-    public record Materials(BlockState column, BlockState row) {
-    }
-
+    /**
+     * 交给渲染层的部件→材质映射。键名与 {@link GuardrailParts#key} 一致，
+     * 生成脚本按同样的键名给每个几何体分配了占位贴图。
+     */
     @Override
     public @Nullable Object getRenderData() {
-        return new Materials(columnMaterial, rowMaterial);
+        return materials;
     }
 }

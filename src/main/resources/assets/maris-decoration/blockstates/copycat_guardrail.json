@@ -4,49 +4,49 @@
             "model": "minecraft:block/air"
         },
         "north=false,east=false,south=false,west=true": {
-            "model": "maris-decoration:block/copycat_guardrail/w"
+            "model": "minecraft:block/air"
         },
         "north=false,east=false,south=true,west=false": {
-            "model": "maris-decoration:block/copycat_guardrail/s"
+            "model": "minecraft:block/air"
         },
         "north=false,east=false,south=true,west=true": {
-            "model": "maris-decoration:block/copycat_guardrail/sw"
+            "model": "minecraft:block/air"
         },
         "north=false,east=true,south=false,west=false": {
-            "model": "maris-decoration:block/copycat_guardrail/e"
+            "model": "minecraft:block/air"
         },
         "north=false,east=true,south=false,west=true": {
-            "model": "maris-decoration:block/copycat_guardrail/ew"
+            "model": "minecraft:block/air"
         },
         "north=false,east=true,south=true,west=false": {
-            "model": "maris-decoration:block/copycat_guardrail/es"
+            "model": "minecraft:block/air"
         },
         "north=false,east=true,south=true,west=true": {
-            "model": "maris-decoration:block/copycat_guardrail/esw"
+            "model": "minecraft:block/air"
         },
         "north=true,east=false,south=false,west=false": {
-            "model": "maris-decoration:block/copycat_guardrail/n"
+            "model": "minecraft:block/air"
         },
         "north=true,east=false,south=false,west=true": {
-            "model": "maris-decoration:block/copycat_guardrail/nw"
+            "model": "minecraft:block/air"
         },
         "north=true,east=false,south=true,west=false": {
-            "model": "maris-decoration:block/copycat_guardrail/ns"
+            "model": "minecraft:block/air"
         },
         "north=true,east=false,south=true,west=true": {
-            "model": "maris-decoration:block/copycat_guardrail/nsw"
+            "model": "minecraft:block/air"
         },
         "north=true,east=true,south=false,west=false": {
-            "model": "maris-decoration:block/copycat_guardrail/ne"
+            "model": "minecraft:block/air"
         },
         "north=true,east=true,south=false,west=true": {
-            "model": "maris-decoration:block/copycat_guardrail/new"
+            "model": "minecraft:block/air"
         },
         "north=true,east=true,south=true,west=false": {
-            "model": "maris-decoration:block/copycat_guardrail/nes"
+            "model": "minecraft:block/air"
         },
         "north=true,east=true,south=true,west=true": {
-            "model": "maris-decoration:block/copycat_guardrail/nesw"
+            "model": "minecraft:block/air"
         }
     }
 }

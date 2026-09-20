@@ -1,22 +1,12 @@
 /**
- * 生成 copycat_guardrail 的 16 个方块模型 + blockstate。
+ * 生成 copycat_guardrail 的 blockstate 与物品模型，并交叉校验 Java 侧的几何表。
  *
- * 几何全部来自 black_steel_guardrail 的 guardrail/straight.json（单面模型），
- * 不使用拐角模型（inner/outer），也不涉及任何自动连接逻辑。
+ * 几何本身不再产出模型文件：渲染由客户端代码直接从 GuardrailParts 发射几何体，
+ * 再把伪装材质模型逐面裁剪进去（与 Create 的伪装板、Create: Copycats+ 做法一致）。
+ * 因此 blockstate 的全部变体都指向 minecraft:block/air —— Create 自己的伪装方块也是这样。
  *
- * 角柱归属规则（关键）：
- *   每个方向的单面模型自带两根端柱——一根位于它「拥有」的角落，另一根位于与
- *   相邻方向「共享」的角落。若直接四向叠加，共享角落会出现两份完全重合的几何体
- *   导致 z-fighting。规则如下：
- *     拥有柱  : 本方向存在即绘制
- *     共享柱  : 本方向存在 且 该角落的归属方向不存在时才绘制
- *   角落实例归属：NE→north, SE→east, SW→south, NW→west
- *
- * 由此得到（可对照脚本末尾的自检输出）：
- *   仅东面      -> 2 根柱（东北由东补画、东南自有）
- *   仅北+南     -> 4 根柱，四角各一，无缺柱
- *   东+南       -> 3 根柱（东南只画一次）
- *   四面全放    -> 4 根柱，每面各贡献自己拥有的那一根
+ * 本脚本保留 JS 侧的几何推导，用来交叉校验 Java 手写的几何表与角柱归属规则，
+ * 并做角柱重复自检。改动几何时两边的期望值都由这里给出。
  *
  * 用法： node tools/gen-copycat-guardrail.mjs
  */
@@ -25,16 +15,20 @@ import { writeFileSync, mkdirSync, readFileSync, existsSync, rmSync } from 'node
 import { dirname, join } from 'node:path';
 
 const NS = 'maris-decoration';
-const BLOCK_DIR = join(process.cwd(), 'src/main/resources/assets', NS, 'models/block/copycat_guardrail');
-const BLOCKSTATE = join(process.cwd(), 'src/main/resources/assets', NS, 'blockstates/copycat_guardrail.json');
-const ITEM_MODEL = join(process.cwd(), 'src/main/resources/assets', NS, 'models/item/copycat_guardrail.json');
+const ASSETS = join(process.cwd(), 'src/main/resources/assets', NS);
+const BLOCK_DIR = join(ASSETS, 'models/block/copycat_guardrail');
+const BLOCKSTATE = join(ASSETS, 'blockstates/copycat_guardrail.json');
+const ITEM_MODEL = join(ASSETS, 'models/item/copycat_guardrail.json');
+const STALE_MARKER_DIR = join(ASSETS, 'textures/block/copycat_guardrail/marker');
 
-// 占位贴图：这两张在运行时会被替换成伪装材质，但它们必须是两张不同的图，
-// 否则渲染层无法区分「柱」和「横梁」两个槽位。
-const COLUMN_MARKER = `${NS}:block/steel_block`;
-const ROW_MARKER = `${NS}:block/black_steel_block`;
-// 未伪装时的默认外观，与 Create 的 copycat 保持一致。
+/** 未伪装时的默认外观，与 Create 的 copycat 保持一致。 */
 const DEFAULT_TEXTURE = 'create:block/copycat_base';
+
+/** 整块有 4 方向 × 柱/横梁 = 8 个互相独立的材质槽，键名与 Java 侧 GuardrailParts.key 一致。 */
+const SLOT_KEYS = [];
+for (const dir of ['north', 'east', 'south', 'west']) {
+    for (const slot of ['column', 'row']) SLOT_KEYS.push(`${dir}_${slot}`);
+}
 
 /** 基准单面模型 = guardrail/straight.json 的东面（facing=east，不旋转）。 */
 const BASE = {
@@ -118,16 +112,15 @@ function toElement(box, texture) {
 function contributions(dir, present) {
     const { rot, sharedOwner } = FACINGS[dir];
     const out = [];
-    for (const rail of BASE.rails) out.push({ box: rotateBox(rail, rot), slot: 'row' });
-    out.push({ box: rotateBox(BASE.postOwned, rot), slot: 'column' });
+    for (const rail of BASE.rails) out.push({ box: rotateBox(rail, rot), key: `${dir}_row` });
+    out.push({ box: rotateBox(BASE.postOwned, rot), key: `${dir}_column` });
     // 共享柱：只有归属方向缺席时才补画，避免与对方重合。
     if (!present.has(sharedOwner)) {
-        out.push({ box: rotateBox(BASE.postShared, rot), slot: 'column' });
+        out.push({ box: rotateBox(BASE.postShared, rot), key: `${dir}_column` });
     }
     return out;
 }
 
-/** 返回该组合的全部几何体，附带用于自检的角柱坐标。 */
 function buildParts(present) {
     const parts = [];
     for (const dir of ORDER) {
@@ -136,18 +129,13 @@ function buildParts(present) {
     return parts;
 }
 
-function comboName(present) {
-    if (present.size === 0) return 'none';
-    return ORDER.filter((d) => present.has(d)).map((d) => LETTER[d]).join('');
-}
-
-function modelJson(present, textures) {
-    const parts = buildParts(present);
+/** 物品模型：没有方块实体，必须走静态模型。只放一个面（东面 = 基准朝向）。 */
+function itemModelJson(present) {
     return JSON.stringify(
         {
             parent: `${NS}:block/thin_side_block`,
-            textures: { particle: '#row', column: textures.column, row: textures.row },
-            elements: parts.map((p) => toElement(p.box, p.slot === 'column' ? '#column' : '#row')),
+            textures: { particle: '#all', all: DEFAULT_TEXTURE },
+            elements: buildParts(present).map((p) => toElement(p.box, '#all')),
         },
         null,
         4,
@@ -162,37 +150,34 @@ const variants = {};
 const combos = [];
 for (let mask = 0; mask < 16; mask++) {
     const present = new Set(ORDER.filter((_, i) => mask & (1 << (3 - i))));
-    const name = comboName(present);
+    const name = ORDER.filter((d) => present.has(d)).map((d) => LETTER[d]).join('') || 'none';
     combos.push({ present, name });
 
-    const key = ORDER.map((d) => `${d}=${present.has(d)}`).join(',');
-    if (present.size === 0) {
-        // 四面全无是空壳状态。正常玩法到不了（放置至少给一面，扳手也不允许拆掉最后一面），
-        // 但 /setblock 之类仍可能造出来。直接指向空气模型，与 Create 的 copycat blockstate 一致，
-        // 避免依赖「elements: [] 是否被模型加载器接受」这种不确定行为。
-        variants[key] = { model: 'minecraft:block/air' };
-        continue;
-    }
-
-    writeFileSync(join(BLOCK_DIR, `${name}.json`), modelJson(present, { column: COLUMN_MARKER, row: ROW_MARKER }));
-    variants[key] = { model: `${NS}:block/copycat_guardrail/${name}` };
-}
-
-// 清掉早期版本留下的 none.json，它既不再被引用，也不该留在资源里
-if (existsSync(join(BLOCK_DIR, 'none.json'))) {
-    rmSync(join(BLOCK_DIR, 'none.json'));
+    // 几何体由客户端代码发射，blockstate 只需要一个能烘焙的占位模型
+    variants[ORDER.map((d) => `${d}=${present.has(d)}`).join(',')] = { model: 'minecraft:block/air' };
 }
 
 writeFileSync(BLOCKSTATE, JSON.stringify({ variants }, null, 4) + '\n');
 
-// 物品栏模型：没有 BlockEntity，必须走静态模型，直接用 Create 的默认伪装贴图。
-// 只放一个面（东面 = 基准朝向），与 black_steel_guardrail 的物品模型保持一致，
-// 方向与格子内的位置才对得上。四面全放会让物品图标看起来是一整圈，很怪。
 mkdirSync(dirname(ITEM_MODEL), { recursive: true });
-writeFileSync(join(BLOCK_DIR, 'item.json'), modelJson(new Set(['east']), { column: DEFAULT_TEXTURE, row: DEFAULT_TEXTURE }));
+writeFileSync(join(BLOCK_DIR, 'item.json'), itemModelJson(new Set(['east'])));
 writeFileSync(ITEM_MODEL, JSON.stringify({ parent: `${NS}:block/copycat_guardrail/item` }, null, 4) + '\n');
 
-// ---- 自检 ----
+// 清掉早期版本留下的产物：16 个模板模型与 8 张占位贴图都已不再参与渲染
+let removed = 0;
+for (const { name } of combos) {
+    const stale = join(BLOCK_DIR, `${name}.json`);
+    if (existsSync(stale)) {
+        rmSync(stale);
+        removed++;
+    }
+}
+if (existsSync(STALE_MARKER_DIR)) {
+    rmSync(STALE_MARKER_DIR, { recursive: true });
+    removed++;
+}
+
+// ---- 自检：角柱归属规则 ----
 
 const CORNER_OF = {
     east: { owned: 'SE', shared: 'NE' },
@@ -207,9 +192,8 @@ for (const { present, name } of combos) {
     const corners = [];
     for (const dir of ORDER) {
         if (!present.has(dir)) continue;
-        const { rot, sharedOwner } = FACINGS[dir];
         corners.push(CORNER_OF[dir].owned);
-        if (!present.has(sharedOwner)) corners.push(CORNER_OF[dir].shared);
+        if (!present.has(FACINGS[dir].sharedOwner)) corners.push(CORNER_OF[dir].shared);
     }
     const unique = new Set(corners);
     const dup = corners.length !== unique.size;
@@ -219,10 +203,12 @@ for (const { present, name } of combos) {
     );
 }
 
-// ---- 模型结构校验 ----
-// 模型结构非法时客户端不会报错，只会渲染成紫黑格，所以这里静态把关。
+// ---- 校验：Java 几何表必须与本脚本算出的旋转结果逐位一致 ----
 
-const FACE_NAMES = ['down', 'up', 'north', 'south', 'west', 'east'];
+const javaPath = join(process.cwd(), 'src/main/java/marrydream/marisdecoration/block/utils/GuardrailParts.java');
+const javaSource = readFileSync(javaPath, 'utf8');
+const ENUM = { north: 'NORTH', east: 'EAST', south: 'SOUTH', west: 'WEST' };
+
 let bad = 0;
 const check = (cond, msg) => {
     if (!cond) {
@@ -230,60 +216,6 @@ const check = (cond, msg) => {
         bad++;
     }
 };
-
-// 只校验真正生成的模型（空壳状态指向 minecraft:block/air，不在此列）
-for (const { name } of combos.filter((c) => c.present.size > 0)) {
-    const model = JSON.parse(readFileSync(join(BLOCK_DIR, `${name}.json`), 'utf8'));
-    check(model.textures?.column && model.textures?.row, `${name}: 缺少 column/row 贴图声明`);
-    check(Array.isArray(model.elements) && model.elements.length > 0, `${name}: elements 缺失或为空`);
-    for (const [i, el] of (model.elements ?? []).entries()) {
-        const where = `${name}[${i}]`;
-        check(Array.isArray(el.from) && el.from.length === 3, `${where}: from 非法`);
-        check(Array.isArray(el.to) && el.to.length === 3, `${where}: to 非法`);
-        for (let k = 0; k < 3; k++) {
-            check(el.from[k] >= 0 && el.from[k] <= 16, `${where}: from[${k}]=${el.from[k]} 越界`);
-            check(el.to[k] >= 0 && el.to[k] <= 16, `${where}: to[${k}]=${el.to[k]} 越界`);
-            check(el.from[k] <= el.to[k], `${where}: from>to（轴 ${k}）`);
-        }
-        for (const face of FACE_NAMES) {
-            const f = el.faces[face];
-            check(!!f, `${where}: 缺少面 ${face}`);
-            if (!f) continue;
-            check(Array.isArray(f.uv) && f.uv.length === 4, `${where}.${face}: uv 必须是 4 个数`);
-            check((f.uv ?? []).every((v) => typeof v === 'number' && v >= 0 && v <= 16),
-                `${where}.${face}: uv 越界 ${JSON.stringify(f.uv)}`);
-            check(f.texture === '#column' || f.texture === '#row', `${where}.${face}: 未知贴图槽 ${f.texture}`);
-            if (f.cullface) {
-                check(FACE_NAMES.includes(f.cullface), `${where}.${face}: cullface 非法 ${f.cullface}`);
-            }
-        }
-    }
-}
-
-// 物品栏模型必须存在，否则物品会渲染成紫黑格
-check(existsSync(join(BLOCK_DIR, 'item.json')), '缺少 item.json');
-check(existsSync(ITEM_MODEL), '缺少 models/item/copycat_guardrail.json');
-
-// blockstate 的每个变体都要指向真实存在的模型
-const blockstate = JSON.parse(readFileSync(BLOCKSTATE, 'utf8'));
-const variantKeys = Object.keys(blockstate.variants ?? {});
-check(variantKeys.length === 16, `blockstate 变体数应为 16，实际 ${variantKeys.length}`);
-for (const [key, variant] of Object.entries(blockstate.variants ?? {})) {
-    if (!variant.model.startsWith(`${NS}:`)) {
-        // 例如 minecraft:block/air，不需要在本 mod 资源里找
-        continue;
-    }
-    const rel = variant.model.replace(`${NS}:block/copycat_guardrail/`, '');
-    check(existsSync(join(BLOCK_DIR, `${rel}.json`)), `变体 ${key} 指向不存在的模型 ${variant.model}`);
-}
-
-// ---- Java 几何表校验 ----
-// GuardrailParts.java 里的坐标是手写的，必须与本脚本算出的旋转结果逐位一致，
-// 否则「命中柱/横梁判定」和「方块轮廓」会与实际渲染的模型对不上。
-
-const javaPath = join(process.cwd(), 'src/main/java/marrydream/marisdecoration/block/utils/GuardrailParts.java');
-const javaSource = readFileSync(javaPath, 'utf8');
-const ENUM = { north: 'NORTH', east: 'EAST', south: 'SOUTH', west: 'WEST' };
 
 for (const dir of ORDER) {
     const { rot, sharedOwner } = FACINGS[dir];
@@ -308,13 +240,12 @@ for (const dir of ORDER) {
     check(JSON.stringify(boxes[1]) === JSON.stringify(shared),
         `Java ${dir}: 共享柱应为 (${shared.join(', ')})，实际 (${(boxes[1] ?? []).join(', ') || '缺失'})`);
 
-    const javaOwner = javaSource.includes(
-        `SHARED_OWNER.put(Direction.${ENUM[dir]}, Direction.${ENUM[sharedOwner]})`);
-    check(javaOwner, `Java ${dir}: 共享柱归属应为 ${ENUM[sharedOwner]}（东北→北、东南→东、西南→南、西北→西）`);
+    check(javaSource.includes(`SHARED_OWNER.put(Direction.${ENUM[dir]}, Direction.${ENUM[sharedOwner]})`),
+        `Java ${dir}: 共享柱归属应为 ${ENUM[sharedOwner]}`);
 }
 
 if (failed > 0 || bad > 0) {
-    console.error(`\n失败：重复角柱 ${failed} 处，模型/几何校验问题 ${bad} 处`);
+    console.error(`\n失败：重复角柱 ${failed} 处，Java 几何表问题 ${bad} 处`);
     process.exit(1);
 }
-console.log(`\n完成：16 个模型 + blockstate 已生成；角柱无重复，模型结构校验通过，Java 几何表与模型一致。`);
+console.log(`\n完成：blockstate + 物品模型已生成（清理旧产物 ${removed} 项）；角柱无重复，Java 几何表一致。`);
