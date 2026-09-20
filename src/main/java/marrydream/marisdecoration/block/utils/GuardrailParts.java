@@ -14,6 +14,7 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * {@code copycat_guardrail} 的几何数据。
@@ -132,8 +133,24 @@ public final class GuardrailParts {
         }
     }
 
-    /** 一次命中定位的结果：命中哪个方向的护栏、以及是柱还是横梁。 */
-    public record Hit(Direction face, Slot slot) {
+    /**
+     * 一次命中定位的结果：命中哪个方向的护栏、以及是柱还是横梁。
+     *
+     * <p>{@code columnKey} 只在 {@code slot == COLUMN} 时非空，是这根柱子的身份，见
+     * {@link #columnKey(Box)}。
+     */
+    public record Hit(Direction face, Slot slot, @Nullable String columnKey) {
+    }
+
+    /**
+     * 柱子的身份键：它所在的角点，写成 {@code <x>_<z>}（单位 1/16，取值 0 或 15）。
+     *
+     * <p>为什么用角点而不是「哪个方向贡献了这根柱」：同一根角柱在几何上可能由两个方向画出来
+     * ——自有柱，或者归属方向缺席时由相邻方向的共享柱补上。柱子是<b>位置</b>上的实体，隐藏状态
+     * 必须跟着位置走；若跟着方向走，同一个角换个方向画出来就会「自己恢复」，或者隐藏了却看不出效果。
+     */
+    public static String columnKey(Box box) {
+        return Math.round(box.minX * 16) + "_" + Math.round(box.minZ * 16);
     }
 
     /**
@@ -162,45 +179,120 @@ public final class GuardrailParts {
      *
      * <p>渲染层按这个分组：同一种材质的所有盒子共用一次材质模型发射，再把每个面裁剪进各自的盒子。
      */
-    public static Map<String, List<Box>> boxesByKey(BlockState state) {
+    public static Map<String, List<Box>> boxesByKey(BlockState state, Set<String> hiddenColumns) {
         int mask = CopycatGuardrailBlock.maskOf(state);
         Map<String, List<Box>> out = new LinkedHashMap<>();
         for (Direction dir : CopycatGuardrailBlock.FACES) {
-            for (Part part : directionParts(mask, dir)) {
+            for (Part part : directionParts(mask, dir, hiddenColumns)) {
                 out.computeIfAbsent(key(dir, part.slot()), unused -> new ArrayList<>()).add(part.box());
             }
         }
         return out;
     }
 
-    /** 某个方向在本状态下实际可见的几何。 */
-    private static List<Part> directionParts(int mask, Direction dir) {
+    /** 某个方向在本状态下实际可见的几何；{@code hiddenColumns} 里的角柱不参与。 */
+    private static List<Part> directionParts(int mask, Direction dir, Set<String> hiddenColumns) {
         if (!CopycatGuardrailBlock.maskHas(mask, dir)) {
             return List.of();
         }
         FaceParts fp = PARTS.get(dir);
-        List<Part> out = new ArrayList<>(List.of(fp.rails()));
+        List<Part> out = new ArrayList<>(5);
+        for (Part rail : railsFor(fp, dir, mask, hiddenColumns)) {
+            out.add(rail);
+        }
         out.add(fp.owned());
         // 共享柱：只有归属方向缺席时才补画，避免与对方重合。
         if (!CopycatGuardrailBlock.maskHas(mask, SHARED_OWNER.get(dir))) {
             out.add(fp.shared());
         }
-        return out;
-    }
-
-    /** 按位掩码取出可见几何（顺序：北、东、南、西；每个方向先横梁后角柱）。 */
-    private static List<Part> partsFor(int mask) {
-        List<Part> out = new ArrayList<>();
-        for (Direction dir : CopycatGuardrailBlock.FACES) {
-            out.addAll(directionParts(mask, dir));
+        if (!hiddenColumns.isEmpty()) {
+            out.removeIf(part -> part.slot() == Slot.COLUMN && hiddenColumns.contains(columnKey(part.box())));
         }
         return out;
     }
 
-    public static List<Part> parts(BlockState state) {
-        return partsFor(CopycatGuardrailBlock.maskOf(state));
+    /**
+     * 横梁当前的范围：两端各预留的 1px，在那一端的角柱被隐藏时由<b>横梁自己</b>补上。
+     *
+     * <p>模型是按「两端都有柱子」设计的，横梁只占长轴上的 [1,15]，两端各留 1px 给柱子。
+     * 柱子被细工凿藏起来后这 1px 就空了，同一排相邻的护栏之间会露出一道缝，所以横梁要顶到方块边界：
+     * 藏低端 → 1 变 0，藏高端 → 15 变 16，两端都藏就是 [0,16]。
+     *
+     * <p><b>由谁补</b>：一个角落会被两根横梁同时触及（比如西北角同时属于北面和西面），
+     * 如果两根都补，那 1px 立方体上会压两份完全重合的几何体，产生 z-fighting。所以补位沿用角柱已有的
+     * 归属规则，保证「一定补上，且只补一次」：
+     * <ul>
+     *   <li>自有一端：这个角归本方向，柱子一藏就由本方向的横梁补；</li>
+     *   <li>共享一端：这个角归 {@link #SHARED_OWNER}，归属方向在场时由它的自有一端去补，本方向不补。</li>
+     * </ul>
+     * 归属方向不在场时，本方向就是唯一能补的那一根，照补不误。
+     */
+    private static Part[] railsFor(FaceParts fp, Direction dir, int mask, Set<String> hiddenColumns) {
+        Part[] rails = fp.rails();
+        if (hiddenColumns.isEmpty()) {
+            return rails;
+        }
+        // 三根横梁的 x/z 范围完全一样，只有 y 不同，取第一根当模板。
+        // 长轴 = 跨度 14/16 的那一轴，另一轴只有 1/16 厚。
+        Box template = rails[0].box();
+        boolean alongX = (template.maxX - template.minX) > (template.maxZ - template.minZ);
+
+        boolean fillLow = endNeedsFilling(fp, dir, mask, alongX, true, hiddenColumns);
+        boolean fillHigh = endNeedsFilling(fp, dir, mask, alongX, false, hiddenColumns);
+        if (!fillLow && !fillHigh) {
+            return rails;
+        }
+
+        // 把预留的那 1px 吃回来：低端 1 → 0，高端 15 → 16
+        double low = fillLow ? 0.0 : (alongX ? template.minX : template.minZ);
+        double high = fillHigh ? 1.0 : (alongX ? template.maxX : template.maxZ);
+
+        Part[] out = new Part[rails.length];
+        for (int i = 0; i < rails.length; i++) {
+            Box b = rails[i].box();
+            out[i] = new Part(alongX
+                    ? new Box(low, b.minY, b.minZ, high, b.maxY, b.maxZ)
+                    : new Box(b.minX, b.minY, low, b.maxX, b.maxY, high),
+                    Slot.ROW);
+        }
+        return out;
     }
 
+    /** 长轴某一端那根角柱是否被隐藏了、并且这一端该由本方向的横梁来补。 */
+    private static boolean endNeedsFilling(FaceParts fp, Direction dir, int mask,
+                                           boolean alongX, boolean lowEnd, Set<String> hiddenColumns) {
+        Box owned = fp.owned().box();
+        // 角柱要么贴在低端 [0,1/16]，要么贴在高端 [15/16,1]，据此认出这一端是不是自有一端
+        boolean ownedAtLow = (alongX ? owned.minX : owned.minZ) == 0.0;
+        boolean ownedEnd = ownedAtLow == lowEnd;
+
+        // 共享端：归属方向在场时，那个角由归属方向的自有一端去补，本方向补了就是两份重合几何
+        if (!ownedEnd && CopycatGuardrailBlock.maskHas(mask, SHARED_OWNER.get(dir))) {
+            return false;
+        }
+        return hiddenColumns.contains(columnKey(ownedEnd ? owned : fp.shared().box()));
+    }
+
+    /** 按位掩码取出可见几何（顺序：北、东、南、西；每个方向先横梁后角柱）。 */
+    private static List<Part> partsFor(int mask, Set<String> hiddenColumns) {
+        List<Part> out = new ArrayList<>();
+        for (Direction dir : CopycatGuardrailBlock.FACES) {
+            out.addAll(directionParts(mask, dir, hiddenColumns));
+        }
+        return out;
+    }
+
+    public static List<Part> parts(BlockState state, Set<String> hiddenColumns) {
+        return partsFor(CopycatGuardrailBlock.maskOf(state), hiddenColumns);
+    }
+
+    /**
+     * 选取 / 碰撞箱。
+     *
+     * <p>刻意<b>不</b>随隐藏的柱子变化：这个箱是「面级」的整面箱（见 {@link #facePickBox}），
+     * 只要那个方向还在就一直成立，而隐藏柱子并不会移除方向——一个面永远还有三根横梁。
+     * 真正需要跟状态一致的是「点到了哪个部件」，那由 {@link #partAt} 负责跳过隐藏的柱子。
+     */
     public static VoxelShape shape(BlockState state) {
         return SHAPES[CopycatGuardrailBlock.maskOf(state)];
     }
@@ -219,18 +311,21 @@ public final class GuardrailParts {
      * <p>各部件在几何上互不重叠，取距离最近的那个即可稳定判定。
      * 注意选取箱是「完整一面」，命中点在整面表面上，所以这里比的到实际几何体的距离，
      * 而不是到选取箱的距离：打面中段会落到横梁上，打两端 1/16 范围才落到柱子上。
+     *
+     * <p>隐藏的柱子已经不在可见几何里，因此也点不中——点到原来柱子的位置会落到最近的横梁上。
      */
     @Nullable
-    public static Hit partAt(BlockState state, Vec3d hit) {
+    public static Hit partAt(BlockState state, Set<String> hiddenColumns, Vec3d hit) {
         int mask = CopycatGuardrailBlock.maskOf(state);
         Hit best = null;
         double bestDistance = Double.MAX_VALUE;
         for (Direction dir : CopycatGuardrailBlock.FACES) {
-            for (Part part : directionParts(mask, dir)) {
+            for (Part part : directionParts(mask, dir, hiddenColumns)) {
                 double d = distanceSquared(part.box(), hit);
                 if (d < bestDistance) {
                     bestDistance = d;
-                    best = new Hit(dir, part.slot());
+                    best = new Hit(dir, part.slot(),
+                            part.slot() == Slot.COLUMN ? columnKey(part.box()) : null);
                 }
             }
         }

@@ -44,6 +44,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 伪装护栏。
@@ -482,7 +483,7 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
             return ActionResult.PASS;
         }
 
-        GuardrailParts.Hit part = GuardrailParts.partAt(state, localHit(hit, pos));
+        GuardrailParts.Hit part = GuardrailParts.partAt(state, blockEntity.hiddenColumns(), localHit(hit, pos));
         if (part == null) {
             return ActionResult.PASS;
         }
@@ -565,7 +566,7 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
         if (!(world.getBlockEntity(pos) instanceof CopycatGuardrailBlockEntity blockEntity)) {
             return ActionResult.PASS;
         }
-        GuardrailParts.Hit part = GuardrailParts.partAt(state, localHit(context));
+        GuardrailParts.Hit part = GuardrailParts.partAt(state, blockEntity.hiddenColumns(), localHit(context));
         if (part == null) {
             return ActionResult.PASS;
         }
@@ -600,7 +601,11 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
             return IWrenchable.super.onSneakWrenched(state, context);
         }
 
-        GuardrailParts.Hit hitPart = GuardrailParts.partAt(state, localHit(context));
+        // 隐藏的柱子已经不在可见几何里，不该被扳手选中（否则会拆掉一根看不见的柱子的材质）
+        Set<String> hidden = world.getBlockEntity(pos) instanceof CopycatGuardrailBlockEntity blockEntity
+                ? blockEntity.hiddenColumns()
+                : Set.of();
+        GuardrailParts.Hit hitPart = GuardrailParts.partAt(state, hidden, localHit(context));
         Direction target = hitPart == null ? null : hitPart.face();
         if (target == null || !hasFace(state, target)) {
             return ActionResult.PASS;

@@ -12,7 +12,10 @@ import net.minecraft.block.Blocks;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
 import net.minecraft.nbt.NbtHelper;
+import net.minecraft.nbt.NbtList;
+import net.minecraft.nbt.NbtString;
 import net.minecraft.registry.Registries;
 import net.minecraft.state.property.Properties;
 import net.minecraft.util.math.BlockPos;
@@ -22,6 +25,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -46,6 +50,7 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
     private static final String KEY_MATERIAL_DATA = "material_data";
     private static final String KEY_MATERIAL = "material";
     private static final String KEY_CONSUMED_ITEM = "consumedItem";
+    private static final String KEY_HIDDEN_COLUMNS = "hidden_columns";
 
     /** 没有材质。 */
     public static final BlockState NO_MATERIAL = Blocks.AIR.getDefaultState();
@@ -53,6 +58,14 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
     /** 渲染线程会读，所以用并发映射；键集合固定为 8 个。 */
     private final Map<String, BlockState> materials = new ConcurrentHashMap<>();
     private final Map<String, ItemStack> consumedItems = new ConcurrentHashMap<>();
+
+    /**
+     * 被细工凿隐藏的柱子，键是 {@link GuardrailParts#columnKey} 给出的角点。
+     *
+     * <p>这个集合<b>与伪装材质完全独立</b>：隐藏一根柱子不碰它的材质，恢复时材质原样回来。
+     * 它也必须跟着方块实体走，否则重新进入世界就会「全部柱子自己长回来」。
+     */
+    private final Set<String> hiddenColumns = ConcurrentHashMap.newKeySet();
 
     public CopycatGuardrailBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntity.COPYCAT_GUARDRAIL, pos, state);
@@ -239,6 +252,47 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
         }
     }
 
+    // ---------------------------------------------------------------- 柱子隐藏
+
+    /** 当前被隐藏的柱子角点。调用方只读，所以给一份快照。 */
+    public Set<String> hiddenColumns() {
+        return hiddenColumns.isEmpty() ? Set.of() : Set.copyOf(hiddenColumns);
+    }
+
+    public boolean hasHiddenColumns() {
+        return !hiddenColumns.isEmpty();
+    }
+
+    /**
+     * 隐藏一根柱子。只改可见性，材质、被消耗物品、横梁一律不动，也不返还任何物品。
+     *
+     * @return 状态是否真的发生了变化
+     */
+    public boolean hideColumn(String columnKey) {
+        if (!hiddenColumns.add(columnKey)) {
+            return false;
+        }
+        sync();
+        return true;
+    }
+
+    /**
+     * 把本方块内所有柱子恢复成默认（全部存在）状态。
+     *
+     * <p>直接清空隐藏集合即可：可见几何本来就是「先按存在的方向算出柱子，再减去隐藏集合」，
+     * 所以清空后的结果与这些护栏刚放好时完全一致，也不会凭空多出任何方向。
+     *
+     * @return 状态是否真的发生了变化
+     */
+    public boolean showAllColumns() {
+        if (hiddenColumns.isEmpty()) {
+            return false;
+        }
+        hiddenColumns.clear();
+        sync();
+        return true;
+    }
+
     private void sync() {
         markDirty();
         if (world == null) {
@@ -287,11 +341,18 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
             data.put(key, entry);
         }
         nbt.put(KEY_MATERIAL_DATA, data);
+        // 隐藏的柱子客户端渲染也要用，所以两种包都得带上
+        NbtList hidden = new NbtList();
+        for (String column : hiddenColumns) {
+            hidden.add(NbtString.of(column));
+        }
+        nbt.put(KEY_HIDDEN_COLUMNS, hidden);
     }
 
     @Override
     protected void read(NbtCompound nbt, boolean clientPacket) {
         Map<String, BlockState> previous = Map.copyOf(materials);
+        Set<String> previousHidden = hiddenColumns();
         super.read(nbt, clientPacket);
         NbtCompound data = nbt.getCompound(KEY_MATERIAL_DATA);
         for (String key : GuardrailParts.allKeys()) {
@@ -301,8 +362,13 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
                 consumedItems.put(key, readStack(entry, KEY_CONSUMED_ITEM));
             }
         }
-        // 客户端拿到新材质后必须主动重烘焙，否则要等下次方块状态变化才刷新外观
-        if (clientPacket && !previous.equals(materials)) {
+        hiddenColumns.clear();
+        NbtList hidden = nbt.getList(KEY_HIDDEN_COLUMNS, NbtElement.STRING_TYPE);
+        for (int i = 0; i < hidden.size(); i++) {
+            hiddenColumns.add(hidden.getString(i));
+        }
+        // 客户端拿到新状态后必须主动重烘焙，否则要等下次方块状态变化才刷新外观
+        if (clientPacket && (!previous.equals(materials) || !previousHidden.equals(hiddenColumns))) {
             redraw();
         }
     }
@@ -325,11 +391,18 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
     // ---------------------------------------------------------------- 渲染数据
 
     /**
-     * 交给渲染层的部件→材质映射。键名与 {@link GuardrailParts#key} 一致，
-     * 生成脚本按同样的键名给每个几何体分配了占位贴图。
+     * 交给渲染层的快照：部件→材质映射，以及被隐藏的柱子。
+     *
+     * <p>两份数据必须一起给：渲染层要按材质分组发射模型，同时要把隐藏的柱子从几何里剔掉。
+     *
+     * <p>键名与 {@link GuardrailParts#key} 一致，生成脚本按同样的键名给每个几何体分配了占位贴图。
      */
+    public record RenderData(Map<String, BlockState> materials, Set<String> hiddenColumns) {
+    }
+
+    /** 渲染层的实时快照。区块网格重烘焙时读一次。 */
     @Override
     public @Nullable Object getRenderData() {
-        return materials;
+        return new RenderData(Map.copyOf(materials), hiddenColumns());
     }
 }

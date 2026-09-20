@@ -1,10 +1,21 @@
 package marrydream.marisdecoration.item;
 
+import marrydream.marisdecoration.block.CopycatGuardrailBlock;
+import marrydream.marisdecoration.block.CopycatGuardrailBlockEntity;
+import marrydream.marisdecoration.block.utils.GuardrailParts;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.item.TooltipContext;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemUsageContext;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 import java.util.List;
@@ -14,6 +25,13 @@ import java.util.List;
  *
  * <p>本 mod 通用的「构件形态切换工具」：右键切换方块构件的形态（连接形状、边缘纹理等）。
  * 后续新增的构件形态切换一律挂在这个工具上，不要再为单个构件另起一个工具。
+ *
+ * <p><b>为什么形态切换要写在 {@link #useOnBlock} 而不是方块的 {@code onUse} 里</b>：
+ * 原版的交互管理器在「潜行 + 手持非空物品」时会走
+ * {@code shouldCancelInteraction() && 手不空} 这个分支，<b>整段跳过</b>
+ * {@code blockState.onUse}，只调用 {@code ItemStack.useOnBlock}。所以放在 {@code onUse} 里的逻辑
+ * 平时能用、一潜行就失灵。{@code useOnBlock} 是两条路径的交汇点：不潜行时 {@code onUse} 返回
+ * PASS 之后会落到它，潜行时则直接由它接手。
  */
 public class DetailChisel extends Item {
     public final static String ID = "detail_chisel";
@@ -24,6 +42,72 @@ public class DetailChisel extends Item {
 
     public DetailChisel( ) {
         super( DetailChisel.getSetting() );
+    }
+
+    /**
+     * 对伪装护栏的柱子做形态切换。
+     *
+     * <p>普通右键：移除<b>实际点到的那一根</b>柱子（柱子只是藏起来，材质留着）。
+     * 潜行右键：把本方块内所有护栏的柱子恢复成默认状态。
+     *
+     * <p>两者都只动柱子的可见性——伪装材质、被消耗物品记录、横梁、已存在的方向一概不碰，
+     * 也不返还任何物品；横梁因为柱子隐藏而产生的 1px 延长由几何层跟着状态自动算。
+     */
+    @Override
+    public ActionResult useOnBlock( ItemUsageContext context ) {
+        World world = context.getWorld();
+        BlockPos pos = context.getBlockPos();
+        if ( !( world.getBlockState( pos ).getBlock() instanceof CopycatGuardrailBlock ) ) {
+            return ActionResult.PASS;
+        }
+        if ( !( world.getBlockEntity( pos ) instanceof CopycatGuardrailBlockEntity blockEntity ) ) {
+            return ActionResult.PASS;
+        }
+
+        PlayerEntity player = context.getPlayer();
+        if ( player != null && player.isSneaking() ) {
+            return restoreAllColumns( world, pos, blockEntity );
+        }
+        return hideClickedColumn( context, world, pos, blockEntity );
+    }
+
+    /**
+     * 潜行右键：恢复本方块内所有柱子。
+     *
+     * <p>不需要精确点到柱子——柱子藏起来之后本来就点不到，这里也不看命中部位，
+     * 打在方块任意有效位置都算。没有隐藏项时不做任何操作。
+     */
+    private static ActionResult restoreAllColumns( World world, BlockPos pos, CopycatGuardrailBlockEntity blockEntity ) {
+        if ( !blockEntity.hasHiddenColumns() ) {
+            return ActionResult.PASS;
+        }
+        if ( !world.isClient ) {
+            blockEntity.showAllColumns();
+            world.playSound( null, pos, SoundEvents.ITEM_AXE_STRIP, SoundCategory.BLOCKS, 0.7F, 1.4F );
+        }
+        return ActionResult.SUCCESS;
+    }
+
+    /**
+     * 普通右键：隐藏点中的那一根柱子。
+     *
+     * <p>点中哪根柱子由实际命中点的几何最近部件决定（{@link GuardrailParts#partAt}），
+     * <b>不</b>按玩家朝向猜：柱子只有 1/16 宽，一个方块里最多四根，朝向根本区分不开。
+     * 点在横梁上时什么都不做，把这次交互让回去。
+     */
+    private static ActionResult hideClickedColumn( ItemUsageContext context, World world, BlockPos pos,
+                                                   CopycatGuardrailBlockEntity blockEntity ) {
+        BlockState state = world.getBlockState( pos );
+        Vec3d localHit = context.getHitPos().subtract( pos.getX(), pos.getY(), pos.getZ() );
+        GuardrailParts.Hit part = GuardrailParts.partAt( state, blockEntity.hiddenColumns(), localHit );
+        if ( part == null || part.columnKey() == null ) {
+            return ActionResult.PASS;
+        }
+        if ( !world.isClient ) {
+            blockEntity.hideColumn( part.columnKey() );
+            world.playSound( null, pos, SoundEvents.ITEM_AXE_STRIP, SoundCategory.BLOCKS, 0.7F, 0.7F );
+        }
+        return ActionResult.SUCCESS;
     }
 
     @Override

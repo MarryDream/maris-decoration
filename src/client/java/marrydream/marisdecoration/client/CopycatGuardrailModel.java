@@ -4,6 +4,7 @@ import com.simibubi.create.AllBlocks;
 import com.simibubi.create.foundation.model.BakedModelHelper;
 import io.github.fabricators_of_create.porting_lib.models.CustomParticleIconModel;
 import marrydream.marisdecoration.MarisDecoration;
+import marrydream.marisdecoration.block.CopycatGuardrailBlockEntity.RenderData;
 import marrydream.marisdecoration.block.utils.GuardrailParts;
 import net.fabricmc.fabric.api.renderer.v1.RendererAccess;
 import net.fabricmc.fabric.api.renderer.v1.mesh.MeshBuilder;
@@ -27,6 +28,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -61,12 +63,14 @@ public class CopycatGuardrailModel extends ForwardingBakedModel implements Custo
     @Override
     public void emitBlockQuads(BlockRenderView blockView, BlockState state, BlockPos pos,
                                Supplier<Random> randomSupplier, RenderContext context) {
-        Map<String, List<Box>> boxes = GuardrailParts.boxesByKey(state);
+        RenderData data = readRenderData(blockView, pos);
+        // 被细工凿藏起来的柱子在这里就被剔掉，模型与柱子状态天然一致
+        Map<String, List<Box>> boxes = GuardrailParts.boxesByKey(state, data.hiddenColumns());
         if (boxes.isEmpty()) {
             return;
         }
 
-        Map<String, BlockState> materials = readMaterials(blockView, pos);
+        Map<String, BlockState> materials = data.materials();
         if (!DIAGNOSED) {
             DIAGNOSED = true;
             // 只打一次：用于确认「模型包装生效」以及「伪装材质是否同步到了客户端」。
@@ -108,19 +112,18 @@ public class CopycatGuardrailModel extends ForwardingBakedModel implements Custo
 
     private static volatile boolean DIAGNOSED = false;
 
+    /** 方块实体数据还没同步过来时的回落。 */
+    private static final RenderData EMPTY = new RenderData(Map.of(), Set.of());
+
     /**
-     * 读取方块实体里的「部件 → 材质」映射。
+     * 读取方块实体交给渲染层的快照：部件→材质，以及被隐藏的柱子。
      *
      * <p>{@code BlockView} 已通过 Loom 的接口注入实现了 {@code FabricBlockView}，
      * 所以这里可以直接调用 {@code getBlockEntityRenderData}。
      */
-    @SuppressWarnings("unchecked")
-    private static Map<String, BlockState> readMaterials(BlockRenderView view, BlockPos pos) {
+    private static RenderData readRenderData(BlockRenderView view, BlockPos pos) {
         Object data = view.getBlockEntityRenderData(pos);
-        if (data instanceof Map<?, ?> map) {
-            return (Map<String, BlockState>) map;
-        }
-        return Map.of();
+        return data instanceof RenderData renderData ? renderData : EMPTY;
     }
 
     /**
@@ -131,9 +134,9 @@ public class CopycatGuardrailModel extends ForwardingBakedModel implements Custo
      */
     @Override
     public Sprite getParticleIcon(@Nullable Object data) {
-        if (data instanceof Map<?, ?> map) {
-            for (Object value : map.values()) {
-                if (value instanceof BlockState material && !material.isAir()) {
+        if (data instanceof RenderData renderData) {
+            for (BlockState material : renderData.materials().values()) {
+                if (!material.isAir()) {
                     return particleSprite(material);
                 }
             }
