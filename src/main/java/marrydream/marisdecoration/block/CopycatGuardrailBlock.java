@@ -99,6 +99,9 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
      */
     private static final boolean COPYCATS_LOADED = FabricLoader.getInstance().isModLoaded("copycats");
 
+    /** 顶面点击落在方块中心这个半径内时，角度没有意义，走「延续下层方向」的回落。 */
+    private static final double STACK_CENTER_DEAD_ZONE = 2.0 / 16.0;
+
     public CopycatGuardrailBlock(AbstractBlock.Settings settings) {
         super(settings);
         // 默认四面全 false。放置时由 getPlacementState 显式置位，
@@ -164,13 +167,23 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
 
     @Override
     public @Nullable BlockState getPlacementState(ItemPlacementContext context) {
+        BlockPos pos = context.getBlockPos();
+        BlockState existing = context.getWorld().getBlockState(pos);
+
         Direction facing = context.getHorizontalPlayerFacing();
+        // 点击已有护栏的顶面 = 向上堆叠。上层护栏在哪一侧由点击位置决定，
+        // 而不是玩家朝向——参考 Quark 竖半砖的顶面放置。
+        if (context.getSide() == Direction.UP) {
+            BlockState below = context.getWorld().getBlockState(pos.offset(Direction.DOWN));
+            if (below.isOf(this)) {
+                facing = directionForStacking(context, below);
+            }
+        }
+
         BooleanProperty property = PROPERTY_BY_DIRECTION.get(facing);
         if (property == null) {
             return null;
         }
-        BlockPos pos = context.getBlockPos();
-        BlockState existing = context.getWorld().getBlockState(pos);
         if (existing.isOf(this)) {
             // 同一个方块内继续叠加（保留原有的含水状态）。
             // 朝向那一面已经占了就退到对立面：正对着已放好的护栏再右键时应该在对侧补一根，
@@ -191,6 +204,51 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
     }
 
     /**
+     * 点击已有护栏顶面时，决定上层护栏放在哪一侧。
+     *
+     * <p>参考 Quark 竖半砖 {@code VerticalSlabBlock#getDirectionForPlacement}：点击面是竖直面
+     * 时直接用它；是水平面时，把点击位置换算成<b>以方块中心为原点</b>的水平偏移，再取
+     * {@code atan2(x, z)} 的角度交给 {@code Direction.fromRotation} 得到方向。
+     *
+     * <p>方向语义要转一道：Quark 返回的是「半砖朝哪一面」（所以它自己取了一次 opposite），
+     * 而我们要的是「护栏在哪一侧」，正好是那个方向的反面——两次 opposite 抵消，
+     * 于是直接用 {@code fromRotation} 的结果：点顶面的南半边得到 SOUTH，北半边得到 NORTH。
+     *
+     * <p>唯一与 Quark 不同的一点：它的竖半砖是「半砖」，顶面任何一点都明确落在某一半里；
+     * 我们的护栏贴着方块边缘，正中央那一点点区域角度没有意义，此时延续下层已有的方向
+     * （下层只有一个面时），否则回落到玩家朝向。
+     */
+    private static Direction directionForStacking(ItemPlacementContext context, BlockState below) {
+        BlockPos clicked = context.getBlockPos().offset(Direction.DOWN);
+        Vec3d hit = context.getHitPos();
+        double localX = hit.x - clicked.getX() - 0.5;
+        double localZ = hit.z - clicked.getZ() - 0.5;
+
+        if (Math.abs(localX) < STACK_CENTER_DEAD_ZONE && Math.abs(localZ) < STACK_CENTER_DEAD_ZONE) {
+            Direction only = singleFace(below);
+            return only != null ? only : context.getHorizontalPlayerFacing();
+        }
+
+        double angle = Math.atan2(localX, localZ) * -180.0 / Math.PI;
+        return Direction.fromRotation(angle);
+    }
+
+    /** 该状态只存在一个面时返回那个方向，否则返回 null。 */
+    private static @Nullable Direction singleFace(BlockState state) {
+        Direction found = null;
+        for (Direction dir : FACES) {
+            if (!state.get(PROPERTY_BY_DIRECTION.get(dir))) {
+                continue;
+            }
+            if (found != null) {
+                return null;
+            }
+            found = dir;
+        }
+        return found;
+    }
+
+    /**
      * 让原版认为「这个位置还可以再放一个」。返回 true 时，原版会消耗一个物品并重新调用
      * {@link #getPlacementState}，这正是多面叠加所需的行为。
      *
@@ -201,6 +259,19 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
     @Override
     public boolean canReplace(BlockState state, ItemPlacementContext context) {
         if (!state.isOf(this) || !context.getStack().isOf(this.asItem())) {
+            return false;
+        }
+        // 顶面专门表示「向上堆叠」，不参与同格扩展——但只在「这一格就是被点击的那个方块」时成立。
+        //
+        // canReplace 会被原版以两种语境调用，两次的 getSide() 完全相同，只有拿到的 state 不同：
+        //   1) ItemPlacementContext 构造时，对「命中位置」的方块调用。此时 canReplaceExisting()
+        //      为 true（构造器先置位、拿到结果后才覆盖），这次的结果决定目标落在命中格还是相邻格。
+        //      在这里返回 false，原版就会把目标算成上方一格。
+        //   2) canPlace() 里对「目标位置」的方块再调一次，此时 canReplaceExisting() 为 false
+        //      （canPlace 用 || 短路，为 true 时根本不会走到这里）。它的语义是「这个目标格本身
+        //      能不能接受放置」。若在这里也套用顶面规则，点击地面顶面时目标格里的护栏会被判成
+        //      不可放置，导致整次放置失败——护栏必须仍然可被追加新面。
+        if (context.canReplaceExisting() && context.getSide() == Direction.UP) {
             return false;
         }
         Direction facing = context.getHorizontalPlayerFacing();
