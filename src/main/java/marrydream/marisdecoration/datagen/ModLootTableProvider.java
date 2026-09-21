@@ -28,7 +28,8 @@ public final class ModLootTableProvider extends FabricBlockLootTableProvider {
                 ModBlock.STEEL_PLUG_DOOR, ModBlock.STEEL_PLUG_DOOR_WITH_ROOF,
                 ModBlock.TEAK_STEEL_PLUG_DOOR_WITH_ROOF, ModBlock.CYAN_STEEL_PLUG_DOOR_WITH_ROOF,
                 ModBlock.BLACK_STEEL_PLUG_DOOR_WITH_ROOF,
-                ModBlock.COPYCAT_GUARDRAIL
+                ModBlock.COPYCAT_GUARDRAIL,
+                ModBlock.LAYERED_COPYCAT_BOARD
         );
         for (Block block : ModBlock.registeredBlocks()) {
             if (!specialDrops.contains(block)) {
@@ -53,6 +54,12 @@ public final class ModLootTableProvider extends FabricBlockLootTableProvider {
                 .pool(facePool(CopycatGuardrailBlock.EAST))
                 .pool(facePool(CopycatGuardrailBlock.SOUTH))
                 .pool(facePool(CopycatGuardrailBlock.WEST)));
+
+        // 分层伪装薄板刻意<b>没有</b>战利品表：它的 12 个 1px 槽位住在方块实体里，
+        // 方块状态根本表达不出来，所以落多少由代码按占用掩码计算
+        // （见 LayeredCopycatBoardBlock#onStateReplaced）。这里只是把严格校验豁免掉，
+        // 免得 datagen 因为「这个方块没有 loot table」而报错。
+        excludeFromStrictValidation(ModBlock.LAYERED_COPYCAT_BOARD);
     }
 
     /** 该方向存在时掉一个伪装护栏。 */

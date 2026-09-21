@@ -20,6 +20,8 @@
   "block.maris-decoration.cyan_steel_roof_teak_wall": "青钢屋顶柚木墙",
   "block.maris-decoration.cyan_steel_slab": "青色钢台阶",
   "block.maris-decoration.cyan_steel_stairs": "青色钢楼梯",
+  "block.maris-decoration.layered_copycat_board": "分层伪装薄板",
+  "block.maris-decoration.layered_copycat_board.tooltip.adjustable_state": "右键板面可开关圆窗，右键边角可切换接缝归属；",
   "block.maris-decoration.steel_block": "钢块",
   "block.maris-decoration.steel_fixed_ladder": "钢固定梯",
   "block.maris-decoration.steel_guardrail": "钢护栏",

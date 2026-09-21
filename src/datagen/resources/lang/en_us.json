@@ -43,6 +43,8 @@
     "block.maris-decoration.black_steel_guardrail":  "Black Steel Guardrail",
     "block.maris-decoration.copycat_guardrail":  "Copycat Guardrail",
     "block.maris-decoration.copycat_guardrail.tooltip.adjustable_state":  "right-click a post to hide it; ",
+    "block.maris-decoration.layered_copycat_board":  "Layered Copycat Board",
+    "block.maris-decoration.layered_copycat_board.tooltip.adjustable_state":  "right-click a board face to toggle its round window, right-click a corner to switch which edge it belongs to; ",
     "maris-decoration.characteristic.camouflage.title":  "Camouflage",
     "maris-decoration.characteristic.camouflage.description":  "Right-click a part with a block in hand to give it that material; right-click with a _Create Wrench_ to remove the camouflage and get the material back.",
     "maris-decoration.characteristic.composite_state.title":  "Composite State",

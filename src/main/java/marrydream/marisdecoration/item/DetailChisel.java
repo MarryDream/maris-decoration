@@ -2,6 +2,7 @@ package marrydream.marisdecoration.item;
 
 import marrydream.marisdecoration.block.CopycatGuardrailBlock;
 import marrydream.marisdecoration.block.CopycatGuardrailBlockEntity;
+import marrydream.marisdecoration.block.LayeredCopycatBoardBlock;
 import marrydream.marisdecoration.block.utils.GuardrailParts;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.item.TooltipContext;
@@ -45,18 +46,27 @@ public class DetailChisel extends Item {
     }
 
     /**
-     * 对伪装护栏的柱子做形态切换。
+     * 对伪装构件做形态切换。
      *
-     * <p>普通右键：移除<b>实际点到的那一根</b>柱子（柱子只是藏起来，材质留着）。
-     * 潜行右键：把本方块内所有护栏的柱子恢复成默认状态。
+     * <p>伪装护栏：普通右键移除<b>实际点到的那一根</b>柱子（柱子只是藏起来，材质留着）；
+     * 潜行右键把本方块内所有护栏的柱子恢复成默认状态。
      *
-     * <p>两者都只动柱子的可见性——伪装材质、被消耗物品记录、横梁、已存在的方向一概不碰，
-     * 也不返还任何物品；横梁因为柱子隐藏而产生的 1px 延长由几何层跟着状态自动算。
+     * <p>分层伪装薄板：普通右键 Body / Window 区域切换该面的圆窗、点角切换归属的边、
+     * 点边不处理；潜行右键把所有面的圆窗关掉。
+     *
+     * <p>两者都只动「可见性 / 形态」——伪装材质、被消耗物品记录一概不碰，也不返还任何物品。
      */
     @Override
     public ActionResult useOnBlock( ItemUsageContext context ) {
         World world = context.getWorld();
         BlockPos pos = context.getBlockPos();
+
+        if ( world.getBlockState( pos ).getBlock() instanceof LayeredCopycatBoardBlock ) {
+            // 薄板的形态切换实现在方块类里，两边共用同一份逻辑（onUse 与 useOnBlock 都要挂，
+            // 否则潜行时原版会跳过 BlockState#onUse，Shift + 右键收不到）。
+            return LayeredCopycatBoardBlock.onChisel( world, pos, context.getPlayer(),
+                    context.getHitPos(), context.getSide() );
+        }
         if ( !( world.getBlockState( pos ).getBlock() instanceof CopycatGuardrailBlock ) ) {
             return ActionResult.PASS;
         }

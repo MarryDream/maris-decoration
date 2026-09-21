@@ -43,6 +43,8 @@
     "block.maris-decoration.black_steel_guardrail":  "黑色钢护栏",
     "block.maris-decoration.copycat_guardrail":  "伪装护栏",
     "block.maris-decoration.copycat_guardrail.tooltip.adjustable_state":  "右键柱子可隐藏柱子；",
+    "block.maris-decoration.layered_copycat_board":  "分层伪装薄板",
+    "block.maris-decoration.layered_copycat_board.tooltip.adjustable_state":  "右键板面可开关圆窗，右键边角可切换接缝归属；",
     "maris-decoration.characteristic.camouflage.title":  "伪装方块",
     "maris-decoration.characteristic.camouflage.description":  "手持方块右键对应部件即可赋予材质；使用_Create扳手_右键可移除伪装并返还材料。",
     "maris-decoration.characteristic.composite_state.title":  "复合状态",

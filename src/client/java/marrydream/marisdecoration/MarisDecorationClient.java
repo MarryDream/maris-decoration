@@ -1,9 +1,11 @@
 package marrydream.marisdecoration;
 
 import marrydream.marisdecoration.client.CopycatGuardrailModel;
+import marrydream.marisdecoration.client.LayeredCopycatBoardModel;
 import marrydream.marisdecoration.client.tooltip.MarisTooltip;
 import marrydream.marisdecoration.client.tooltip.MarisTooltip.MarisCharacteristic;
 import marrydream.marisdecoration.block.CopycatGuardrailBlock;
+import marrydream.marisdecoration.block.LayeredCopycatBoardBlock;
 import marrydream.marisdecoration.init.ModBlock;
 import marrydream.marisdecoration.init.ModInfo;
 import net.fabricmc.api.ClientModInitializer;
@@ -28,6 +30,12 @@ public class MarisDecorationClient implements ClientModInitializer {
         // 所以我们不用自己挂 tooltip 回调。这里只声明「这个方块有哪几条特性」——
         // 标题取自共用的特性枚举，说明文字按特性名从语言文件里取，顺序就是这里的书写顺序。
         MarisTooltip.register( ModBlock.COPYCAT_GUARDRAIL.asItem(),
+                MarisCharacteristic.CAMOUFLAGE,
+                MarisCharacteristic.COMPOSITE_STATE,
+                MarisCharacteristic.SEGMENT_CAMOUFLAGE,
+                MarisCharacteristic.ADJUSTABLE_STATE );
+
+        MarisTooltip.register( ModBlock.LAYERED_COPYCAT_BOARD.asItem(),
                 MarisCharacteristic.CAMOUFLAGE,
                 MarisCharacteristic.COMPOSITE_STATE,
                 MarisCharacteristic.SEGMENT_CAMOUFLAGE,
@@ -73,7 +81,36 @@ public class MarisDecorationClient implements ClientModInitializer {
                     return new CopycatGuardrailModel( model );
                 }
         ) );
+
+        // layered_copycat_board 走同一套路子：blockstate 的全部变体都指向 minecraft:block/air，
+        // 真正的几何在渲染时按方块实体的占用掩码 / 窗 / 角归属动态发射。
+        // 匹配条件同样是「blockstate 变体位置」而不是模型文件路径，理由见上面那段注释。
+        ModelLoadingPlugin.register( context -> context.modifyModelAfterBake().register(
+                ModelModifier.WRAP_PHASE,
+                ( model, ctx ) -> {
+                    Identifier id = ctx.id();
+                    if ( id == null || !ModInfo.MOD_ID.equals( id.getNamespace() ) ) {
+                        return model;
+                    }
+                    if ( !LayeredCopycatBoardBlock.ID_PATH.equals( id.getPath() ) ) {
+                        return model;
+                    }
+                    // 物品模型必须保持静态：物品渲染没有方块实体，走动态模型没有意义还容易出问题。
+                    if ( id instanceof ModelIdentifier modelId && "inventory".equals( modelId.getVariant() ) ) {
+                        return model;
+                    }
+                    if ( model instanceof LayeredCopycatBoardModel ) {
+                        return model;
+                    }
+                    if ( !LOGGED_BOARD_WRAP ) {
+                        LOGGED_BOARD_WRAP = true;
+                        MarisDecoration.LOGGER.info( "[layered_copycat_board] 已包装动态模型，首个匹配 id = {}", id );
+                    }
+                    return new LayeredCopycatBoardModel( model );
+                }
+        ) );
 	}
 
     private static volatile boolean LOGGED_WRAP = false;
+    private static volatile boolean LOGGED_BOARD_WRAP = false;
 }

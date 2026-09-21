@@ -20,6 +20,8 @@
   "block.maris-decoration.cyan_steel_roof_teak_wall": "Cyan Steel Roof Teak Wall",
   "block.maris-decoration.cyan_steel_slab": "Cyan Steel Slab",
   "block.maris-decoration.cyan_steel_stairs": "Cyan Steel Stairs",
+  "block.maris-decoration.layered_copycat_board": "Layered Copycat Board",
+  "block.maris-decoration.layered_copycat_board.tooltip.adjustable_state": "right-click a board face to toggle its round window, right-click a corner to switch which edge it belongs to; ",
   "block.maris-decoration.steel_block": "Steel Block",
   "block.maris-decoration.steel_fixed_ladder": "Steel Fixed Ladder",
   "block.maris-decoration.steel_guardrail": "Steel Guardrail",

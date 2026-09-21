@@ -3,6 +3,7 @@ package marrydream.marisdecoration.init;
 import marrydream.marisdecoration.block.*;
 import marrydream.marisdecoration.block.ComponentWallBlock;
 import marrydream.marisdecoration.block.WallBlock;
+import marrydream.marisdecoration.item.LayeredCopycatBoardItem;
 import marrydream.marisdecoration.item.SteelVerticalLadderItem;
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
@@ -205,6 +206,12 @@ public final class ModBlock {
             new CopycatGuardrailBlock( FabricBlockSettings.copy( STEEL_GUARDRAIL ).strength( 2.0F, 3.0F ) ),
             true
     ); // 伪装护栏（可贴任意方块材质，四向可叠加）
+    public static final LayeredCopycatBoardBlock LAYERED_COPYCAT_BOARD = register(
+            "layered_copycat_board",
+            new LayeredCopycatBoardBlock( FabricBlockSettings.copy( STEEL_GUARDRAIL ).strength( 2.0F, 3.0F ) ),
+            // 物品侧也要能往已有薄板里追加槽位（点的是旁边的普通方块时方块自己的 onUse 不会执行）
+            block -> new LayeredCopycatBoardItem( block, new Item.Settings() )
+    ); // 分层伪装薄板（六面各最多两层 1px 板，可分别伪装）
     public static final Block STEEL_PLUG_DOOR = register(
             "steel_plug_door",
             new LintelThresholdThinDoorBlock(
