@@ -275,6 +275,9 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
     }
 
     private void sync() {
+        // 走到这里就说明材质或隐藏柱子刚变过，快照作废。
+        // 放在最前面：world 为空时下面会提前 return，但失效一样不能漏。
+        invalidateRenderData();
         markDirty();
         if (world == null) {
             return;
@@ -313,11 +316,19 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
         super.write(nbt, clientPacket);
         NbtCompound data = new NbtCompound();
         for (String key : GuardrailParts.allKeys()) {
+            BlockState material = material(key);
+            ItemStack consumed = consumedItem(key);
+            // 空槽整个跳过。整块有 8 个固定槽位，但实际多半只用了其中几个，
+            // 全写进去意味着存档和同步包里有一大半是「空气」。
+            // 读取端本来就按「键缺失 = 空槽」处理（见 readMaterial / readStack），所以可以放心省。
+            if (material.isAir() && consumed.isEmpty()) {
+                continue;
+            }
             NbtCompound entry = new NbtCompound();
-            entry.put(KEY_MATERIAL, NbtHelper.fromBlockState(material(key)));
+            entry.put(KEY_MATERIAL, NbtHelper.fromBlockState(material));
             if (!clientPacket) {
                 // 被消耗的物品只在服务端保存，没必要发给客户端
-                entry.put(KEY_CONSUMED_ITEM, consumedItem(key).writeNbt(new NbtCompound()));
+                entry.put(KEY_CONSUMED_ITEM, consumed.writeNbt(new NbtCompound()));
             }
             data.put(key, entry);
         }
@@ -348,6 +359,8 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
         for (int i = 0; i < hidden.size(); i++) {
             hiddenColumns.add(hidden.getString(i));
         }
+        // read 不走 sync()，所以这里必须自己作废快照，否则收包之后画面还停在旧数据上
+        invalidateRenderData();
         // 客户端拿到新状态后必须主动重烘焙，否则要等下次方块状态变化才刷新外观
         if (clientPacket && (!previous.equals(materials) || !previousHidden.equals(hiddenColumns))) {
             redraw();
@@ -381,9 +394,36 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
     public record RenderData(Map<String, BlockState> materials, Set<String> hiddenColumns) {
     }
 
-    /** 渲染层的实时快照。区块网格重烘焙时读一次。 */
+    /**
+     * 渲染数据快照。{@code null} 表示「当前没有有效快照，下次读取时重建」。
+     *
+     * <p>{@code volatile}：区块网格可以并行烘焙，快照会被渲染线程读，而写入发生在交互/sync 线程。
+     * 用 volatile 保证读到的是完整构造好的对象。
+     */
+    private volatile RenderData renderData;
+
+    /**
+     * 让快照失效，下次 {@link #getRenderData()} 重新生成。
+     *
+     * <p>所有会改动「材质」或「隐藏柱子」的路径都必须经过这里，否则画面会停在旧数据上。
+     * 除了 {@link #read} 之外，这些路径全都走 {@link #sync()}，所以失效点统一放在 sync() 开头，
+     * 避免以后新增修改入口时漏掉。
+     */
+    private void invalidateRenderData() {
+        renderData = null;
+    }
+
+    /** 渲染层的快照。正常情况下直接返回缓存，不再每次复制一遍映射。 */
     @Override
     public @Nullable Object getRenderData() {
-        return new RenderData(Map.copyOf(materials), hiddenColumns());
+        RenderData cached = renderData;
+        if (cached != null) {
+            return cached;
+        }
+        // 并发烘焙时可能有两个线程同时错过缓存、各建一份，内容相同，最后写入的胜出，
+        // 不会读到半成品（Map.copyOf 出来的映射不可变，volatile 保证安全发布）。
+        RenderData built = new RenderData(Map.copyOf(materials), hiddenColumns());
+        renderData = built;
+        return built;
     }
 }

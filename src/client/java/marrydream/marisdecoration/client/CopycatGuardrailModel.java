@@ -33,6 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 /**
@@ -133,10 +134,20 @@ public class CopycatGuardrailModel extends ForwardingBakedModel implements Custo
      * {@code RenderLayers.getBlockLayer(material)} 取材质真正会被画进哪一个层，再转成 FRAPI 的
      * {@link BlendMode}。草方块与树叶是 {@code cutout_mipped}（草方块侧面的覆盖层贴图带 alpha，
      * 所以原版把它们放在这个层），玻璃是 {@code translucent}——只有跟着材质走才对。
+     *
+     * <p>结果按 {@link BlendMode} 缓存：它只取决于材质所在的 render layer，而那是 FRAPI 的固定枚举
+     * （solid / cutout / cutout_mipped / translucent），所以缓存上限就是这几个，<b>不会</b>随着
+     * 见过的材质种类膨胀——刻意没做成 {@code Map<BlockState, RenderMaterial>}。
+     *
+     * <p>缓存挂在模型实例上而不是 static：模型实例的生命周期就是「一次资源加载」，
+     * 不会跨资源包残留，也不引入全局可变状态。区块网格可以并行烘焙，因此用并发映射。
      */
-    private static RenderMaterial blendModeOf(BlockState material) {
+    private final Map<BlendMode, RenderMaterial> renderMaterialsByBlendMode = new ConcurrentHashMap<>(4);
+
+    private RenderMaterial blendModeOf(BlockState material) {
         BlendMode blendMode = BlendMode.fromRenderLayer(RenderLayers.getBlockLayer(material));
-        return RendererAccess.INSTANCE.getRenderer().materialFinder().blendMode(blendMode).find();
+        return renderMaterialsByBlendMode.computeIfAbsent(blendMode,
+                mode -> RendererAccess.INSTANCE.getRenderer().materialFinder().blendMode(mode).find());
     }
 
     /**
