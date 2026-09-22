@@ -88,6 +88,19 @@ public final class LayeredBoardParts {
     }
 
     /**
+     * 缓存的枚举数组。
+     *
+     * <p>{@code values()} 每次调用都会克隆一份数组——在 4096 格的循环里直接写
+     * {@code for ( Direction d : Direction.values() )} 就是每格新分配一个数组。
+     * 这三个数组只读，任何线程都能安全共用。
+     *
+     * <p>刻意声明在类的最前面：后面所有静态表的初始化都可能间接用到它们。
+     */
+    private static final Direction[] DIRECTIONS = Direction.values();
+    private static final FaceDir[] FACES = FaceDir.values();
+    private static final BoardLayer[] LAYERS = BoardLayer.values();
+
+    /**
      * 窗是面中央固定的 <b>8×8 正方形</b>（u = 4..12、v = 4..12），左上角落在这个偏移处。
      *
      * <p>规则：{@code window=false} 时这块区域属于 BODY；{@code window=true} 时才变成 WINDOW。
@@ -365,8 +378,8 @@ public final class LayeredBoardParts {
 
     private static Ownership ownership( int occupancy ) {
         int[] present = new int[CELLS];
-        for ( FaceDir face : FaceDir.values() ) {
-            for ( BoardLayer layer : BoardLayer.values() ) {
+        for ( FaceDir face : FACES ) {
+            for ( BoardLayer layer : LAYERS ) {
                 if ( !LayeredBoardSlots.hasSlot( occupancy, face, layer ) ) {
                     continue;
                 }
@@ -431,7 +444,7 @@ public final class LayeredBoardParts {
 
         @Nullable
         private static FaceDir faceByName( String name ) {
-            for ( FaceDir face : FaceDir.values() ) {
+            for ( FaceDir face : FACES ) {
                 if ( face.getName().equals( name ) ) {
                     return face;
                 }
@@ -441,7 +454,7 @@ public final class LayeredBoardParts {
 
         @Nullable
         private static BoardLayer layerByName( String name ) {
-            for ( BoardLayer layer : BoardLayer.values() ) {
+            for ( BoardLayer layer : LAYERS ) {
                 if ( layer.getName().equals( name ) ) {
                     return layer;
                 }
@@ -734,7 +747,7 @@ public final class LayeredBoardParts {
         BoardLayer layer = layerOfSlot( Integer.numberOfTrailingZeros( owner[index( x, y, z )] ) );
         int count = 0;
         int runCount = 0;
-        for ( Direction direction : Direction.values() ) {
+        for ( Direction direction : DIRECTIONS ) {
             int nx = x + worldComponent( direction, Direction.Axis.X );
             int ny = y + worldComponent( direction, Direction.Axis.Y );
             int nz = z + worldComponent( direction, Direction.Axis.Z );
@@ -961,8 +974,8 @@ public final class LayeredBoardParts {
 
     private static VoxelShape buildShape( int mask ) {
         VoxelShape shape = VoxelShapes.empty();
-        for ( FaceDir face : FaceDir.values() ) {
-            for ( BoardLayer layer : BoardLayer.values() ) {
+        for ( FaceDir face : FACES ) {
+            for ( BoardLayer layer : LAYERS ) {
                 if ( LayeredBoardSlots.hasSlot( mask, face, layer ) ) {
                     shape = VoxelShapes.union( shape, VoxelShapes.cuboid( trimmedPlateBox( mask, face, layer ) ) );
                 }
@@ -1034,6 +1047,29 @@ public final class LayeredBoardParts {
     private record PlaneKey( Direction.Axis axis, int along, Direction facing ) {
     }
 
+    /**
+     * 平面身份直查表：{@code [direction.ordinal()][along]}，along 取 0..16。
+     *
+     * <p>每个发出的格子面都要拿一个 {@link PlaneKey} 当 Map 键，直接查表就不必每个面 new 一个。
+     * 表里一共 6 × 17 个不可变实例，只读，任何线程都能安全共用。
+     */
+    private static final PlaneKey[][] PLANE_KEYS = planeKeyTable();
+
+    private static PlaneKey[][] planeKeyTable( ) {
+        Direction[] directions = Direction.values();
+        PlaneKey[][] table = new PlaneKey[directions.length][17];
+        for ( Direction direction : directions ) {
+            for ( int along = 0; along <= 16; along++ ) {
+                table[direction.ordinal()][along] = new PlaneKey( direction.getAxis(), along, direction );
+            }
+        }
+        return table;
+    }
+
+    private static PlaneKey planeKey( Direction direction, int along ) {
+        return PLANE_KEYS[direction.ordinal()][along];
+    }
+
 
     /**
      * 按状态算出「材质槽键名 → 该槽要画的盒子」。
@@ -1071,7 +1107,7 @@ public final class LayeredBoardParts {
         // 逐格逐方向挑出暴露的面，按「平面 + 槽码」分组。
         // 这里刻意用槽码而不是材质键字符串做 key：字符串只在最后真正输出时才拼，
         // 4096 格的解析里一次都不建。
-        Map<PlaneKey, Map<Integer, List<int[]>>> planes = new LinkedHashMap<>();
+        Map<PlaneKey, Map<Integer, IntList>> planes = new LinkedHashMap<>();
         for ( int x = 0; x < 16; x++ ) {
             for ( int y = 0; y < 16; y++ ) {
                 for ( int z = 0; z < 16; z++ ) {
@@ -1079,7 +1115,9 @@ public final class LayeredBoardParts {
                     if ( owner[at] == 0 ) {
                         continue;
                     }
-                    for ( Direction direction : Direction.values() ) {
+                    // 用缓存的数组做下标循环：Direction.values() 每次调用都会克隆一份数组
+                    for ( int d = 0; d < DIRECTIONS.length; d++ ) {
+                        Direction direction = DIRECTIONS[d];
                         int nx = x + worldComponent( direction, Direction.Axis.X );
                         int ny = y + worldComponent( direction, Direction.Axis.Y );
                         int nz = z + worldComponent( direction, Direction.Axis.Z );
@@ -1108,15 +1146,23 @@ public final class LayeredBoardParts {
             }
         }
 
-        // 每个平面上做一次贪心矩形合并；槽码 → 材质键字符串只在这里发生一次（每个不同槽一次）
+        // 每个平面上做一次贪心矩形合并；槽码 → 材质键字符串只在这里发生一次（每个不同槽一次）。
+        // scratch 是这一次调用的局部对象，随调用栈传递，不与并行的区块烘焙共享。
+        MergeScratch scratch = new MergeScratch();
         Map<String, List<Box>> boxes = new LinkedHashMap<>();
-        planes.forEach( ( plane, byCode ) -> byCode.forEach( ( code, cells ) -> {
-            String materialKey = codeName( code );
-            for ( int[] rect : mergeRectangles( cells ) ) {
-                boxes.computeIfAbsent( materialKey, unused -> new ArrayList<>() )
-                        .add( planeBox( plane, rect ) );
+        for ( Map.Entry<PlaneKey, Map<Integer, IntList>> planeEntry : planes.entrySet() ) {
+            PlaneKey plane = planeEntry.getKey();
+            for ( Map.Entry<Integer, IntList> codeEntry : planeEntry.getValue().entrySet() ) {
+                List<Box> list = boxes.computeIfAbsent( codeName( codeEntry.getKey() ),
+                        unused -> new ArrayList<>() );
+                int count = mergeRectangles( codeEntry.getValue(), scratch );
+                for ( int i = 0; i < count; i++ ) {
+                    int base = i * 4;
+                    list.add( planeBox( plane, scratch.rects[base], scratch.rects[base + 1],
+                            scratch.rects[base + 2], scratch.rects[base + 3] ) );
+                }
             }
-        } ) );
+        }
         return boxes;
     }
 
@@ -1140,8 +1186,95 @@ public final class LayeredBoardParts {
 
     private static final int SLOT_COUNT = FaceDir.values().length * BoardLayer.values().length;
 
+    /**
+     * 一次 {@link #boxesByKey} 调用内的可增长 int 列表。
+     *
+     * <p>替代 {@code ArrayList<Integer>}：平面上的格子现在打包成一个 int，用原始数组存就既不用
+     * 每个格子 new 一个 {@code int[2]}，也不会逐元素装箱。
+     */
+    private static final class IntList {
+        private int[] values = new int[8];
+        private int size;
+
+        void add( int value ) {
+            if ( size == values.length ) {
+                values = java.util.Arrays.copyOf( values, size * 2 );
+            }
+            values[size++] = value;
+        }
+
+        int get( int index ) {
+            return values[index];
+        }
+
+        int size( ) {
+            return size;
+        }
+    }
+
+    /** 平面上的格子：两个坐标各 0..15，打包成一个 int。 */
+    private static int packCell( int first, int second ) {
+        return first | ( second << 4 );
+    }
+
+    private static int cellFirst( int packed ) {
+        return packed & 15;
+    }
+
+    private static int cellSecond( int packed ) {
+        return ( packed >> 4 ) & 15;
+    }
+
+    /**
+     * 一次 {@link #boxesByKey} 调用内复用的合并 scratch。
+     *
+     * <p>刻意<b>由调用方创建、随调用栈传递</b>，绝不做 static 全局共享：区块网格可以并行烘焙，
+     * 多个线程同时跑 {@code boxesByKey} 时各用自己的一份，不会互相踩。生命周期就是一次调用，
+     * 所以也不需要任何同步。
+     */
+    private static final class MergeScratch {
+        private final boolean[] grid = new boolean[256];
+        private final boolean[] duplicatedFlag = new boolean[256];
+        /** 一个平面上最多 256 个矩形，每个 4 个 int。 */
+        private final int[] rects = new int[256 * 4];
+
+        /** 填格子；返回是否出现过重复登记。 */
+        boolean fill( IntList cells ) {
+            java.util.Arrays.fill( grid, false );
+            java.util.Arrays.fill( duplicatedFlag, false );
+            boolean duplicated = false;
+            for ( int i = 0; i < cells.size(); i++ ) {
+                int packed = cells.get( i );
+                int at = ( cellSecond( packed ) << 4 ) | cellFirst( packed );
+                if ( grid[at] ) {
+                    duplicatedFlag[at] = true;
+                    duplicated = true;
+                }
+                grid[at] = true;
+            }
+            return duplicated;
+        }
+
+        String firstDuplicate( ) {
+            for ( int at = 0; at < 256; at++ ) {
+                if ( duplicatedFlag[at] ) {
+                    return ( at & 15 ) + "," + ( at >> 4 );
+                }
+            }
+            return "?";
+        }
+
+        boolean occupied( int first, int second ) {
+            return grid[( second << 4 ) | first];
+        }
+
+        void clear( int first, int second ) {
+            grid[( second << 4 ) | first] = false;
+        }
+    }
+
     /** 把一格的某个面登记到它所在的平面上。 */
-    private static void addPlaneCell( Map<PlaneKey, Map<Integer, List<int[]>>> planes,
+    private static void addPlaneCell( Map<PlaneKey, Map<Integer, IntList>> planes,
                                       Direction direction, int x, int y, int z, int code ) {
         // 格子 (x,y,z) 朝 direction 的那一面，就在该格子朝 direction 的那条边界上
         int along = switch ( direction ) {
@@ -1149,7 +1282,6 @@ public final class LayeredBoardParts {
             case NORTH, SOUTH -> z + ( direction == Direction.SOUTH ? 1 : 0 );
             case WEST, EAST -> x + ( direction == Direction.EAST ? 1 : 0 );
         };
-        PlaneKey plane = new PlaneKey( direction.getAxis(), along, direction );
         // 平面内的两个坐标：把法线轴拿掉，剩下两个轴各占一位
         int first;
         int second;
@@ -1167,44 +1299,32 @@ public final class LayeredBoardParts {
                 second = y;
             }
         }
-        planes.computeIfAbsent( plane, unused -> new LinkedHashMap<>() )
-                .computeIfAbsent( code, unused -> new ArrayList<>() )
-                .add( new int[] { first, second } );
+        planes.computeIfAbsent( planeKey( direction, along ), unused -> new LinkedHashMap<>() )
+                .computeIfAbsent( code, unused -> new IntList() )
+                .add( packCell( first, second ) );
     }
 
-    /** 把平面上的格子集合贪心合并成互不重叠的矩形。 */
-    private static List<int[]> mergeRectangles( List<int[]> cells ) {
-        boolean[][] grid = new boolean[16][16];
-        boolean[][] duplicated = new boolean[16][16];
-        for ( int[] cell : cells ) {
-            if ( grid[cell[0]][cell[1]] ) {
-                duplicated[cell[0]][cell[1]] = true;
-            }
-            grid[cell[0]][cell[1]] = true;
+    /** 把平面上的格子集合贪心合并成互不重叠的矩形，写进 {@code scratch.rects}，返回矩形个数。 */
+    private static int mergeRectangles( IntList cells, MergeScratch scratch ) {
+        if ( scratch.fill( cells ) ) {
+            throw new IllegalStateException(
+                    "layered_copyboard 自检失败：平面内格子 " + scratch.firstDuplicate( ) + " 被同一材质重复登记" );
         }
-        for ( int i = 0; i < 16; i++ ) {
-            for ( int j = 0; j < 16; j++ ) {
-                if ( duplicated[i][j] ) {
-                    throw new IllegalStateException(
-                            "layered_copyboard 自检失败：平面内格子 " + i + "," + j + " 被同一材质重复登记" );
-                }
-            }
-        }
-        List<int[]> rects = new ArrayList<>();
+        int count = 0;
         for ( int second = 0; second < 16; second++ ) {
             for ( int first = 0; first < 16; first++ ) {
-                if ( !grid[first][second] ) {
+                if ( !scratch.occupied( first, second ) ) {
                     continue;
                 }
                 int width = 1;
-                while ( first + width < 16 && grid[first + width][second] ) {
+                while ( first + width < 16 && scratch.occupied( first + width, second ) ) {
                     width++;
                 }
                 int height = 1;
                 outer:
                 while ( second + height < 16 ) {
                     for ( int i = 0; i < width; i++ ) {
-                        if ( !grid[first + i][second + height] ) {
+                        if ( !scratch.occupied( first + i, second + height ) ) {
                             break outer;
                         }
                     }
@@ -1212,26 +1332,31 @@ public final class LayeredBoardParts {
                 }
                 for ( int i = 0; i < width; i++ ) {
                     for ( int j = 0; j < height; j++ ) {
-                        grid[first + i][second + j] = false;
+                        scratch.clear( first + i, second + j );
                     }
                 }
-                rects.add( new int[] { first, second, first + width, second + height } );
+                int base = count * 4;
+                scratch.rects[base] = first;
+                scratch.rects[base + 1] = second;
+                scratch.rects[base + 2] = first + width;
+                scratch.rects[base + 3] = second + height;
+                count++;
             }
         }
-        return rects;
+        return count;
     }
 
     /** 平面上的一个矩形 → 方块本地 0..1 坐标的盒子。 */
-    private static Box planeBox( PlaneKey plane, int[] rect ) {
+    private static Box planeBox( PlaneKey plane, int firstMin, int secondMin, int firstMax, int secondMax ) {
         double along = plane.along() / 16.0;
-        double firstMin = rect[0] / 16.0;
-        double secondMin = rect[1] / 16.0;
-        double firstMax = rect[2] / 16.0;
-        double secondMax = rect[3] / 16.0;
+        double firstLow = firstMin / 16.0;
+        double secondLow = secondMin / 16.0;
+        double firstHigh = firstMax / 16.0;
+        double secondHigh = secondMax / 16.0;
         return switch ( plane.axis() ) {
-            case X -> new Box( along, firstMin, secondMin, along, firstMax, secondMax );
-            case Y -> new Box( firstMin, along, secondMin, firstMax, along, secondMax );
-            case Z -> new Box( firstMin, secondMin, along, firstMax, secondMax, along );
+            case X -> new Box( along, firstLow, secondLow, along, firstHigh, secondHigh );
+            case Y -> new Box( firstLow, along, secondLow, firstHigh, along, secondHigh );
+            case Z -> new Box( firstLow, secondLow, along, firstHigh, secondHigh, along );
         };
     }
 
