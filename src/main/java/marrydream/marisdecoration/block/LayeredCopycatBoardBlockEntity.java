@@ -6,7 +6,6 @@ import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
 import marrydream.marisdecoration.block.utils.LayeredBoardParts;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots.BoardArea;
-import marrydream.marisdecoration.block.utils.LayeredBoardSlots.BoardCorner;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots.BoardLayer;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots.FaceDir;
 import marrydream.marisdecoration.init.ModBlockEntity;
@@ -40,7 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li>{@link #occupancy} —— <b>12 个 1px 槽位</b>的存在与否，一个 12 位掩码
  *       （6 面 × 2 层，位序见 {@link LayeredBoardSlots#slotBit}）；</li>
  *   <li>{@link #windows} —— 6 个面的窗开关，一个 6 位掩码；</li>
- *   <li>{@link #cornerOwners} —— 48 个角「归属于相邻哪条边」，压成 12 个 long 的 bitset；</li>
+ *   <li>{@link #junctionOwners} —— 细工凿在物理交汇点上选定的显示材质槽（键是候选集合，值是槽名）；</li>
  *   <li>{@link #materials} —— 66 个材质槽（每面 2 层 × 5 区域 + 1 份窗），键名见
  *       {@link LayeredBoardSlots#allMaterialKeys()}。</li>
  * </ul>
@@ -54,7 +53,7 @@ public class LayeredCopycatBoardBlockEntity extends SmartBlockEntity implements 
 
     private static final String KEY_OCCUPANCY = "occupancy";
     private static final String KEY_WINDOWS = "windows";
-    private static final String KEY_CORNER_OWNERS = "corner_owners";
+    private static final String KEY_JUNCTION_OWNERS = "junction_owners";
     private static final String KEY_MATERIAL_DATA = "material_data";
     private static final String KEY_MATERIAL = "material";
     private static final String KEY_PAID_MATERIALS = "paid_materials";
@@ -66,8 +65,16 @@ public class LayeredCopycatBoardBlockEntity extends SmartBlockEntity implements 
     private int occupancy;
     /** 6 个面的窗开关。 */
     private int windows;
-    /** 48 个角的归属，12 个 long。永远是定长数组，可以原地改写。 */
-    private long[] cornerOwners = LayeredBoardSlots.DEFAULT_CORNER_OWNERS.clone();
+    /**
+     * 细工凿在物理交汇点上选定的显示材质槽。
+     *
+     * <p>键是 Junction 的稳定 identity（候选槽名的有序集合），值是选中的材质槽名。
+     * <b>不存「候选列表第几个」</b>——occupancy 一变候选列表就会变，下标会指到另一条边上。
+     * 存槽名之后，如果那条边已经因为拆结构不存在了，查不到就自动回退默认 owner。
+     *
+     * <p>一个方块上通常只有几个交汇点，所以这份状态很小。
+     */
+    private final Map<String, String> junctionOwners = new ConcurrentHashMap<>();
 
     /** 渲染线程会读，所以用并发映射；键集合固定为 66 个。 */
     private final Map<String, BlockState> materials = new ConcurrentHashMap<>();
@@ -125,6 +132,11 @@ public class LayeredCopycatBoardBlockEntity extends SmartBlockEntity implements 
         }
         occupancy = masked;
         cachedShape = null;
+        // 结构变了：候选里已经有一块板不在场的 override 再也匹配不上，顺手清掉，不留下幽灵材质。
+        // 即使不清，解析时也会自动回退默认 owner——清理只是不让这份状态无限长大。
+        for ( String stale : LayeredBoardParts.staleJunctionOwners( junctionOwners, masked ) ) {
+            junctionOwners.remove( stale );
+        }
         sync();
     }
 
@@ -181,22 +193,22 @@ public class LayeredCopycatBoardBlockEntity extends SmartBlockEntity implements 
         return true;
     }
 
-    // ---------------------------------------------------------------- 角归属
+    // ---------------------------------------------------------------- 交汇点归属
 
-    public long[] cornerOwners( ) {
-        return cornerOwners;
+    /** Junction identity → 玩家选中的材质槽名。渲染与命中都读这一份。 */
+    public Map<String, String> junctionOwners( ) {
+        return junctionOwners;
     }
 
-    public boolean cornerOwner( FaceDir face, BoardLayer layer, BoardCorner corner ) {
-        return LayeredBoardSlots.cornerOwner( cornerOwners, face, layer, corner ) != 0;
-    }
-
-    /** 在某个角相邻的两条边之间切换归属。 */
-    public boolean toggleCorner( FaceDir face, BoardLayer layer, BoardCorner corner ) {
-        int current = LayeredBoardSlots.cornerOwner( cornerOwners, face, layer, corner );
-        LayeredBoardSlots.writeCornerOwner( cornerOwners, face, layer, corner, current == 0 ? 1 : 0 );
+    /**
+     * 把某个交汇点当前显示的材质槽换成 {@code slot}（细工凿循环时调）。
+     */
+    public void setJunctionOwner( String junctionKey, String slot ) {
+        String previous = junctionOwners.put( junctionKey, slot );
+        if ( slot.equals( previous ) ) {
+            return;
+        }
         sync();
-        return true;
     }
 
     // ---------------------------------------------------------------- 材质读写
@@ -395,7 +407,10 @@ public class LayeredCopycatBoardBlockEntity extends SmartBlockEntity implements 
         super.write( nbt, clientPacket );
         nbt.putInt( KEY_OCCUPANCY, occupancy );
         nbt.putInt( KEY_WINDOWS, windows );
-        nbt.putLongArray( KEY_CORNER_OWNERS, cornerOwners );
+
+        NbtCompound junctions = new NbtCompound();
+        junctionOwners.forEach( junctions::putString );
+        nbt.put( KEY_JUNCTION_OWNERS, junctions );
 
         NbtCompound data = new NbtCompound();
         for ( String key : LayeredBoardSlots.allMaterialKeys() ) {
@@ -424,14 +439,17 @@ public class LayeredCopycatBoardBlockEntity extends SmartBlockEntity implements 
     protected void read( NbtCompound nbt, boolean clientPacket ) {
         int previousOccupancy = occupancy;
         int previousWindows = windows;
-        long previousCorners = LayeredBoardSlots.cornerSignature( cornerOwners );
+        Map<String, String> previousJunctions = Map.copyOf( junctionOwners );
         Map<String, BlockState> previousMaterials = Map.copyOf( materials );
 
         super.read( nbt, clientPacket );
         occupancy = nbt.getInt( KEY_OCCUPANCY ) & LayeredBoardSlots.FULL_OCCUPANCY;
         windows = nbt.getInt( KEY_WINDOWS ) & ( ( 1 << FaceDir.values().length ) - 1 );
-        long[] stored = nbt.getLongArray( KEY_CORNER_OWNERS );
-        cornerOwners = LayeredBoardSlots.normalize( stored );
+        junctionOwners.clear();
+        NbtCompound junctions = nbt.getCompound( KEY_JUNCTION_OWNERS );
+        for ( String key : junctions.getKeys() ) {
+            junctionOwners.put( key, junctions.getString( key ) );
+        }
         cachedShape = null;
 
         NbtCompound data = nbt.getCompound( KEY_MATERIAL_DATA );
@@ -456,7 +474,7 @@ public class LayeredCopycatBoardBlockEntity extends SmartBlockEntity implements 
         invalidateRenderData();
         boolean changed = previousOccupancy != occupancy
                 || previousWindows != windows
-                || previousCorners != LayeredBoardSlots.cornerSignature( cornerOwners )
+                || !previousJunctions.equals( junctionOwners )
                 || !previousMaterials.equals( materials );
         if ( clientPacket && changed ) {
             redraw();
@@ -484,10 +502,11 @@ public class LayeredCopycatBoardBlockEntity extends SmartBlockEntity implements 
     /**
      * 交给渲染层的快照。
      *
-     * <p>几何只由 {@code occupancy / windows / cornerOwners} 决定，材质再决定每个面的贴图，
-     * 所以这三份状态必须一起给。
+     * <p>几何由 {@code occupancy / windows} 决定，交汇点由 {@code junctionOwners} 决定显示哪条边，
+     * 材质再决定每个面的贴图，所以这三份状态必须一起给。
      */
-    public record RenderData( int occupancy, int windows, long[] cornerOwners, Map<String, BlockState> materials ) {
+    public record RenderData( int occupancy, int windows, Map<String, String> junctionOwners,
+                              Map<String, BlockState> materials ) {
     }
 
     /** {@code volatile}：区块网格可以并行烘焙，快照会被渲染线程读，写入发生在交互 / sync 线程。 */
@@ -505,13 +524,14 @@ public class LayeredCopycatBoardBlockEntity extends SmartBlockEntity implements 
         }
         // 并发烘焙时可能有两个线程同时错过缓存、各建一份，内容相同，最后写入的胜出，
         // 不会读到半成品（Map.copyOf 出来的映射不可变，volatile 保证安全发布）。
-        RenderData built = new RenderData( occupancy, windows, cornerOwners.clone(), Map.copyOf( materials ) );
+        RenderData built = new RenderData( occupancy, windows, Map.copyOf( junctionOwners ),
+                Map.copyOf( materials ) );
         renderData = built;
         return built;
     }
 
     /** 供未同步时兜底：渲染层拿不到快照就按空板处理。 */
     public static RenderData emptyRenderData( ) {
-        return new RenderData( 0, 0, LayeredBoardSlots.DEFAULT_CORNER_OWNERS.clone(), Map.of() );
+        return new RenderData( 0, 0, Map.of(), Map.of() );
     }
 }

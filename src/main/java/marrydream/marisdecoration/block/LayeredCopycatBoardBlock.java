@@ -6,7 +6,6 @@ import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import marrydream.marisdecoration.block.utils.LayeredBoardParts;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots.BoardArea;
-import marrydream.marisdecoration.block.utils.LayeredBoardSlots.BoardCorner;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots.BoardLayer;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots.FaceDir;
 import marrydream.marisdecoration.item.DetailChisel;
@@ -479,16 +478,10 @@ public class LayeredCopycatBoardBlock extends Block implements BlockEntityProvid
 
     @Nullable
     private static BoardHit hitAt( Vec3d local, LayeredCopycatBoardBlockEntity board ) {
-        LayeredBoardParts.FaceLayer faceLayer = LayeredBoardParts.faceLayerAt( board.occupancy(), local );
-        if ( faceLayer == null ) {
-            return null;
-        }
-        long[] owners = board.cornerOwners();
-        // 窗关着的时候中央 8×8 属于 BODY——材质与扳手都必须按这个语义走，
-        // 否则会把材质写进一个当前没有显示、渲染也不读的窗槽。
-        BoardArea area = LayeredBoardParts.areaAt( faceLayer.face(), faceLayer.layer(), owners,
-                board.hasWindow( faceLayer.face() ), local );
-        return new BoardHit( faceLayer.face(), faceLayer.layer(), area );
+        // 命中走的是渲染同一份「最终生效的几何」：交汇点上显示哪条边，材质就写进哪条边。
+        LayeredBoardParts.Slot slot = LayeredBoardParts.slotAt(
+                board.occupancy(), board.windows(), board.junctionOwners(), local );
+        return slot == null ? null : new BoardHit( slot.face(), slot.layer(), slot.area() );
     }
 
     /**
@@ -649,35 +642,39 @@ public class LayeredCopycatBoardBlock extends Block implements BlockEntityProvid
         }
 
         Vec3d local = localHit( hitPos, pos );
-        LayeredBoardParts.FaceLayer faceLayer = LayeredBoardParts.faceLayerAt( board.occupancy(), local );
-        if ( faceLayer == null ) {
+        LayeredBoardParts.Cell cell = LayeredBoardParts.cellAt( board.occupancy(), local );
+        if ( cell == null ) {
             return ActionResult.PASS;
         }
-        // 细工凿这一路传 true：不管窗当前开没开，中央 8×8 都解释成「窗区域」，
-        // 这样关着的时候也能点开它。
-        BoardArea area = LayeredBoardParts.areaAt( faceLayer.face(), faceLayer.layer(),
-                board.cornerOwners(), true, local );
 
+        // 交汇点优先：这一格如果是一个物理交汇点，就在它当前候选的 Edge 材质之间循环。
+        // 候选是按最终几何算出来的（可能来自别的 Face），所以三面共角时就是 A → B → C → A。
+        LayeredBoardParts.Junction junction = LayeredBoardParts.junctionAt(
+                board.occupancy(), board.windows(), board.junctionOwners(), local );
+        if ( junction != null ) {
+            if ( world.isClient ) {
+                return ActionResult.SUCCESS;
+            }
+            List<LayeredBoardParts.Slot> candidates = junction.candidates();
+            LayeredBoardParts.Slot next = candidates.get( ( junction.indexOfShown() + 1 ) % candidates.size() );
+            board.setJunctionOwner( junction.key(), next.name() );
+            world.playSound( null, pos, SoundEvents.ITEM_AXE_STRIP, SoundCategory.BLOCKS, 0.7F, 1.0F );
+            return ActionResult.SUCCESS;
+        }
+
+        // 不是交汇点：维持原行为——中央 BODY / WINDOW 切换窗，普通 Edge 不处理。
+        // 这里传 true：不管窗当前开没开，中央 8×8 都解释成「窗区域」，这样关着的时候也能点开它。
+        BoardArea area = LayeredBoardParts.areaAt( true, cell.u(), cell.v() );
         if ( area == BoardArea.WINDOW || area == BoardArea.BODY ) {
             if ( world.isClient ) {
                 return ActionResult.SUCCESS;
             }
-            board.toggleWindow( faceLayer.face() );
+            board.toggleWindow( cell.face() );
             world.playSound( null, pos, SoundEvents.ITEM_AXE_STRIP, SoundCategory.BLOCKS, 0.7F, 1.2F );
             return ActionResult.SUCCESS;
         }
-
-        BoardCorner corner = LayeredBoardParts.cornerAt( faceLayer.face(), local );
-        if ( corner == null ) {
-            // 落在某条边上：按规格不处理
-            return ActionResult.PASS;
-        }
-        if ( world.isClient ) {
-            return ActionResult.SUCCESS;
-        }
-        board.toggleCorner( faceLayer.face(), faceLayer.layer(), corner );
-        world.playSound( null, pos, SoundEvents.ITEM_AXE_STRIP, SoundCategory.BLOCKS, 0.7F, 1.0F );
-        return ActionResult.SUCCESS;
+        // 落在某条普通边上：按规格不处理
+        return ActionResult.PASS;
     }
 
     // ---------------------------------------------------------------- 扳手
@@ -737,9 +734,9 @@ public class LayeredCopycatBoardBlock extends Block implements BlockEntityProvid
         if ( !( world.getBlockEntity( pos ) instanceof LayeredCopycatBoardBlockEntity board ) ) {
             return IWrenchable.super.onSneakWrenched( state, context );
         }
-        LayeredBoardParts.FaceLayer faceLayer = LayeredBoardParts.faceLayerAt(
+        LayeredBoardParts.Cell cell = LayeredBoardParts.cellAt(
                 board.occupancy(), localHit( context.getHitPos(), pos ) );
-        if ( faceLayer == null ) {
+        if ( cell == null ) {
             return ActionResult.PASS;
         }
         if ( world.isClient ) {
@@ -748,7 +745,7 @@ public class LayeredCopycatBoardBlock extends Block implements BlockEntityProvid
 
         // 先把这一层的材质取下来（最后一个引用才真返还）
         for ( BoardArea area : LayeredBoardSlots.MATERIAL_AREAS ) {
-            String key = LayeredBoardSlots.materialKey( faceLayer.face(), faceLayer.layer(), area );
+            String key = LayeredBoardSlots.materialKey( cell.face(), cell.layer(), area );
             if ( !board.hasMaterial( key ) ) {
                 continue;
             }
@@ -758,7 +755,7 @@ public class LayeredCopycatBoardBlock extends Block implements BlockEntityProvid
             }
         }
 
-        board.removeSlot( faceLayer.face(), faceLayer.layer() );
+        board.removeSlot( cell.face(), cell.layer() );
 
         if ( player != null && !player.isCreative() ) {
             // 拆一层返还一个薄板，同样直接进背包

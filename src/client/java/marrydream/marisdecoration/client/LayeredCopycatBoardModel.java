@@ -72,7 +72,7 @@ public class LayeredCopycatBoardModel extends ForwardingBakedModel implements Cu
                                 Supplier<Random> randomSupplier, RenderContext context ) {
         RenderData data = readRenderData( blockView, pos );
         Map<String, List<Box>> boxes = LayeredBoardParts.boxesByKey(
-                data.occupancy(), data.windows(), data.cornerOwners() );
+                data.occupancy(), data.windows(), data.junctionOwners() );
         if ( boxes.isEmpty() ) {
             return;
         }

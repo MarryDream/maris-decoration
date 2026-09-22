@@ -117,10 +117,14 @@ public final class LayeredBoardSlots {
     }
 
     /**
-     * 四个角。Corner <b>没有独立材质槽</b>，只保存「当前归属哪条相邻边」这一个 bit。
+     * 四个角。<b>Corner 没有独立材质槽</b>——它只是这个面自己在角上借用相邻两条边之一。
      *
-     * <p>构造参数是两条相邻边，顺序即 owner bit 的语义：{@code bit = 0} 取第一条，
-     * {@code bit = 1} 取第二条，{@code bit = -1} 表示默认取第一条。
+     * <p>一个角像素在几何上确实同时接着两条边。当这个角只有本面一块板、且没有玩家指定的
+     * Junction override 时，用 {@link #defaultArea()} 决定显示哪条边的材质；两条边本身都是
+     * 独立的材质槽，绝不合并。
+     *
+     * <p>构造参数就是这两条相邻边，顺序决定 {@link #defaultBit()} 的语义：{@code bit = 0}
+     * 取第一条，{@code bit = 1} 取第二条。
      */
     public enum BoardCorner {
         TOP_RIGHT( BoardArea.TOP_EDGE, BoardArea.RIGHT_EDGE, 0 ),      // 默认 TOP
@@ -138,33 +142,25 @@ public final class LayeredBoardSlots {
             this.defaultBit = defaultBit;
         }
 
-        public BoardArea area( int bit ) {
-            return bit == 0 ? first : second;
+        /** 相邻两条边里的第一条。 */
+        public BoardArea firstArea( ) {
+            return first;
         }
 
-        /** 另一条相邻边（chisel 在该角的两条边之间切换时用）。 */
-        public BoardArea other( BoardArea area ) {
-            return area == first ? second : first;
+        /** 相邻两条边里的第二条。 */
+        public BoardArea secondArea( ) {
+            return second;
+        }
+
+        public BoardArea area( int bit ) {
+            return bit == 0 ? first : second;
         }
 
         /** 规格里锁定的默认归属：TR→TOP、BR→RIGHT、BL→BOTTOM、TL→LEFT。 */
         public BoardArea defaultArea( ) {
             return area( defaultBit );
         }
-
-        /** 默认归属写成 bit 值。 */
-        public int defaultBit( ) {
-            return defaultBit;
-        }
     }
-
-    public static final List<BoardCorner> CORNERS = List.of( BoardCorner.values() );
-
-    /** 每个角占 1 bit，共 6 面 × 2 层 × 4 角 = 48 bit，用 12 个 long 装下。 */
-    public static final int CORNER_BITS = FACES.size() * LAYERS.size() * CORNERS.size(); // 48
-    public static final int CORNER_LONGS = ( CORNER_BITS + 63 ) / 64;                     // 12
-    /** 48 个角全部取默认归属时的位模式。 */
-    public static final long[] DEFAULT_CORNER_OWNERS = defaultCornerOwners();
 
     /** 12 个槽位全满。 */
     public static final int FULL_OCCUPANCY = ( 1 << ( FACES.size() * LAYERS.size() ) ) - 1;
@@ -221,74 +217,6 @@ public final class LayeredBoardSlots {
 
     public static int toggleWindow( int windows, FaceDir face ) {
         return windows ^ windowBit( face );
-    }
-
-    // ---------------------------------------------------------------- 角归属
-
-    /** 某个角在 48 bit 里的下标。 */
-    public static int cornerBit( FaceDir face, BoardLayer layer, BoardCorner corner ) {
-        return ( face.ordinal() * LAYERS.size() + layer.ordinal() ) * CORNERS.size() + corner.ordinal();
-    }
-
-    /** 读取一个角的 owner bit。越界的数组按默认值补齐。 */
-    public static int cornerOwner( long[] owners, FaceDir face, BoardLayer layer, BoardCorner corner ) {
-        int bit = cornerBit( face, layer, corner );
-        int index = bit >>> 6;
-        if ( owners == null || index >= owners.length ) {
-            return corner.defaultBit();
-        }
-        return (int) ( ( owners[index] >>> ( bit & 63 ) ) & 1L );
-    }
-
-    /** 复制成固定长度的 12 个 long；缺失的位按默认归属补齐。 */
-    public static long[] normalize( long[] owners ) {
-        long[] result = DEFAULT_CORNER_OWNERS.clone();
-        if ( owners != null ) {
-            System.arraycopy( owners, 0, result, 0, Math.min( owners.length, CORNER_LONGS ) );
-        }
-        return result;
-    }
-
-    /**
-     * 写入一个角的 owner bit，原地修改并返回同一个数组。
-     *
-     * <p>数组永远由 {@link #normalize} / {@link #DEFAULT_CORNER_OWNERS} 保证是 12 个 long，
-     * 所以调用方可以把它当成一个 48 位的可变 bitset 用。
-     */
-    public static void writeCornerOwner( long[] owners, FaceDir face, BoardLayer layer, BoardCorner corner, int bit ) {
-        int position = cornerBit( face, layer, corner );
-        long mask = 1L << ( position & 63 );
-        int index = position >>> 6;
-        owners[index] = bit == 0 ? owners[index] & ~mask : owners[index] | mask;
-    }
-
-    public static long[] copyCornerOwners( long[] owners ) {
-        return owners == null ? DEFAULT_CORNER_OWNERS.clone() : owners.clone();
-    }
-
-    /** 48 个 owner bit 压缩成一个 long——快照里只需要它来判等，不必背着 12 个 long。 */
-    public static long cornerSignature( long[] owners ) {
-        long signature = 0L;
-        for ( int i = 0; i < CORNER_LONGS; i++ ) {
-            signature = signature * 31L + ( owners == null || i >= owners.length ? 0L : owners[i] );
-        }
-        return signature;
-    }
-
-    private static long[] defaultCornerOwners( ) {
-        long[] owners = new long[CORNER_LONGS];
-        for ( FaceDir face : VALUES ) {
-            for ( BoardLayer layer : LAYERS ) {
-                for ( BoardCorner corner : CORNERS ) {
-                    if ( corner.defaultBit() == 0 ) {
-                        continue;
-                    }
-                    int bit = cornerBit( face, layer, corner );
-                    owners[bit >>> 6] |= 1L << ( bit & 63 );
-                }
-            }
-        }
-        return owners;
     }
 
     // ---------------------------------------------------------------- 材质键
