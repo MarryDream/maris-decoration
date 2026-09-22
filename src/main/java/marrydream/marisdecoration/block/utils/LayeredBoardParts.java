@@ -64,17 +64,27 @@ public final class LayeredBoardParts {
         }
     }
 
-    private static final Map<FaceDir, LocalFrame> FRAMES = new LinkedHashMap<>();
+    /**
+     * 每个面的本地坐标系，按 {@link FaceDir#ordinal()} 直查。
+     *
+     * <p>热路径里每个 voxel 都要问好几次「这个面的 u/v 是哪个世界轴」，所以刻意用数组而不是
+     * Map——Map 查询要装箱、要算哈希，在 4096 格的循环里是纯浪费。
+     */
+    private static final LocalFrame[] FRAMES = new LocalFrame[FaceDir.values().length];
 
     static {
         // 水平面：规格直接给出了 u/v 与 X/Z 的对应（UP 的 y=15..16、DOWN 的 y=0..1 等）。
-        FRAMES.put( FaceDir.UP, new LocalFrame( Direction.Axis.X, 1, Direction.Axis.Z, 1 ) );
-        FRAMES.put( FaceDir.DOWN, new LocalFrame( Direction.Axis.X, 1, Direction.Axis.Z, -1 ) );
+        FRAMES[FaceDir.UP.ordinal()] = new LocalFrame( Direction.Axis.X, 1, Direction.Axis.Z, 1 );
+        FRAMES[FaceDir.DOWN.ordinal()] = new LocalFrame( Direction.Axis.X, 1, Direction.Axis.Z, -1 );
         // 侧面：v 恒为 +Y，u = up × outward。
-        FRAMES.put( FaceDir.NORTH, new LocalFrame( Direction.Axis.X, 1, Direction.Axis.Y, 1 ) );
-        FRAMES.put( FaceDir.SOUTH, new LocalFrame( Direction.Axis.X, -1, Direction.Axis.Y, 1 ) );
-        FRAMES.put( FaceDir.WEST, new LocalFrame( Direction.Axis.Z, 1, Direction.Axis.Y, 1 ) );
-        FRAMES.put( FaceDir.EAST, new LocalFrame( Direction.Axis.Z, -1, Direction.Axis.Y, 1 ) );
+        FRAMES[FaceDir.NORTH.ordinal()] = new LocalFrame( Direction.Axis.X, 1, Direction.Axis.Y, 1 );
+        FRAMES[FaceDir.SOUTH.ordinal()] = new LocalFrame( Direction.Axis.X, -1, Direction.Axis.Y, 1 );
+        FRAMES[FaceDir.WEST.ordinal()] = new LocalFrame( Direction.Axis.Z, 1, Direction.Axis.Y, 1 );
+        FRAMES[FaceDir.EAST.ordinal()] = new LocalFrame( Direction.Axis.Z, -1, Direction.Axis.Y, 1 );
+    }
+
+    private static LocalFrame frame( FaceDir face ) {
+        return FRAMES[face.ordinal()];
     }
 
     /**
@@ -101,15 +111,36 @@ public final class LayeredBoardParts {
         return area == BoardArea.BODY ? 1 : 0;
     }
 
+    /** 区域序号 → 优先级，省掉热路径里的一次枚举比较。 */
+    private static final int[] AREA_PRIORITY = areaPriority( );
+
+    private static int[] areaPriority( ) {
+        int[] priority = new int[BoardArea.values().length];
+        for ( BoardArea area : BoardArea.values() ) {
+            priority[area.ordinal()] = priorityOf( area );
+        }
+        return priority;
+    }
+
     /** 每格属于哪个区域（角已落到具体的边上），<b>不含窗</b>。 */
     private static final BoardArea[][] AREAS = areaMap( );
 
-    /** 角格子的面本地坐标 → 是哪个角。 */
-    private static final Map<Integer, BoardCorner> CORNER_AT = Map.of(
-            key( 15, 0 ), BoardCorner.TOP_RIGHT,
-            key( 15, 15 ), BoardCorner.BOTTOM_RIGHT,
-            key( 0, 15 ), BoardCorner.BOTTOM_LEFT,
-            key( 0, 0 ), BoardCorner.TOP_LEFT );
+    /**
+     * 角格子的面本地坐标 → 是哪个角，按 {@code u * 16 + v} 直查（256 项）。
+     *
+     * <p>与 {@link #FRAMES} 同理：热路径里每格都要问一次「这是不是角像素」，
+     * 用 Map&lt;Integer, BoardCorner&gt; 会为每次查询装箱一个 Integer。
+     */
+    private static final BoardCorner[] CORNER_AT = cornerTable( );
+
+    private static BoardCorner[] cornerTable( ) {
+        BoardCorner[] table = new BoardCorner[256];
+        table[key( 15, 0 )] = BoardCorner.TOP_RIGHT;
+        table[key( 15, 15 )] = BoardCorner.BOTTOM_RIGHT;
+        table[key( 0, 15 )] = BoardCorner.BOTTOM_LEFT;
+        table[key( 0, 0 )] = BoardCorner.TOP_LEFT;
+        return table;
+    }
 
     /**
      * 12 位占用掩码 → 选取 / 碰撞箱，<b>按需构建</b>。
@@ -198,13 +229,23 @@ public final class LayeredBoardParts {
     private record LocalDirs( Direction uPos, Direction uNeg, Direction vPos, Direction vNeg ) {
     }
 
-    private static final Map<FaceDir, LocalDirs> LOCAL_DIRS = Map.of(
-            FaceDir.UP, new LocalDirs( Direction.EAST, Direction.WEST, Direction.SOUTH, Direction.NORTH ),
-            FaceDir.DOWN, new LocalDirs( Direction.EAST, Direction.WEST, Direction.NORTH, Direction.SOUTH ),
-            FaceDir.NORTH, new LocalDirs( Direction.EAST, Direction.WEST, Direction.UP, Direction.DOWN ),
-            FaceDir.SOUTH, new LocalDirs( Direction.WEST, Direction.EAST, Direction.UP, Direction.DOWN ),
-            FaceDir.WEST, new LocalDirs( Direction.SOUTH, Direction.NORTH, Direction.UP, Direction.DOWN ),
-            FaceDir.EAST, new LocalDirs( Direction.NORTH, Direction.SOUTH, Direction.UP, Direction.DOWN ) );
+    /** 与 {@link #FRAMES} 同理，按 ordinal 直查，避免热路径里的 Map 装箱。 */
+    private static final LocalDirs[] LOCAL_DIRS = new LocalDirs[FaceDir.values().length];
+
+    static {
+        LOCAL_DIRS[FaceDir.UP.ordinal()] =
+                new LocalDirs( Direction.EAST, Direction.WEST, Direction.SOUTH, Direction.NORTH );
+        LOCAL_DIRS[FaceDir.DOWN.ordinal()] =
+                new LocalDirs( Direction.EAST, Direction.WEST, Direction.NORTH, Direction.SOUTH );
+        LOCAL_DIRS[FaceDir.NORTH.ordinal()] =
+                new LocalDirs( Direction.EAST, Direction.WEST, Direction.UP, Direction.DOWN );
+        LOCAL_DIRS[FaceDir.SOUTH.ordinal()] =
+                new LocalDirs( Direction.WEST, Direction.EAST, Direction.UP, Direction.DOWN );
+        LOCAL_DIRS[FaceDir.WEST.ordinal()] =
+                new LocalDirs( Direction.SOUTH, Direction.NORTH, Direction.UP, Direction.DOWN );
+        LOCAL_DIRS[FaceDir.EAST.ordinal()] =
+                new LocalDirs( Direction.NORTH, Direction.SOUTH, Direction.UP, Direction.DOWN );
+    }
 
     /** 一层板在面本地 (u, v) 上的有效范围，半开区间。 */
     private record Range( int u0, int v0, int u1, int v1 ) {
@@ -237,7 +278,7 @@ public final class LayeredBoardParts {
         if ( layer == BoardLayer.OUTER ) {
             return FULL_RANGE;
         }
-        LocalDirs dirs = LOCAL_DIRS.get( face );
+        LocalDirs dirs = LOCAL_DIRS[face.ordinal()];
         return new Range(
                 hasOuter( occupancy, dirs.uNeg() ) ? 1 : 0,
                 hasOuter( occupancy, dirs.vNeg() ) ? 1 : 0,
@@ -450,7 +491,7 @@ public final class LayeredBoardParts {
      * 玩家改过的显示由 override 覆盖，不改这里的默认。
      */
     private static BoardArea plateAreaOf( int u, int v, boolean window ) {
-        BoardCorner corner = CORNER_AT.get( key( u, v ) );
+        BoardCorner corner = CORNER_AT[key( u, v )];
         if ( corner != null ) {
             return cornerArea( corner );
         }
@@ -473,7 +514,7 @@ public final class LayeredBoardParts {
      */
     @Nullable
     private static Direction.Axis runAxisOf( FaceDir face, BoardArea area ) {
-        LocalFrame frame = FRAMES.get( face );
+        LocalFrame frame = frame( face );
         return switch ( area ) {
             case LEFT_EDGE, RIGHT_EDGE -> frame.vAxis();
             case TOP_EDGE, BOTTOM_EDGE -> frame.uAxis();
@@ -490,8 +531,100 @@ public final class LayeredBoardParts {
         return axis == Direction.Axis.Z ? y : z;
     }
 
+    // ---------------------------------------------------------------- 槽位编码
+    //
+    // 4096 voxel 的拓扑解析一律用紧凑 int 表示「哪个面的哪一层的哪个区域」，
+    // 只有在真正要跟方块实体的 materials Map / 最终输出对接时才拼字符串键。
+
+    /** 区域数量，用来把 (槽位下标, 区域序号) 打包成一个 int。 */
+    private static final int AREA_COUNT = BoardArea.values().length;
+
+    /** {@code (槽位下标, 区域序号)} → 紧凑槽码，范围 0..71。 */
+    private static int slotCode( FaceDir face, BoardLayer layer, BoardArea area ) {
+        return LayeredBoardSlots.slotBit( face, layer ) * AREA_COUNT + area.ordinal();
+    }
+
+    private static int codeBit( int code ) {
+        return code / AREA_COUNT;
+    }
+
+    private static int codeAreaOrdinal( int code ) {
+        return code % AREA_COUNT;
+    }
+
+    private static FaceDir codeFace( int code ) {
+        return faceOfSlot( codeBit( code ) );
+    }
+
+    private static BoardLayer codeLayer( int code ) {
+        return layerOfSlot( codeBit( code ) );
+    }
+
+    private static BoardArea codeArea( int code ) {
+        return BoardArea.values()[codeAreaOrdinal( code )];
+    }
+
+    /** 槽码 → 材质键字符串。热路径里不要调它。 */
+    private static String codeName( int code ) {
+        BoardArea area = codeArea( code );
+        FaceDir face = codeFace( code );
+        return area.isWindow( )
+                ? LayeredBoardSlots.windowKey( face )
+                : LayeredBoardSlots.materialKey( face, codeLayer( code ), area );
+    }
+
     /**
-     * 一条 physical edge run 的稳定 identity：<b>层 + 世界轴向 + 另外两个固定坐标</b>。
+     * 槽码按<b>槽名</b>排序的名次表。
+     *
+     * <p>候选的循环顺序必须与原来「按槽名排序」完全一致，而热路径里不能再拼字符串去比较，
+     * 所以预先算一张名次表：排序时比 {@code RANK[code]}，等价于原来的
+     * {@code Comparator.comparing(Slot::name)}，但一次字符串都不用建。
+     */
+    private static final int[] CODE_RANK = codeRanks( );
+
+    private static int[] codeRanks( ) {
+        int size = FaceDir.values().length * BoardLayer.values().length * AREA_COUNT;
+        Integer[] order = new Integer[size];
+        for ( int code = 0; code < size; code++ ) {
+            order[code] = code;
+        }
+        // List.sort 是稳定排序：同名（同一个面的 OUTER / INNER 窗槽）的顺序由槽码顺序决定，可复现
+        java.util.Arrays.sort( order, Comparator.comparing( LayeredBoardParts::codeName ) );
+        int[] rank = new int[size];
+        for ( int i = 0; i < size; i++ ) {
+            rank[order[i]] = i;
+        }
+        return rank;
+    }
+
+    /**
+     * 原地按槽名名次升序排序 + 去重，返回新的个数。
+     *
+     * <p>候选只有 1~3 个，所以用插入排序。全程不创建任何容器、不拼任何字符串——
+     * 这是原先 {@code canonical()} 每格造 4 份容器 + 反复拼 key 的替代品。
+     */
+    private static int canonicalInPlace( int[] values, int base, int count ) {
+        for ( int i = 1; i < count; i++ ) {
+            int value = values[base + i];
+            int rank = CODE_RANK[value];
+            int j = i - 1;
+            while ( j >= 0 && CODE_RANK[values[base + j]] > rank ) {
+                values[base + j + 1] = values[base + j];
+                j--;
+            }
+            values[base + j + 1] = value;
+        }
+        int unique = 0;
+        for ( int i = 0; i < count; i++ ) {
+            if ( unique == 0 || values[base + unique - 1] != values[base + i] ) {
+                values[base + unique++] = values[base + i];
+            }
+        }
+        return unique;
+    }
+
+    /**
+     * physical edge run 的紧凑 identity：<b>层 + 世界轴向 + 另外两个固定坐标</b>，范围 0..1535。
      *
      * <p>刻意<b>不含</b>「是哪个 Face 的哪条 Edge」——几何上共线的 Face-edge 条本来就属于同一条
      * 物理棱，所以 NORTH 的右边与 EAST 的左边算出同一个 run。
@@ -499,34 +632,30 @@ public final class LayeredBoardParts {
      * <p>也不含沿轴的长度范围：在同一个「层 + 轴 + 两个固定坐标」上，占位的格子永远是一整段连续
      * 区间（每条 Edge 条本身连续，且同一层的重合条共享同一段范围），所以范围不需要进 key。
      */
-    private static String runKey( BoardLayer layer, Direction.Axis axis, int x, int y, int z ) {
-        return "r" + layer.ordinal() + ":" + axis.ordinal()
-                + ":" + planeFirst( axis, x, y, z ) + ":" + planeSecond( axis, x, y, z );
+    private static int runCode( BoardLayer layer, Direction.Axis axis, int x, int y, int z ) {
+        return ( ( layer.ordinal( ) * 3 + axis.ordinal( ) ) * 16 + planeFirst( axis, x, y, z ) ) * 16
+                + planeSecond( axis, x, y, z );
+    }
+
+    /** {@link #runCode} 的存档键名——必须与改动前逐字符一致，只在需要查 override 时才拼。 */
+    private static String runKey( int runCode ) {
+        return "r" + ( runCode / 768 ) + ":" + ( ( runCode / 256 ) % 3 )
+                + ":" + ( ( runCode / 16 ) % 16 ) + ":" + ( runCode % 16 );
     }
 
     /**
-     * 多条 physical run 交汇点的稳定 identity：接到这里的那几条 run 的 identity。
+     * 多条 physical run 交汇点的存档 identity：接到这里的那几条 run 的键名，排序后连起来。
      *
-     * <p>用的是 run 的 identity 而不是各 run 当前显示的槽，所以玩家改了某条 run 的 owner 之后，
+     * <p>用 run 的 identity 而不是各 run 当前显示的槽，所以玩家改了某条 run 的 owner 之后，
      * 这个交汇点的 key 不会漂移（漂移的话原来的 override 就会失效）。
      */
-    private static String cornerKey( List<String> runs ) {
-        return "c:" + String.join( "+", runs );
-    }
-
-    /** 按槽名排序去重，得到与遍历顺序无关的稳定候选顺序。 */
-    private static List<Slot> canonical( List<Slot> slots ) {
-        List<Slot> sorted = new ArrayList<>( slots );
-        sorted.sort( Comparator.comparing( Slot::name ) );
-        List<Slot> unique = new ArrayList<>( sorted.size() );
-        String previous = null;
-        for ( Slot slot : sorted ) {
-            if ( !slot.name().equals( previous ) ) {
-                unique.add( slot );
-                previous = slot.name();
-            }
+    private static String cornerKey( int[] runs, int base, int count ) {
+        String[] keys = new String[count];
+        for ( int i = 0; i < count; i++ ) {
+            keys[i] = runKey( runs[base + i] );
         }
-        return List.copyOf( unique );
+        java.util.Arrays.sort( keys );
+        return "c:" + String.join( "+", keys );
     }
 
     /**
@@ -536,16 +665,16 @@ public final class LayeredBoardParts {
      * 位置。这条 key 只用于「几何重合的格子」——那些候选只由占用掩码决定，不会被 override 改动，
      * 所以不会漂移。
      */
-    public static String junctionKey( List<Slot> candidates ) {
-        StringBuilder builder = new StringBuilder();
-        for ( Slot slot : candidates ) {
-            if ( builder.length() > 0 ) {
+    private static String junctionKeyOfCodes( int[] candidates, int base, int count ) {
+        StringBuilder builder = new StringBuilder( );
+        for ( int i = 0; i < count; i++ ) {
+            if ( builder.length( ) > 0 ) {
                 builder.append( '+' );
             }
-            builder.append( LayeredBoardSlots.slotBit( slot.face(), slot.layer() ) )
-                    .append( ':' ).append( slot.area().ordinal() );
+            builder.append( codeBit( candidates[base + i] ) )
+                    .append( ':' ).append( codeAreaOrdinal( candidates[base + i] ) );
         }
-        return builder.toString();
+        return builder.toString( );
     }
 
     /**
@@ -572,38 +701,39 @@ public final class LayeredBoardParts {
         return stale;
     }
 
-    /** 这一格上几何完全重合的那几个材质槽——一条 physical run 的全部材质来源。 */
-    private static List<Slot> coincidingSlots( int present, int windows, int x, int y, int z ) {
-        List<Slot> candidates = new ArrayList<>( 2 );
+    /** 这一格上几何完全重合的那几个槽码，写进 {@code out[base..]}，返回个数。 */
+    private static int coincidingCodes( int present, int windows, int x, int y, int z, int[] out, int base ) {
+        int count = 0;
         for ( int bit = 0; bit < SLOT_COUNT; bit++ ) {
             if ( ( present & ( 1 << bit ) ) == 0 ) {
                 continue;
             }
             FaceDir face = faceOfSlot( bit );
             BoardLayer layer = layerOfSlot( bit );
-            candidates.add( new Slot( face, layer, plateAreaOf(
+            out[base + count++] = slotCode( face, layer, plateAreaOf(
                     localU( face, x, y, z ), localV( face, x, y, z ),
-                    LayeredBoardSlots.hasWindow( windows, face ) ) ) );
+                    LayeredBoardSlots.hasWindow( windows, face ) ) );
         }
-        return candidates;
+        return count;
     }
 
     /**
-     * 多条 physical edge run 在同一个 1px 交汇位置相接时的交汇点。
+     * 角格上的交汇点：候选是<b>每条实际接到这里的 physical run 当前显示的槽</b>。
      *
-     * <p>候选是<b>每条实际接到这里的 run 当前显示的槽</b>。这一点是关键：某条 run 的 owner 可能
-     * 是另一个 Face，它显示的槽与本 Face 在角上的默认区域并不是同一个；若改成「按 Face 各解析
-     * 一次」，就会把一个屏幕上根本没显示的槽塞进候选，同时漏掉真正可见的那条边——表现就是
-     * 「肉眼看得到三条边，凿子却只循环得出两条 + 一个待伪装」。
+     * <p>这一点是关键：某条 run 的 owner 可能是另一个 Face，它显示的槽与本 Face 在角上的默认
+     * 区域并不是同一个；若改成「按 Face 各解析一次」，就会把一个屏幕上根本没显示的槽塞进候选，
+     * 同时漏掉真正可见的那条边——表现就是「肉眼看得到三条边，凿子却只循环得出两条 + 一个待伪装」。
      *
      * <p>接法：看这一格的六个邻格。邻格必须<b>同一层</b>、且落在某条 Edge 条上；那个邻格所在的
      * run 就是接到这个交汇点的一条 run，它当前显示的槽就是这条可见边。
+     *
+     * <p>槽码写进 {@code out[base..]}，入射 run 码写进 {@code runs[runsBase..]}，返回候选个数。
      */
-    @Nullable
-    private static Junction cornerJunction( int[] present, int[] owner, int windows, int x, int y, int z ) {
-        int ownerBit = owner[index( x, y, z )];
-        BoardLayer layer = layerOfSlot( Integer.numberOfTrailingZeros( ownerBit ) );
-        Map<String, Slot> byRun = new LinkedHashMap<>();
+    private static int collectCorner( int[] present, int[] owner, int windows, int x, int y, int z,
+                                      int[] out, int base, int[] runs, int runsBase ) {
+        BoardLayer layer = layerOfSlot( Integer.numberOfTrailingZeros( owner[index( x, y, z )] ) );
+        int count = 0;
+        int runCount = 0;
         for ( Direction direction : Direction.values() ) {
             int nx = x + worldComponent( direction, Direction.Axis.X );
             int ny = y + worldComponent( direction, Direction.Axis.Y );
@@ -627,17 +757,21 @@ public final class LayeredBoardParts {
             if ( axis == null ) {
                 continue;
             }
-            byRun.putIfAbsent( runKey( layer, axis, nx, ny, nz ),
-                    new Slot( neighbourFace, layer, neighbourArea ) );
+            int run = runCode( layer, axis, nx, ny, nz );
+            boolean seen = false;
+            for ( int i = 0; i < runCount; i++ ) {
+                if ( runs[runsBase + i] == run ) {
+                    seen = true;
+                    break;
+                }
+            }
+            if ( seen ) {
+                continue;
+            }
+            runs[runsBase + runCount++] = run;
+            out[base + count++] = slotCode( neighbourFace, layer, neighbourArea );
         }
-        if ( byRun.size() < 2 ) {
-            return null;
-        }
-        List<String> runs = new ArrayList<>( byRun.keySet() );
-        runs.sort( String::compareTo );
-        List<Slot> candidates = canonical( new ArrayList<>( byRun.values() ) );
-        return new Junction( cornerKey( runs ), candidates,
-                defaultCornerShown( ownerBit, candidates, x, y, z ), true );
+        return count;
     }
 
     /**
@@ -646,137 +780,149 @@ public final class LayeredBoardParts {
      * <p>优先用 owner 板自己在这个角上的默认区域——它按构造一定等于接到这里某一条 run 的显示槽，
      * 所以默认画面不会跳。万一不等（比如那条 run 被玩家改过），退回候选里的第一个。
      */
-    private static Slot defaultCornerShown( int ownerBit, List<Slot> candidates, int x, int y, int z ) {
+    private static int defaultCornerCode( int ownerBit, int[] candidates, int base, int count,
+                                          int u, int v ) {
         int bit = Integer.numberOfTrailingZeros( ownerBit );
         FaceDir face = faceOfSlot( bit );
         BoardLayer layer = layerOfSlot( bit );
-        BoardCorner corner = CORNER_AT.get( key( localU( face, x, y, z ), localV( face, x, y, z ) ) );
+        BoardCorner corner = CORNER_AT[key( u, v )];
         if ( corner != null ) {
-            String preferred = LayeredBoardSlots.materialKey( face, layer, cornerArea( corner ) );
-            for ( Slot candidate : candidates ) {
-                if ( candidate.name().equals( preferred ) ) {
-                    return candidate;
+            int preferred = slotCode( face, layer, cornerArea( corner ) );
+            for ( int i = 0; i < count; i++ ) {
+                if ( candidates[base + i] == preferred ) {
+                    return preferred;
                 }
             }
         }
-        return candidates.get( 0 );
+        return candidates[base];
     }
 
     /** 把 override 套到默认显示上；override 指向的槽已经不在候选里就自动回退默认。 */
-    private static Slot applyOverride( String key, List<Slot> candidates, Slot fallback,
-                                       Map<String, String> overrides ) {
-        if ( overrides == null || overrides.isEmpty() ) {
-            return fallback;
-        }
+    private static int applyOverrideCode( int[] candidates, int base, int count, int fallback,
+                                          Map<String, String> overrides, String key ) {
         String chosen = overrides.get( key );
         if ( chosen == null ) {
             return fallback;
         }
-        for ( Slot candidate : candidates ) {
-            if ( candidate.name().equals( chosen ) ) {
-                return candidate;
+        for ( int i = 0; i < count; i++ ) {
+            if ( codeName( candidates[base + i] ).equals( chosen ) ) {
+                return candidates[base + i];
             }
         }
         return fallback;
     }
 
+    // resolveInto 的输出布局
+    private static final int OUT_COUNT = 0;
+    private static final int OUT_SHOWN = 1;
+    private static final int OUT_CORNER = 2;
+    private static final int OUT_CANDIDATES = 3;
+    private static final int OUT_MAX_CANDIDATES = 6;
+    private static final int OUT_RUNS = OUT_CANDIDATES + OUT_MAX_CANDIDATES;
+    private static final int OUT_RUN_COUNT = OUT_RUNS + OUT_MAX_CANDIDATES;
+    /** 一次解析需要的 scratch 长度。 */
+    private static final int RESOLVE_SCRATCH = OUT_RUN_COUNT + 1;
+
     /**
-     * 算出某一格上的可交互位置；候选不足 2 条就返回 {@code null}（那一格没有可切换的东西）。
+     * 一格最终「显示什么 / 可切换什么」的完整解析，全部用槽码表示，全程无分配。
      *
+     * <p>渲染、材质点击、扳手、命中判定共用这一个判断，所以「画面显示 A Edge，右键材质却操作
+     * B Edge」不可能发生。结果写进调用方给的 {@code out}：
      * <ul>
-     *   <li><b>角格</b> → {@link #cornerJunction}：候选来自实际接到这里的 physical edge run；</li>
-     *   <li><b>非角格、多块板</b> → 几何重合的那几个 Face-edge 槽；</li>
-     *   <li>其余（单板普通边 / BODY / WINDOW）→ 没有可切换的，返回 {@code null}。</li>
+     *   <li>{@code out[OUT_COUNT]} —— 候选个数；0/1 表示这一格没有可切换的东西</li>
+     *   <li>{@code out[OUT_SHOWN]} —— 实际显示的槽码</li>
+     *   <li>{@code out[OUT_CORNER]} —— 1 表示这是一个「多条 run 相接」的交汇点</li>
+     *   <li>{@code out[OUT_CANDIDATES..]} —— 候选槽码（按槽名排序去重）</li>
+     *   <li>{@code out[OUT_RUNS..]} —— 入射 run 码，个数在 {@code out[OUT_RUN_COUNT]}</li>
      * </ul>
      */
-    @Nullable
-    private static Junction junctionAtCell( int[] present, int[] owner, int windows, int x, int y, int z ) {
-        int ownerBit = owner[index( x, y, z )];
-        if ( ownerBit == 0 ) {
-            return null;
-        }
+    private static int resolveInto( int[] present, int[] owner, int windows, Map<String, String> overrides,
+                                    int x, int y, int z, int[] out ) {
         int at = index( x, y, z );
+        int ownerBit = owner[at];
         int bit = Integer.numberOfTrailingZeros( ownerBit );
         FaceDir face = faceOfSlot( bit );
         BoardLayer layer = layerOfSlot( bit );
-        BoardCorner corner = CORNER_AT.get( key( localU( face, x, y, z ), localV( face, x, y, z ) ) );
-        if ( corner != null ) {
-            return cornerJunction( present, owner, windows, x, y, z );
-        }
-        List<Slot> candidates = canonical( coincidingSlots( present[at], windows, x, y, z ) );
-        if ( candidates.size() < 2 ) {
-            return null;
-        }
-        int ownerOfPresent = Integer.numberOfTrailingZeros( ownerOf( present[at] ) );
-        FaceDir shownFace = faceOfSlot( ownerOfPresent );
-        return new Junction( junctionKey( candidates ), candidates,
-                new Slot( shownFace, layerOfSlot( ownerOfPresent ), plateAreaOf(
-                        localU( shownFace, x, y, z ), localV( shownFace, x, y, z ),
-                        LayeredBoardSlots.hasWindow( windows, shownFace ) ) ), false );
-    }
-
-    /**
-     * 某一格最终显示的材质槽——渲染、材质点击、扳手、命中判定共用这一个判断。
-     *
-     * <p>交汇点上显示的是 override 选中的那条边（没有 override 就是默认 owner），其余格子就是
-     * owner 板自己的区域。所以「画面显示 A Edge，右键材质却操作 B Edge」不可能发生。
-     */
-    private static Slot shownAt( int[] present, int[] owner, int windows, Map<String, String> overrides,
-                                 int x, int y, int z ) {
-        Junction junction = junctionAtCell( present, owner, windows, x, y, z );
-        if ( junction != null ) {
-            return applyOverride( junction.key(), junction.candidates(), junction.shown(), overrides );
-        }
-        int bit = Integer.numberOfTrailingZeros( owner[index( x, y, z )] );
-        FaceDir face = faceOfSlot( bit );
-        BoardLayer layer = layerOfSlot( bit );
-        return new Slot( face, layer, plateAreaOf( localU( face, x, y, z ), localV( face, x, y, z ),
+        int u = localU( face, x, y, z );
+        int v = localV( face, x, y, z );
+        int ownerCode = slotCode( face, layer, plateAreaOf( u, v,
                 LayeredBoardSlots.hasWindow( windows, face ) ) );
+
+        boolean corner = CORNER_AT[key( u, v )] != null;
+        out[OUT_CORNER] = corner ? 1 : 0;
+        int count;
+        if ( corner ) {
+            count = collectCorner( present, owner, windows, x, y, z,
+                    out, OUT_CANDIDATES, out, OUT_RUNS );
+            out[OUT_RUN_COUNT] = count;
+        } else {
+            count = coincidingCodes( present[at], windows, x, y, z, out, OUT_CANDIDATES );
+            out[OUT_RUN_COUNT] = 0;
+        }
+        if ( count < 2 ) {
+            // 单候选：没有可切换的东西，直接返回，不排序、不查 override、不建任何容器
+            out[OUT_COUNT] = count;
+            out[OUT_SHOWN] = ownerCode;
+            return count;
+        }
+        count = canonicalInPlace( out, OUT_CANDIDATES, count );
+        out[OUT_COUNT] = count;
+        int fallback = corner ? defaultCornerCode( ownerBit, out, OUT_CANDIDATES, count, u, v ) : ownerCode;
+        int shown = fallback;
+        if ( overrides != null && !overrides.isEmpty( ) ) {
+            // 只有真的要查 override 时才拼 key 字符串
+            String key = corner
+                    ? cornerKey( out, OUT_RUNS, out[OUT_RUN_COUNT] )
+                    : junctionKeyOfCodes( out, OUT_CANDIDATES, count );
+            shown = applyOverrideCode( out, OUT_CANDIDATES, count, fallback, overrides, key );
+        }
+        out[OUT_SHOWN] = shown;
+        return count;
     }
 
-    /** 最终几何：每格的 owner、实际显示的材质槽，以及 owner 自己的区域（只给优先级裁决用）。 */
-    private record Grid( int[] owner, String[] key, BoardArea[] area ) {
+    /** 某一格最终显示的槽码——热路径入口，不建任何对象。 */
+    private static int shownCode( int[] present, int[] owner, int windows,
+                                  Map<String, String> overrides, int x, int y, int z, int[] out ) {
+        resolveInto( present, owner, windows, overrides, x, y, z, out );
+        return out[OUT_SHOWN];
+    }
+
+    /** 最终几何：每格的 owner 与「实际显示的槽码」。 */
+    private record Grid( int[] owner, int[] code ) {
     }
 
     /**
-     * 在占用掩码的有效范围内，给每一格定下唯一的 owner 与它最终显示的材质槽。
+     * 在占用掩码的有效范围内，给每一格定下唯一的 owner 与它最终显示的槽码。
      *
      * <p>只有 owner 会写这一格：非 owner 的板在这一格上完全不生成几何，也不生成命中区域。
+     * scratch 只分配一次，逐格复用，整趟解析不产生任何对象。
      */
     private static Grid buildGrid( int occupancy, int windows, Map<String, String> overrides ) {
         Ownership ownership = ownership( occupancy );
         int[] present = ownership.present();
         int[] owner = ownership.owner();
-        String[] keys = new String[CELLS];
-        BoardArea[] areas = new BoardArea[CELLS];
+        int[] codes = new int[CELLS];
+        int[] scratch = new int[RESOLVE_SCRATCH];
         for ( int at = 0; at < CELLS; at++ ) {
-            int ownerBit = owner[at];
-            if ( ownerBit == 0 ) {
+            if ( owner[at] == 0 ) {
                 continue;
             }
-            int x = at >> 8;
-            int y = ( at >> 4 ) & 15;
-            int z = at & 15;
-            int bit = Integer.numberOfTrailingZeros( ownerBit );
-            FaceDir face = faceOfSlot( bit );
-            // areas[] 只服务「同板不同区域接触时由谁发面」的优先级裁决，所以用 owner 自己的区域。
-            areas[at] = plateAreaOf( localU( face, x, y, z ), localV( face, x, y, z ),
-                    LayeredBoardSlots.hasWindow( windows, face ) );
-            keys[at] = shownAt( present, owner, windows, overrides, x, y, z ).name();
+            codes[at] = shownCode( present, owner, windows, overrides,
+                    at >> 8, ( at >> 4 ) & 15, at & 15, scratch );
         }
-        return new Grid( owner, keys, areas );
+        return new Grid( owner, codes );
     }
 
     /** {@link #worldCell} 的逆：格子 (x,y,z) 落在该板面本地的哪个 u。 */
     private static int localU( FaceDir face, int x, int y, int z ) {
         int a = face == FaceDir.WEST || face == FaceDir.EAST ? z : x;
-        return FRAMES.get( face ).uSign( ) > 0 ? a : 15 - a;
+        return frame( face ).uSign( ) > 0 ? a : 15 - a;
     }
 
     /** {@link #worldCell} 的逆：格子 (x,y,z) 落在该板面本地的哪个 v。 */
     private static int localV( FaceDir face, int x, int y, int z ) {
         int b = face == FaceDir.UP || face == FaceDir.DOWN ? z : y;
-        return FRAMES.get( face ).vSign( ) > 0 ? b : 15 - b;
+        return frame( face ).vSign( ) > 0 ? b : 15 - b;
     }
 
     /**
@@ -803,7 +949,7 @@ public final class LayeredBoardParts {
         if ( range.isFull( ) ) {
             return base;
         }
-        LocalFrame frame = FRAMES.get( face );
+        LocalFrame frame = frame( face );
         double[] us = spanFor( range.u0( ), range.u1( ), frame.uSign( ) );
         double[] vs = spanFor( range.v0( ), range.v1( ), frame.vSign( ) );
         return switch ( face ) {
@@ -867,7 +1013,7 @@ public final class LayeredBoardParts {
      * 另外两个轴由 {@link #FRAMES} 的本地坐标系映射过去。
      */
     private static int[] worldCell( FaceDir face, BoardLayer layer, int u, int v ) {
-        LocalFrame frame = FRAMES.get( face );
+        LocalFrame frame = frame( face );
         int along = layer == BoardLayer.OUTER ? 0 : 1;
         int a = frame.uSign() > 0 ? u : 15 - u;
         int b = frame.vSign() > 0 ? v : 15 - v;
@@ -920,11 +1066,12 @@ public final class LayeredBoardParts {
                                                      Map<String, String> junctionOwners ) {
         Grid grid = buildGrid( occupancy, windows, junctionOwners );
         int[] owner = grid.owner();
-        String[] keys = grid.key();
-        BoardArea[] areas = grid.area();
+        int[] codes = grid.code();
 
-        // 逐格逐方向挑出暴露的面，按「平面 + 材质」分组
-        Map<PlaneKey, Map<String, List<int[]>>> planes = new LinkedHashMap<>();
+        // 逐格逐方向挑出暴露的面，按「平面 + 槽码」分组。
+        // 这里刻意用槽码而不是材质键字符串做 key：字符串只在最后真正输出时才拼，
+        // 4096 格的解析里一次都不建。
+        Map<PlaneKey, Map<Integer, List<int[]>>> planes = new LinkedHashMap<>();
         for ( int x = 0; x < 16; x++ ) {
             for ( int y = 0; y < 16; y++ ) {
                 for ( int z = 0; z < 16; z++ ) {
@@ -943,26 +1090,28 @@ public final class LayeredBoardParts {
                                 if ( owner[nAt] != owner[at] ) {
                                     continue;
                                 }
-                                // 本板内部、同一个材质槽 → 板内部的面
-                                if ( keys[at].equals( keys[nAt] ) ) {
+                                // 本板内部、同一个槽 → 板内部的面
+                                if ( codes[at] == codes[nAt] ) {
                                     continue;
                                 }
-                                // 本板、不同材质槽：只有 BODY / WINDOW 的接触属于这一种。
+                                // 本板、不同槽：只有 BODY / WINDOW 的接触属于这一种。
                                 // 按区域优先级裁决，四条窗内壁走同一个对称算法。
-                                if ( priorityOf( areas[at] ) <= priorityOf( areas[nAt] ) ) {
+                                if ( AREA_PRIORITY[codeAreaOrdinal( codes[at] )]
+                                        <= AREA_PRIORITY[codeAreaOrdinal( codes[nAt] )] ) {
                                     continue;
                                 }
                             }
                         }
-                        addPlaneCell( planes, direction, x, y, z, keys[at] );
+                        addPlaneCell( planes, direction, x, y, z, codes[at] );
                     }
                 }
             }
         }
 
-        // 每个平面上做一次贪心矩形合并
+        // 每个平面上做一次贪心矩形合并；槽码 → 材质键字符串只在这里发生一次（每个不同槽一次）
         Map<String, List<Box>> boxes = new LinkedHashMap<>();
-        planes.forEach( ( plane, byMaterial ) -> byMaterial.forEach( ( materialKey, cells ) -> {
+        planes.forEach( ( plane, byCode ) -> byCode.forEach( ( code, cells ) -> {
+            String materialKey = codeName( code );
             for ( int[] rect : mergeRectangles( cells ) ) {
                 boxes.computeIfAbsent( materialKey, unused -> new ArrayList<>() )
                         .add( planeBox( plane, rect ) );
@@ -992,8 +1141,8 @@ public final class LayeredBoardParts {
     private static final int SLOT_COUNT = FaceDir.values().length * BoardLayer.values().length;
 
     /** 把一格的某个面登记到它所在的平面上。 */
-    private static void addPlaneCell( Map<PlaneKey, Map<String, List<int[]>>> planes,
-                                      Direction direction, int x, int y, int z, String materialKey ) {
+    private static void addPlaneCell( Map<PlaneKey, Map<Integer, List<int[]>>> planes,
+                                      Direction direction, int x, int y, int z, int code ) {
         // 格子 (x,y,z) 朝 direction 的那一面，就在该格子朝 direction 的那条边界上
         int along = switch ( direction ) {
             case DOWN, UP -> y + ( direction == Direction.UP ? 1 : 0 );
@@ -1019,7 +1168,7 @@ public final class LayeredBoardParts {
             }
         }
         planes.computeIfAbsent( plane, unused -> new LinkedHashMap<>() )
-                .computeIfAbsent( materialKey, unused -> new ArrayList<>() )
+                .computeIfAbsent( code, unused -> new ArrayList<>() )
                 .add( new int[] { first, second } );
     }
 
@@ -1152,8 +1301,9 @@ public final class LayeredBoardParts {
     /**
      * 命中点最终显示的材质槽。
      *
-     * <p>与 {@link #boxesByKey} 用同一个 {@link #shownAt}：材质点击、扳手、以及「命中在哪条边上」
-     * 全部按它判定，所以共享几何上<b>画面显示哪条边，右键就操作哪条边</b>。
+     * <p>与 {@link #boxesByKey} 用同一个 {@link #resolveInto}：材质点击、扳手、以及「命中在哪条
+     * 边上」全部按它判定，所以共享几何上<b>画面显示哪条边，右键就操作哪条边</b>。
+     * 对象只在这一次交互里建，不在 4096 格的 bake 路径上。
      */
     @Nullable
     public static Slot slotAt( int occupancy, int windows, Map<String, String> junctionOwners, Vec3d hit ) {
@@ -1162,8 +1312,14 @@ public final class LayeredBoardParts {
         if ( at < 0 ) {
             return null;
         }
-        return shownAt( ownership.present(), ownership.owner(), windows, junctionOwners,
-                at >> 8, ( at >> 4 ) & 15, at & 15 );
+        int[] out = new int[RESOLVE_SCRATCH];
+        resolveInto( ownership.present(), ownership.owner(), windows, junctionOwners,
+                at >> 8, ( at >> 4 ) & 15, at & 15, out );
+        return slotOf( out[OUT_SHOWN] );
+    }
+
+    private static Slot slotOf( int code ) {
+        return new Slot( codeFace( code ), codeLayer( code ), codeArea( code ) );
     }
 
     /**
@@ -1182,13 +1338,21 @@ public final class LayeredBoardParts {
         int x = at >> 8;
         int y = ( at >> 4 ) & 15;
         int z = at & 15;
-        Junction junction = junctionAtCell( ownership.present(), ownership.owner(), windows, x, y, z );
-        if ( junction == null ) {
+        int[] out = new int[RESOLVE_SCRATCH];
+        int count = resolveInto( ownership.present(), ownership.owner(), windows, junctionOwners, x, y, z, out );
+        if ( count < 2 ) {
             return null;
         }
-        return new Junction( junction.key(), junction.candidates(),
-                applyOverride( junction.key(), junction.candidates(), junction.shown(), junctionOwners ),
-                junction.corner() );
+        List<Slot> candidates = new ArrayList<>( count );
+        for ( int i = 0; i < count; i++ ) {
+            candidates.add( slotOf( out[OUT_CANDIDATES + i] ) );
+        }
+        candidates = List.copyOf( candidates );
+        boolean corner = out[OUT_CORNER] == 1;
+        String key = corner
+                ? cornerKey( out, OUT_RUNS, out[OUT_RUN_COUNT] )
+                : junctionKeyOfCodes( out, OUT_CANDIDATES, count );
+        return new Junction( key, candidates, slotOf( out[OUT_SHOWN] ), corner );
     }
 
     /**
@@ -1203,7 +1367,7 @@ public final class LayeredBoardParts {
     public static BoardArea areaAt( boolean windowOpen, int u, int v ) {
         int cu = Math.max( 0, Math.min( 15, u ) );
         int cv = Math.max( 0, Math.min( 15, v ) );
-        BoardCorner corner = CORNER_AT.get( key( cu, cv ) );
+        BoardCorner corner = CORNER_AT[key( cu, cv )];
         if ( corner != null ) {
             return cornerArea( corner );
         }
@@ -1218,7 +1382,7 @@ public final class LayeredBoardParts {
 
     /** 面的本地 (u, v)，调试用。 */
     public static int[] local( FaceDir face, Vec3d hit ) {
-        LocalFrame frame = FRAMES.get( face );
+        LocalFrame frame = frame( face );
         return new int[] { frame.u( hit ), frame.v( hit ) };
     }
 }
