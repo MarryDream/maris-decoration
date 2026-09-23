@@ -23,8 +23,13 @@ const ITEM_MODEL = join(ASSETS, 'models/item/layered_copycat_board.json');
 /** 未伪装时的默认外观，与 Create 的 copycat 保持一致。 */
 const DEFAULT_TEXTURE = 'create:block/copycat_base';
 
-/** UP 板在方块本地坐标里的位置（0..16）。 */
-const PLATE = { from: [0, 15, 0], to: [16, 16, 16] };
+/**
+ * 物品形态用的板位（0..16）：一块贴在方块底部的 1px 水平板。
+ *
+ * <p>位置与贴图 UV 刻意与 Copycats+ 的 {@code copycat_base/board} 完全一致，
+ * 好让物品栏里的图标看起来一样。
+ */
+const ITEM_PLATE = { from: [0, 0, 0], to: [16, 1, 16] };
 
 /**
  * 计算一个长方体六个面的 UV，遵循 Minecraft 的投影约定。
@@ -43,31 +48,7 @@ function faceUv(box, face) {
     }
 }
 
-/** 贴在方块边界上的面才加 cullface。 */
-function cullFace(box, face) {
-    const [x0, y0, z0, x1, y1, z1] = box;
-    switch (face) {
-        case 'down': return y0 === 0 ? 'down' : null;
-        case 'up': return y1 === 16 ? 'up' : null;
-        case 'north': return z0 === 0 ? 'north' : null;
-        case 'south': return z1 === 16 ? 'south' : null;
-        case 'west': return x0 === 0 ? 'west' : null;
-        case 'east': return x1 === 16 ? 'east' : null;
-        default: return null;
-    }
-}
-
-function element(from, to, texture) {
-    const box = [...from, ...to];
-    const faces = {};
-    for (const face of ['down', 'up', 'north', 'south', 'west', 'east']) {
-        const entry = { uv: faceUv(box, face), texture };
-        const cull = cullFace(box, face);
-        if (cull) entry.cullface = cull;
-        faces[face] = entry;
-    }
-    return { from, to, faces };
-}
+// 物品形态的模型不加 cullface，所以这里不需要 cullFace / element 两个辅助函数。
 
 // ---- blockstate：只有 waterlogged 一个属性，两个变体都指向空气 ----
 mkdirSync(dirname(BLOCKSTATE), { recursive: true });
@@ -77,15 +58,26 @@ for (const waterlogged of [false, true]) {
 }
 writeFileSync(BLOCKSTATE, JSON.stringify({ variants }, null, 4) + '\n');
 
-// ---- 方块模型（物品模型引用它）----
+// ---- 物品形态的方块模型（物品模型引用它）----
+//
+// 只服务物品栏 / 手持：世界里的外观由 LayeredCopycatBoardModel 动态发射，与这里无关。
+// parent 取原版 block/block，是为了直接继承它标准的 gui / firstperson / thirdperson
+// display 变换——不要换成带自定义 display 的模型，否则图标的角度和大小都会与参考不一致。
+// 六个面都不加 cullface：物品渲染不做邻块剔除，加了只会和参考模型产生差异。
+const faceNames = ['down', 'up', 'north', 'south', 'west', 'east'];
+const itemBox = [...ITEM_PLATE.from, ...ITEM_PLATE.to];
+const itemFaces = {};
+for (const face of faceNames) {
+    itemFaces[face] = { uv: faceUv(itemBox, face), texture: '#all' };
+}
 mkdirSync(BLOCK_DIR, { recursive: true });
 writeFileSync(
     join(BLOCK_DIR, 'item.json'),
     JSON.stringify(
         {
-            parent: `${NS}:block/thin_side_block`,
+            parent: 'block/block',
             textures: { particle: '#all', all: DEFAULT_TEXTURE },
-            elements: [element(PLATE.from, PLATE.to, '#all')],
+            elements: [{ from: ITEM_PLATE.from, to: ITEM_PLATE.to, faces: itemFaces }],
         },
         null,
         4,

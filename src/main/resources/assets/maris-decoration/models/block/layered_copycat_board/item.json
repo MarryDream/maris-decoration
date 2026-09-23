@@ -1,5 +1,5 @@
 {
-    "parent": "maris-decoration:block/thin_side_block",
+    "parent": "block/block",
     "textures": {
         "particle": "#all",
         "all": "create:block/copycat_base"
@@ -8,12 +8,12 @@
         {
             "from": [
                 0,
-                15,
+                0,
                 0
             ],
             "to": [
                 16,
-                16,
+                1,
                 16
             ],
             "faces": {
@@ -33,48 +33,43 @@
                         16,
                         16
                     ],
-                    "texture": "#all",
-                    "cullface": "up"
+                    "texture": "#all"
                 },
                 "north": {
                     "uv": [
                         0,
-                        0,
+                        15,
                         16,
-                        1
+                        16
                     ],
-                    "texture": "#all",
-                    "cullface": "north"
+                    "texture": "#all"
                 },
                 "south": {
                     "uv": [
                         0,
-                        0,
+                        15,
                         16,
-                        1
+                        16
                     ],
-                    "texture": "#all",
-                    "cullface": "south"
+                    "texture": "#all"
                 },
                 "west": {
                     "uv": [
                         0,
-                        0,
+                        15,
                         16,
-                        1
+                        16
                     ],
-                    "texture": "#all",
-                    "cullface": "west"
+                    "texture": "#all"
                 },
                 "east": {
                     "uv": [
                         0,
-                        0,
+                        15,
                         16,
-                        1
+                        16
                     ],
-                    "texture": "#all",
-                    "cullface": "east"
+                    "texture": "#all"
                 }
             }
         }
