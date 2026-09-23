@@ -183,6 +183,11 @@ public final class LayeredBoardSlots {
         return ( occupancy & ( 1 << slotBit( face, layer ) ) ) != 0;
     }
 
+    /** 一个槽位单独构成的掩码。给「只占某一层」这类候选值用。 */
+    public static int slotBitMask( FaceDir face, BoardLayer layer ) {
+        return 1 << slotBit( face, layer );
+    }
+
     public static int withSlot( int occupancy, FaceDir face, BoardLayer layer ) {
         return occupancy | ( 1 << slotBit( face, layer ) );
     }

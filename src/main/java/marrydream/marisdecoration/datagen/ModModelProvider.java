@@ -38,5 +38,8 @@ public final class ModModelProvider extends FabricModelProvider {
         generator.register(ModItem.DETAIL_CHISEL, Models.GENERATED);
         generator.register(ModItem.STEEL_HAMMER, Models.GENERATED);
         generator.register(ModItem.REBAR, Models.GENERATED);
+        // 伪装放置器：这一阶段临时复用细工凿的贴图（纹理文件是 copycat_placer.png 的副本，
+        // 见 assets/maris-decoration/textures/item/）。等正式贴图出来只需要换那个 png。
+        generator.register(ModItem.COPYCAT_PLACER, Models.GENERATED);
     }
 }

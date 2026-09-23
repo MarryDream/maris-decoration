@@ -1,6 +1,7 @@
 package marrydream.marisdecoration.init;
 
 import marrydream.marisdecoration.item.BubbleTeaItem;
+import marrydream.marisdecoration.item.CopycatPlacerItem;
 import marrydream.marisdecoration.item.SteelHammer;
 import marrydream.marisdecoration.item.DetailChisel;
 import net.minecraft.item.Item;
@@ -18,6 +19,8 @@ public final class ModItem {
     public static final DetailChisel DETAIL_CHISEL = register(DetailChisel.ID, new DetailChisel());
     public static final SteelHammer STEEL_HAMMER = register(SteelHammer.ID, new SteelHammer());
     public static final Item REBAR = register("rebar", new Item(new Item.Settings()));
+    /** 伪装放置器：预先配好一份伪装，之后拿着它右键直接按配置放置。 */
+    public static final CopycatPlacerItem COPYCAT_PLACER = register(CopycatPlacerItem.ID, new CopycatPlacerItem());
 
     private ModItem() {
     }

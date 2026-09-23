@@ -112,11 +112,16 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
      * {@code setMaterial(property, state)} 里的「邻居继承」：如果紧挨着的同类伪装方块在同一个
      * 槽位上已经是同一种方块，就直接沿用邻居的完整状态。这样一排护栏摆在一起时材质朝向自动一致，
      * 不会出现相邻两块原木纹理方向互不相同的情况。
+     *
+     * <p>{@code consumed} 为 {@code null} 表示<b>这一槽不需要再记一笔付账</b>
+     * （同一个 BlockPos 上同一种材质只付一次，第二种用法就是这种情况）。
+     * 这个语义与 {@code LayeredCopycatBoardBlockEntity#setMaterial} 完全一致——
+     * 「伪装放置器」那条路径会传 null，所以这里必须容忍它。
      */
-    public void setMaterial(String key, BlockState material, ItemStack consumed) {
+    public void setMaterial(String key, BlockState material, @Nullable ItemStack consumed) {
         BlockState applied = inheritFromNeighbour(key, material);
         materials.put(key, applied);
-        if (!consumed.isEmpty()) {
+        if (consumed != null && !consumed.isEmpty()) {
             consumedItems.put(key, consumed.copyWithCount(1));
         }
         sync();

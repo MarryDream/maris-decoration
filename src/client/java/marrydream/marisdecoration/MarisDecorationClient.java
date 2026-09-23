@@ -19,6 +19,10 @@ import net.minecraft.util.Identifier;
 public class MarisDecorationClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
+        // 伪装放置器：装上「打开配置界面 / 发送配置」这两个客户端钩子，
+        // 并注册网络频道让发送合法。必须在物品被使用之前完成——这里就是最早的地方。
+        marrydream.marisdecoration.placement.client.PlacerClientHooks.init();
+
         // 如果方块一些部分是透明的（例如玻璃、树苗、门），避免贴图上的透明部分变成黑色
         BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.TEAK_TRAPDOOR, RenderLayer.getCutout() );
         // 如果方块一些部分的材质是半透明的，例如玻璃

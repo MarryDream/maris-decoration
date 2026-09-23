@@ -414,9 +414,18 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
      *   <li>轮廓必须是<b>完整立方体</b>——栅栏、墙、台阶、半砖等就是在这里被挡掉的；</li>
      *   <li>最后把 FACING / HORIZONTAL_FACING / AXIS / HORIZONTAL_AXIS 按点击面定向。</li>
      * </ul>
+     *
+     * <p>做成 <b>static</b>：判据本身与方块实例无关，而「伪装放置器」的材质过滤
+     * （{@code GuardrailCopycatAdapter#acceptsMaterial}）需要复用同一份规则。
+     * 复刻一份出来迟早会与这里分叉。方法体与语义完全未变，既有调用点也不受影响。
+     *
+     * <p>{@code world} / {@code pos} 允许为 {@code null}（只用于「读方块轮廓形状」这一步），
+     * 但<b>调用方应当尽量传真实世界</b>：传 null 会让「完整立方体轮廓 / 碰撞箱非空」这两条
+     * 整段被跳过，半砖、玻璃板这类形状不完整的方块就会被误判为可用材质。
+     * 正常右键放置时本来就是真实世界；放置器与材质选择界面也一并传真实世界。
      */
-    @Nullable
-    public BlockState getAcceptedMaterial(World world, BlockPos pos, ItemStack item, @Nullable Direction face) {
+    public static BlockState getAcceptedMaterial(@Nullable BlockView world, @Nullable BlockPos pos,
+                                                 ItemStack item, @Nullable Direction face) {
         if (!(item.getItem() instanceof BlockItem blockItem)) {
             return null;
         }

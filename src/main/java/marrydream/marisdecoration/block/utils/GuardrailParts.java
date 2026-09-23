@@ -218,6 +218,21 @@ public final class GuardrailParts {
         return out;
     }
 
+    /**
+     * 当前状态下<b>真的有几何</b>的那些材质槽键，顺序与 {@link #boxesByKey} 的出现顺序一致。
+     *
+     * <p>给「伪装放置器」用：它按预设一次性铺材质，需要知道「哪些槽写了才看得见」。
+     * 判据不能是「这个方向存不存在」——共享柱只在归属方向缺席时才由相邻方向补画，
+     * 所以某个柱子的槽是否可见要按真实几何算。这里直接复用 {@link #boxesByKey}，
+     * 不另写一份规则，渲染与放置因此永远一致。
+     *
+     * <p>{@code hiddenColumns} 传空集：隐藏柱是「细工凿」的本地状态，
+     * 与「这个槽在几何上存不存在」无关——被藏起来的柱子照样应该能贴材质。
+     */
+    public static List<String> visibleKeys(BlockState state) {
+        return new ArrayList<>(boxesByKey(state, Set.of()).keySet());
+    }
+
     /** 某个方向在本状态下实际可见的几何；{@code hiddenColumns} 里的角柱不参与。 */
     private static List<Part> directionParts(int mask, Direction dir, Set<String> hiddenColumns) {
         if (!CopycatGuardrailBlock.maskHas(mask, dir)) {
