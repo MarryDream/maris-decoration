@@ -6,6 +6,7 @@ import io.github.fabricators_of_create.porting_lib.models.CustomParticleIconMode
 import marrydream.marisdecoration.MarisDecoration;
 import marrydream.marisdecoration.block.LayeredCopycatBoardBlockEntity;
 import marrydream.marisdecoration.block.LayeredCopycatBoardBlockEntity.RenderData;
+import marrydream.marisdecoration.block.utils.BoardFaceCulling;
 import marrydream.marisdecoration.block.utils.LayeredBoardParts;
 import net.fabricmc.fabric.api.renderer.v1.RendererAccess;
 import net.fabricmc.fabric.api.renderer.v1.material.BlendMode;
@@ -77,6 +78,10 @@ public class LayeredCopycatBoardModel extends ForwardingBakedModel implements Cu
             return;
         }
 
+        // 每次烘焙一个 scratch：区块网格是并行烘焙的，放在实例字段上会跨线程打架。
+        // 一次调用只分配这一次（12 个 float），不是每个 quad / 每个盒子一次。
+        float[] vertexScratch = new float[BoardFaceCulling.VERTEX_FLOATS];
+
         Map<String, BlockState> materials = data.materials();
         if ( !DIAGNOSED ) {
             DIAGNOSED = true;
@@ -116,19 +121,28 @@ public class LayeredCopycatBoardModel extends ForwardingBakedModel implements Cu
                 }
                 // tint 也必须跟着 quad 自己的材质走，见 applyMaterialTint
                 applyMaterialTint( quad, material, blockView, pos );
+                // 源 quad 的四个顶点只跟材质模型有关，与目标盒子无关，所以在盒子循环外取一次。
+                // 复用同一个 scratch，避免每个 (quad, box) 组合都分配一次数组。
+                for ( int vertex = 0; vertex < 4; vertex++ ) {
+                    vertexScratch[vertex * 3] = quad.x( vertex );
+                    vertexScratch[vertex * 3 + 1] = quad.y( vertex );
+                    vertexScratch[vertex * 3 + 2] = quad.z( vertex );
+                }
                 for ( Box box : list ) {
+                    // 目标盒子是零厚度的「平面」。cropAndMove 是逐顶点 clamp 到盒子里，不是真正的
+                    // 三维求交，所以法线轴与这个平面不平行的源面会被压成一条零面积的线——那种
+                    // quad 一个像素都画不出来，直接跳过。留下的只有材质自身与平面平行的那两个面
+                    // （水平板对应材质的 up / down 面，竖直板对应 north / south 或 west / east）。
+                    int boxAxis = BoardFaceCulling.planeAxis( box );
+                    if ( !BoardFaceCulling.isParallelTo( vertexScratch, boxAxis ) ) {
+                        continue;
+                    }
                     emitter.copyFrom( quad );
                     BakedModelHelper.cropAndMove( emitter, spriteFinder.find( emitter ), box, Vec3d.ZERO );
-                    // 材质模型里的 quad 带的是「那个原方块」的 cullFace。搬进我们自己的几何体之后，
-                    // 只有真正贴着本 BlockPos 六个外边界的那个面才配继续带这个 cullFace——
-                    // 否则原版只会去看「那个方向的相邻 BlockPos 是不是实心方块」，
-                    // 完全不知道这张面其实在方块内部第 2px 或第 15px，于是把 INNER 层、
-                    // 方块内部平面、窗内壁的贴图一起剔掉。表现就是「同方向第三块板的贴图
-                    // 被紧挨着的那个实体方块吃掉，把那个实体方块挖掉又恢复」。
-                    Direction cullFace = emitter.cullFace( );
-                    if ( cullFace != null && !touchesBlockBoundary( box, cullFace ) ) {
-                        emitter.cullFace( null );
-                    }
+                    // cullFace 由「最终 quad 落在哪里」决定，见 BoardFaceCulling 的说明。
+                    // 贴 BlockPos 外边界 → 带该方向 cullFace，交给原版正常的邻居遮挡剔除；
+                    // 落在方块内部 → null，内部几何不会被邻居错误剔掉（这是之前那次修复的规则）。
+                    emitter.cullFace( BoardFaceCulling.boundaryCullFace( box ) );
                     emitter.emit();
                 }
                 return false;
@@ -209,23 +223,6 @@ public class LayeredCopycatBoardModel extends ForwardingBakedModel implements Cu
 
     private static volatile boolean DIAGNOSED = false;
 
-    /**
-     * 这个盒子是否真的贴着方块在 {@code direction} 那一侧的外边界。
-     *
-     * <p>只有贴外边界的面，它的 cullFace 才和「相邻 BlockPos 是否实心」这件事有关；
-     * 其余的（INNER 层、方块内部平面、窗内壁、Edge / Corner 的内表面）留在方块内部，
-     * 必须把 cullFace 清成 {@code null}，否则会被原版错误剔除。
-     */
-    private static boolean touchesBlockBoundary( Box box, Direction direction ) {
-        return switch ( direction ) {
-            case DOWN -> box.minY <= 0.0;
-            case UP -> box.maxY >= 1.0;
-            case NORTH -> box.minZ <= 0.0;
-            case SOUTH -> box.maxZ >= 1.0;
-            case WEST -> box.minX <= 0.0;
-            case EAST -> box.maxX >= 1.0;
-        };
-    }
 
     /**
      * 读取方块实体交给渲染层的快照。
