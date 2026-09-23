@@ -926,7 +926,18 @@ public final class LayeredBoardParts {
          * 交汇点表，<b>惰性构建</b>：只有真的有方块带着 junction override 来查时才需要它。
          * 绝大多数方块没有 override，所以绝大多数结构根本不会为它付出代价。
          */
-        private volatile JunctionTables tables;
+        private final java.util.concurrent.atomic.AtomicReference<JunctionTables> tables =
+                new java.util.concurrent.atomic.AtomicReference<>();
+
+        /**
+         * 无 override 时的最终几何，同样<b>惰性构建</b>。
+         *
+         * <p>它把「扫 4096 voxel → 暴露判断 → 平面分组 → 矩形合并 → 造 Box」整段结果留下来，
+         * 所以命中时这些工作一次都不做。只描述「材质槽 → 最终 Box」，不持有任何材质、方块实体、
+         * World、BlockPos 或渲染对象。
+         */
+        private final java.util.concurrent.atomic.AtomicReference<PlainGeometry> plainGeometry =
+                new java.util.concurrent.atomic.AtomicReference<>();
 
         Topology( int[] owner, int[] baseCode, int occupancy, int windows ) {
             this.owner = owner;
@@ -935,17 +946,30 @@ public final class LayeredBoardParts {
             this.windows = windows;
         }
 
+        /** 惰性 + 无锁：允许两个线程各建一份，CAS 成功的那份发布，另一份丢弃。 */
         JunctionTables tables( ) {
-            JunctionTables built = tables;
+            JunctionTables built = tables.get();
             if ( built != null ) {
                 return built;
             }
-            synchronized ( this ) {
-                if ( tables == null ) {
-                    tables = buildJunctionTables( occupancy, windows );
-                }
-                return tables;
+            JunctionTables fresh = buildJunctionTables( occupancy, windows );
+            if ( tables.compareAndSet( null, fresh ) ) {
+                return fresh;
             }
+            return tables.get();
+        }
+
+        /** 同上：无 override 的最终几何。 */
+        PlainGeometry plainGeometry( ) {
+            PlainGeometry built = plainGeometry.get();
+            if ( built != null ) {
+                return built;
+            }
+            PlainGeometry fresh = new PlainGeometry( computeBoxes( owner, baseCode ) );
+            if ( plainGeometry.compareAndSet( null, fresh ) ) {
+                return fresh;
+            }
+            return plainGeometry.get();
         }
 
         /** 估算的常驻字节数——只用于上报和给缓存容量找依据，不是精确计量。 */
@@ -953,9 +977,44 @@ public final class LayeredBoardParts {
             int bytes = 16 + 3 * 4 + 8 * 3;
             bytes += 16 + owner.length * 4;
             bytes += 16 + baseCode.length * 4;
-            JunctionTables built = tables;
+            JunctionTables built = tables.get();
             if ( built != null ) {
                 bytes += built.estimatedBytes( );
+            }
+            PlainGeometry plain = plainGeometry.get();
+            if ( plain != null ) {
+                bytes += plain.estimatedBytes( );
+            }
+            return bytes;
+        }
+    }
+
+    /**
+     * 无 override 时的最终几何：材质槽键名 → 该槽要画的 Box。
+     *
+     * <p>{@link Collections#unmodifiableMap} 包一层，保证被多个方块、多个线程共享时只读。
+     * 用 {@code LinkedHashMap} 而不是 {@code Map.copyOf}：后者的迭代顺序不保证，而顺序会影响
+     * 模型侧按材质分组的发射顺序（半透明材质的绘制次序），必须与改动前一致。
+     */
+    private static final class PlainGeometry {
+        private final Map<String, List<Box>> boxes;
+
+        PlainGeometry( Map<String, List<Box>> boxes ) {
+            // 包一层不可变视图：这份几何会被任意多个方块、任意多个线程共享，
+            // 任何一次误改都会串到别的方块上。顺序用 LinkedHashMap 保住。
+            Map<String, List<Box>> immutable = new LinkedHashMap<>();
+            boxes.forEach( ( key, list ) -> immutable.put( key, List.copyOf( list ) ) );
+            this.boxes = java.util.Collections.unmodifiableMap( immutable );
+        }
+
+        int estimatedBytes( ) {
+            int bytes = 16 + 4;
+            bytes += 48;                                          // LinkedHashMap 本身
+            for ( Map.Entry<String, List<Box>> entry : boxes.entrySet( ) ) {
+                bytes += 40;                                      // 每个 Node
+                bytes += 48 + entry.getKey( ).length( ) * 2;      // 键字符串
+                bytes += 40 + 16 + entry.getValue( ).size( ) * 4; // 不可变 List + 它的数组
+                bytes += entry.getValue( ).size( ) * 64;          // 每个 Box：对象头 + 6 个 double
             }
             return bytes;
         }
@@ -1423,9 +1482,22 @@ public final class LayeredBoardParts {
     public static Map<String, List<Box>> boxesByKey( int occupancy, int windows,
                                                      Map<String, String> junctionOwners ) {
         Topology topology = topology( occupancy, windows );
-        int[] owner = topology.owner;
-        int[] codes = codesWithOverrides( topology, junctionOwners );
+        if ( junctionOwners == null || junctionOwners.isEmpty( ) ) {
+            // fast path：几何只由 (occupancy, windows) 决定，直接交回缓存好的只读结果。
+            // 调用方（LayeredCopycatBoardModel）只读它，所以可以多个方块 / 多个线程共享同一份。
+            return topology.plainGeometry( ).boxes;
+        }
+        // 有 run / junction override：几何的「材质归属」变了，必须重新走一遍普通路径。
+        return computeBoxes( topology.owner, codesWithOverrides( topology, junctionOwners ) );
+    }
 
+    /**
+     * 真正的几何计算：暴露判断 → 平面分组 → 矩形合并 → 造 Box。
+     *
+     * <p>{@code owner} / {@code codes} 都只被读；{@code codes} 可能正是缓存里的 {@code baseCode}，
+     * 所以这里绝不能原地改它。返回可修改的 {@code LinkedHashMap}，保持与改动前一致的迭代顺序。
+     */
+    private static Map<String, List<Box>> computeBoxes( int[] owner, int[] codes ) {
         // 逐格逐方向挑出暴露的面，按「平面 + 槽码」分组。
         // 这里刻意用槽码而不是材质键字符串做 key：字符串只在最后真正输出时才拼，
         // 4096 格的解析里一次都不建。
