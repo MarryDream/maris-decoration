@@ -16,6 +16,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * {@code layered_copycat_board} 的几何数据。
@@ -900,30 +901,351 @@ public final class LayeredBoardParts {
         return out[OUT_SHOWN];
     }
 
-    /** 最终几何：每格的 owner 与「实际显示的槽码」。 */
-    private record Grid( int[] owner, int[] code ) {
+    // ---------------------------------------------------------------- 结构缓存
+    //
+    // 只依赖 (occupancy, windows) 的那部分派生结果被缓存起来。1000 个结构完全相同的薄板
+    // 因此只解析一次 4096 voxel，其余全部命中；junction override 与材质都不进缓存。
+
+    /**
+     * 只依赖 {@code (occupancy, windows)} 的结构派生结果，构建完成后<b>完全只读</b>。
+     *
+     * <p>刻意不持有任何 per-block 的东西：没有方块实体、World、BlockPos、materials、
+     * junctionOwners。所以同一个 entry 可以被任意多个方块、任意多个线程同时读。
+     *
+     * <p>这里也没有任何 scratch：可复用的临时缓冲一律留在 {@link #boxesByKey} 的调用栈上。
+     */
+    private static final class Topology {
+        /** 每格的 owner 板（槽位位掩码）。 */
+        private final int[] owner;
+        /** 每格在<b>没有 override</b> 时显示的槽码。只读，任何路径都不得原地修改。 */
+        private final int[] baseCode;
+        /** 这个结构属于哪个 (occupancy, windows)，建 junction 表时要重新跑一遍时用。 */
+        private final int occupancy;
+        private final int windows;
+        /**
+         * 交汇点表，<b>惰性构建</b>：只有真的有方块带着 junction override 来查时才需要它。
+         * 绝大多数方块没有 override，所以绝大多数结构根本不会为它付出代价。
+         */
+        private volatile JunctionTables tables;
+
+        Topology( int[] owner, int[] baseCode, int occupancy, int windows ) {
+            this.owner = owner;
+            this.baseCode = baseCode;
+            this.occupancy = occupancy;
+            this.windows = windows;
+        }
+
+        JunctionTables tables( ) {
+            JunctionTables built = tables;
+            if ( built != null ) {
+                return built;
+            }
+            synchronized ( this ) {
+                if ( tables == null ) {
+                    tables = buildJunctionTables( occupancy, windows );
+                }
+                return tables;
+            }
+        }
+
+        /** 估算的常驻字节数——只用于上报和给缓存容量找依据，不是精确计量。 */
+        int estimatedBytes( ) {
+            int bytes = 16 + 3 * 4 + 8 * 3;
+            bytes += 16 + owner.length * 4;
+            bytes += 16 + baseCode.length * 4;
+            JunctionTables built = tables;
+            if ( built != null ) {
+                bytes += built.estimatedBytes( );
+            }
+            return bytes;
+        }
+    }
+
+    /** 一个结构的交汇点表：identity ↔ 它覆盖的格子 / 它的候选。 */
+    private static final class JunctionTables {
+        private final String[] keys;
+        private final int[][] cells;
+        private final int[][] candidates;
+        private final Map<String, Integer> index;
+
+        JunctionTables( String[] keys, int[][] cells, int[][] candidates, Map<String, Integer> index ) {
+            this.keys = keys;
+            this.cells = cells;
+            this.candidates = candidates;
+            this.index = index;
+        }
+
+        int estimatedBytes( ) {
+            int bytes = 16 + 4 * 4;
+            bytes += 16 + keys.length * 4;
+            for ( String key : keys ) {
+                bytes += 48 + key.length( ) * 2;
+            }
+            for ( int[] list : cells ) {
+                bytes += 16 + list.length * 4;
+            }
+            for ( int[] list : candidates ) {
+                bytes += 16 + list.length * 4;
+            }
+            bytes += index.size( ) * 48;
+            return bytes;
+        }
+    }
+
+    /** 缓存里的一项：结构 + 一个给近似 LRU 用的「最近被命中过」标记。 */
+    private static final class TopologyEntry {
+        private final Topology topology;
+        private volatile boolean referenced;
+
+        TopologyEntry( Topology topology ) {
+            this.topology = topology;
+        }
     }
 
     /**
-     * 在占用掩码的有效范围内，给每一格定下唯一的 owner 与它最终显示的槽码。
+     * 有界结构缓存。
+     *
+     * <p>容量按「一个 entry 的实测体积」定：一个 entry 固定就要两个 {@code int[4096]}（owner +
+     * baseCode）≈ 32KB，再加交汇点表。所以 1024 个 entry 就是 33MB 起步，对客户端来说过于激进；
+     * 这里取 {@value #TOPOLOGY_CACHE_CAPACITY} 个，上限约 9MB，而真实存档里出现过的
+     * (occupancy, windows) 组合通常只有几十种，命中率不会因此下降。
+     *
+     * <p>{@code ConcurrentHashMap} 只保护「查表 / 放表」；结构对象的构建在锁外完成，
+     * 所以不会有全局大锁把区块烘焙串行化。两个线程同时 miss 同一个 key 时最多重复算一次，
+     * 谁先放进表谁赢，两边拿到的都是**同一份**不可变结构，输出因此必然一致。
+     */
+    private static final int TOPOLOGY_CACHE_CAPACITY = 256;
+
+    private static final ConcurrentHashMap<Integer, TopologyEntry> TOPOLOGY_CACHE = new ConcurrentHashMap<>();
+
+    /** {@code (occupancy, windows)} → 紧凑 key：低 12 位占用、高 6 位窗。 */
+    private static int topologyKey( int occupancy, int windows ) {
+        return occupancy | ( windows << 12 );
+    }
+
+    private static Topology topology( int occupancy, int windows ) {
+        int occ = occupancy & LayeredBoardSlots.FULL_OCCUPANCY;
+        int win = windows & ( ( 1 << FaceDir.values().length ) - 1 );
+        int key = topologyKey( occ, win );
+        TopologyEntry cached = TOPOLOGY_CACHE.get( key );
+        if ( cached != null ) {
+            cached.referenced = true;
+            return cached.topology;
+        }
+        // 构建刻意放在锁外：computeIfAbsent 会在构建期间占住桶锁，几百微秒的构建会把同桶的
+        // 其它线程一起堵住。宁可允许重复构建一次，也不要让区块烘焙互相等。
+        Topology built = buildTopology( occ, win );
+        TopologyEntry entry = new TopologyEntry( built );
+        TopologyEntry winner = TOPOLOGY_CACHE.putIfAbsent( key, entry );
+        if ( winner != null ) {
+            winner.referenced = true;
+            return winner.topology;
+        }
+        evictIfOverCapacity( );
+        return built;
+    }
+
+    /**
+     * 近似 CLOCK 淘汰：只在超容量时走一趟，把「自上次淘汰以来没被命中过」的 entry 删掉，
+     * 命中过的给一次机会。没有全局锁，也没有每 entry 的时间戳。
+     *
+     * <p>淘汰纯粹是性能问题：被删掉的结构下次重新解析即可，输出不变。
+     */
+    private static void evictIfOverCapacity( ) {
+        if ( TOPOLOGY_CACHE.size( ) <= TOPOLOGY_CACHE_CAPACITY ) {
+            return;
+        }
+        int scanned = 0;
+        int scanLimit = TOPOLOGY_CACHE_CAPACITY * 4;
+        for ( Map.Entry<Integer, TopologyEntry> candidate : TOPOLOGY_CACHE.entrySet( ) ) {
+            if ( TOPOLOGY_CACHE.size( ) <= TOPOLOGY_CACHE_CAPACITY || scanned++ >= scanLimit ) {
+                break;
+            }
+            TopologyEntry value = candidate.getValue( );
+            if ( value.referenced ) {
+                value.referenced = false;
+                continue;
+            }
+            TOPOLOGY_CACHE.remove( candidate.getKey( ), value );
+        }
+    }
+
+    /**
+     * 在占用掩码的有效范围内，给每一格定下唯一的 owner 与它显示的槽码，并把交汇点的拓扑记下来。
      *
      * <p>只有 owner 会写这一格：非 owner 的板在这一格上完全不生成几何，也不生成命中区域。
-     * scratch 只分配一次，逐格复用，整趟解析不产生任何对象。
+     * scratch 只分配一次、逐格复用，整趟解析不产生额外对象。
      */
-    private static Grid buildGrid( int occupancy, int windows, Map<String, String> overrides ) {
+    private static Topology buildTopology( int occupancy, int windows ) {
         Ownership ownership = ownership( occupancy );
         int[] present = ownership.present();
         int[] owner = ownership.owner();
-        int[] codes = new int[CELLS];
+        int[] baseCode = new int[CELLS];
         int[] scratch = new int[RESOLVE_SCRATCH];
         for ( int at = 0; at < CELLS; at++ ) {
             if ( owner[at] == 0 ) {
                 continue;
             }
-            codes[at] = shownCode( present, owner, windows, overrides,
-                    at >> 8, ( at >> 4 ) & 15, at & 15, scratch );
+            resolveInto( present, owner, windows, null, at >> 8, ( at >> 4 ) & 15, at & 15, scratch );
+            baseCode[at] = scratch[OUT_SHOWN];
         }
-        return new Grid( owner, codes );
+        // 交付路径与缓存之前完全一致：这里不做任何交汇点分组，所以 miss 的代价 == 原来那一次 bake
+        return new Topology( owner, baseCode, occupancy, windows );
+    }
+
+    /**
+     * 建交汇点表——只在真的有方块带 override 来查时才跑一次。
+     *
+     * <p>这里按「结构身份」分组：先用一个便宜的 long 散列粗筛，命中后再逐元素精确比对，
+     * 所以既不需要给每个 junction 格都拼一次 key 字符串，也不可能误合并。
+     */
+    private static JunctionTables buildJunctionTables( int occupancy, int windows ) {
+        Ownership ownership = ownership( occupancy );
+        int[] present = ownership.present();
+        int[] owner = ownership.owner();
+        int[] scratch = new int[RESOLVE_SCRATCH];
+
+        long[] ids = new long[16];
+        boolean[] corners = new boolean[16];
+        IntList[] cellLists = new IntList[16];
+        IntList[] candidateLists = new IntList[16];
+        IntList[] runLists = new IntList[16];
+        int distinct = 0;
+
+        for ( int at = 0; at < CELLS; at++ ) {
+            if ( owner[at] == 0 ) {
+                continue;
+            }
+            int count = resolveInto( present, owner, windows, null,
+                    at >> 8, ( at >> 4 ) & 15, at & 15, scratch );
+            if ( count < 2 ) {
+                continue;
+            }
+            boolean corner = scratch[OUT_CORNER] == 1;
+            int runCount = corner ? scratch[OUT_RUN_COUNT] : 0;
+            long id = identityHash( corner, scratch, count, runCount );
+
+            int slot = -1;
+            for ( int i = 0; i < distinct; i++ ) {
+                if ( ids[i] == id && corners[i] == corner
+                        && sameIdentity( candidateLists[i], runLists[i], scratch, count, runCount ) ) {
+                    slot = i;
+                    break;
+                }
+            }
+            if ( slot < 0 ) {
+                if ( distinct == ids.length ) {
+                    int grown = distinct * 2;
+                    ids = java.util.Arrays.copyOf( ids, grown );
+                    corners = java.util.Arrays.copyOf( corners, grown );
+                    cellLists = java.util.Arrays.copyOf( cellLists, grown );
+                    candidateLists = java.util.Arrays.copyOf( candidateLists, grown );
+                    runLists = java.util.Arrays.copyOf( runLists, grown );
+                }
+                slot = distinct++;
+                ids[slot] = id;
+                corners[slot] = corner;
+                cellLists[slot] = new IntList( );
+                candidateLists[slot] = new IntList( );
+                runLists[slot] = new IntList( );
+                for ( int i = 0; i < count; i++ ) {
+                    candidateLists[slot].add( scratch[OUT_CANDIDATES + i] );
+                }
+                for ( int i = 0; i < runCount; i++ ) {
+                    runLists[slot].add( scratch[OUT_RUNS + i] );
+                }
+            }
+            cellLists[slot].add( at );
+        }
+
+        // key 字符串只在这里、每个<b>不同</b>的交汇点拼一次，而不是每个交汇格拼一次
+        String[] keys = new String[distinct];
+        int[][] cells = new int[distinct][];
+        int[][] candidates = new int[distinct][];
+        Map<String, Integer> index = new java.util.HashMap<>( Math.max( 4, distinct * 2 ) );
+        for ( int i = 0; i < distinct; i++ ) {
+            int[] candidateCodes = candidateLists[i].toArray( );
+            keys[i] = corners[i]
+                    ? cornerKey( runLists[i].toArray( ), 0, runLists[i].size( ) )
+                    : junctionKeyOfCodes( candidateCodes, 0, candidateCodes.length );
+            cells[i] = cellLists[i].toArray( );
+            candidates[i] = candidateCodes;
+            index.put( keys[i], i );
+        }
+        return new JunctionTables( keys, cells, candidates, Map.copyOf( index ) );
+    }
+
+    /** 交汇点结构身份的粗筛散列。 */
+    private static long identityHash( boolean corner, int[] out, int count, int runCount ) {
+        long hash = corner ? 1L : 2L;
+        hash = hash * 31 + count;
+        for ( int i = 0; i < count; i++ ) {
+            hash = hash * 31 + out[OUT_CANDIDATES + i];
+        }
+        for ( int i = 0; i < runCount; i++ ) {
+            hash = hash * 31 + out[OUT_RUNS + i];
+        }
+        return hash;
+    }
+
+    /** 散列相等之后的精确比对。 */
+    private static boolean sameIdentity( IntList candidates, IntList runs, int[] out, int count, int runCount ) {
+        if ( candidates.size( ) != count || runs.size( ) != runCount ) {
+            return false;
+        }
+        for ( int i = 0; i < count; i++ ) {
+            if ( candidates.get( i ) != out[OUT_CANDIDATES + i] ) {
+                return false;
+            }
+        }
+        for ( int i = 0; i < runCount; i++ ) {
+            if ( runs.get( i ) != out[OUT_RUNS + i] ) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 把当前方块的 junction override 套到缓存的基础槽码上。
+     *
+     * <p><b>没有 override 时直接返回缓存里的数组本身</b>（只读，不复制）；有 override 时才克隆
+     * 一份 per-call 的工作副本再改。所以任何一个方块改过 junction owner，都绝不可能改到共享的
+     * 结构缓存上、把别的方块带偏。
+     */
+    private static int[] codesWithOverrides( Topology topology, Map<String, String> overrides ) {
+        if ( overrides == null || overrides.isEmpty( ) ) {
+            return topology.baseCode;
+        }
+        JunctionTables tables = topology.tables( );
+        if ( tables.index.isEmpty( ) ) {
+            return topology.baseCode;
+        }
+        int[] codes = null;
+        for ( Map.Entry<String, String> override : overrides.entrySet( ) ) {
+            Integer junction = tables.index.get( override.getKey( ) );
+            if ( junction == null ) {
+                continue;
+            }
+            int chosen = -1;
+            for ( int candidate : tables.candidates[junction] ) {
+                if ( codeName( candidate ).equals( override.getValue( ) ) ) {
+                    chosen = candidate;
+                    break;
+                }
+            }
+            if ( chosen < 0 ) {
+                // override 指向的槽已经不在候选里 → 保持默认，自动回退
+                continue;
+            }
+            if ( codes == null ) {
+                codes = topology.baseCode.clone( );
+            }
+            for ( int cell : tables.cells[junction] ) {
+                codes[cell] = chosen;
+            }
+        }
+        return codes == null ? topology.baseCode : codes;
     }
 
     /** {@link #worldCell} 的逆：格子 (x,y,z) 落在该板面本地的哪个 u。 */
@@ -1100,9 +1422,9 @@ public final class LayeredBoardParts {
      */
     public static Map<String, List<Box>> boxesByKey( int occupancy, int windows,
                                                      Map<String, String> junctionOwners ) {
-        Grid grid = buildGrid( occupancy, windows, junctionOwners );
-        int[] owner = grid.owner();
-        int[] codes = grid.code();
+        Topology topology = topology( occupancy, windows );
+        int[] owner = topology.owner;
+        int[] codes = codesWithOverrides( topology, junctionOwners );
 
         // 逐格逐方向挑出暴露的面，按「平面 + 槽码」分组。
         // 这里刻意用槽码而不是材质键字符串做 key：字符串只在最后真正输出时才拼，
@@ -1209,6 +1531,10 @@ public final class LayeredBoardParts {
 
         int size( ) {
             return size;
+        }
+
+        int[] toArray( ) {
+            return java.util.Arrays.copyOf( values, size );
         }
     }
 
