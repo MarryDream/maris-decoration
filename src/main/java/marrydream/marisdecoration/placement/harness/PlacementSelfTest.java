@@ -8,6 +8,7 @@ import marrydream.marisdecoration.block.CopycatGuardrailBlock;
 import marrydream.marisdecoration.block.CopycatGuardrailBlockEntity;
 import marrydream.marisdecoration.block.LayeredCopycatBoardBlockEntity;
 import marrydream.marisdecoration.block.utils.GuardrailParts;
+import marrydream.marisdecoration.block.utils.LayeredBoardParts;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots.BoardArea;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots.BoardLayer;
@@ -36,6 +37,8 @@ import marrydream.marisdecoration.placement.adapter.StructureMasks;
 import marrydream.marisdecoration.placement.adapter.VirtualSpec;
 import marrydream.marisdecoration.placement.client.PlacerEditState;
 import marrydream.marisdecoration.placement.client.PlacerLayout;
+import marrydream.marisdecoration.placement.client.PlacerOverlay;
+import marrydream.marisdecoration.placement.client.StructureTooltip;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -122,6 +125,7 @@ public final class PlacementSelfTest {
         section(sections, "17. 材质准入过滤", () -> runMaterialFilter(harness, assertions, sections));
         section(sections, "18. 翻译资源", () -> runTranslations(world, assertions, sections));
         section(sections, "19. 界面几何", () -> runLayoutGeometry(assertions, sections));
+        section(sections, "20. 结构配置模型", () -> runStructureModel(assertions, sections));
 
         return report(assertions, sections);
     }
@@ -161,15 +165,38 @@ public final class PlacementSelfTest {
         a.equal("掩码解析 0x3", 3, LayeredBoardCopycatAdapter.occupancy(config));
         a.equal("掩码解析十进制 3", 3, LayeredBoardCopycatAdapter.occupancy(
                 config.withStructure(LayeredBoardCopycatAdapter.STRUCTURE_OCCUPANCY, "3")));
-        a.equal("掩码解析坏值退回默认（12 槽全占）", LayeredBoardCopycatAdapter.DEFAULT_OCCUPANCY,
+        a.equal("掩码解析坏值退回默认（下面外层）", LayeredBoardCopycatAdapter.DEFAULT_OCCUPANCY,
                 LayeredBoardCopycatAdapter.occupancy(config.withStructure(
                         LayeredBoardCopycatAdapter.STRUCTURE_OCCUPANCY, "not-a-number")));
-        a.equal("占用掩码默认 12 槽全占", LayeredBoardCopycatAdapter.DEFAULT_OCCUPANCY,
+        a.equal("占用掩码默认只有下面外层", LayeredBoardCopycatAdapter.DEFAULT_OCCUPANCY,
                 LayeredBoardCopycatAdapter.occupancy(
                         PlacementConfig.of(ModBlock.LAYERED_COPYCAT_BOARD.getDefaultState())));
         a.equal("窗掩码默认全关", 0, LayeredBoardCopycatAdapter.windows(
                 PlacementConfig.of(ModBlock.LAYERED_COPYCAT_BOARD.getDefaultState())));
         a.equal("掩码写回是 0x 前缀的十六进制", "0xf", StructureMasks.write(15));
+
+        // 旧配置的名字形式必须换算成等价的层集合，而不是整份作废
+        a.equal("旧名字 all → 12 层全占", LayeredBoardSlots.FULL_OCCUPANCY,
+                LayeredBoardCopycatAdapter.occupancy(config.withStructure(
+                        LayeredBoardCopycatAdapter.STRUCTURE_OCCUPANCY, "all")));
+        a.equal("旧名字 outer_only → 六个面的外层",
+                LayeredBoardCopycatAdapter.outerOnly(),
+                LayeredBoardCopycatAdapter.occupancy(config.withStructure(
+                        LayeredBoardCopycatAdapter.STRUCTURE_OCCUPANCY, "outer_only")));
+        a.equal("旧名字 north_outer → 北面外层一个 bit",
+                LayeredBoardSlots.slotBitMask(FaceDir.NORTH, BoardLayer.OUTER),
+                LayeredBoardCopycatAdapter.occupancy(config.withStructure(
+                        LayeredBoardCopycatAdapter.STRUCTURE_OCCUPANCY, "north_outer")));
+        a.equal("旧名字窗 north → 北面的窗",
+                LayeredBoardSlots.windowBit(FaceDir.NORTH),
+                LayeredBoardCopycatAdapter.windows(config.withStructure(
+                        LayeredBoardCopycatAdapter.STRUCTURE_WINDOWS, "north")));
+        a.equal("旧名字组合 north+east → 两个方向",
+                CopycatGuardrailBlock.bit(Direction.NORTH) | CopycatGuardrailBlock.bit(Direction.EAST),
+                GuardrailCopycatAdapter.facesMask(config.withStructure(
+                        GuardrailCopycatAdapter.STRUCTURE_FACES, "north+east")));
+        a.equal("角柱掩码缺失时按「四个都开」处理", GuardrailCopycatAdapter.DEFAULT_CORNERS,
+                GuardrailCopycatAdapter.cornersMask(config));
 
         // 空配置
         a.isTrue("空 NBT = 空配置", PlacementConfig.fromNbt(new NbtCompound()).equals(PlacementConfig.EMPTY));
@@ -248,15 +275,18 @@ public final class PlacementSelfTest {
         var slots = adapter.slots(state, config);
 
         // 66 = 6 面 × (2 层 × 5 区域 + 1 份窗)
-        a.equal("槽位总数 66", 66, slots.size());
+        a.equal("槽位总数 66（adapter 仍然给全量，由 GUI 按结构过滤）", 66, slots.size());
         // 结构存在的：DOWN 两层各 5 个区域 = 10，加 DOWN 的窗（面级、只在循环外出现一次）= 11
         a.equal("结构存在的槽 = 10 + 1 个窗", 11,
                 (int) slots.stream().filter(s -> s.structure()).count());
 
         a.equal("占用掩码读回", 3, LayeredBoardCopycatAdapter.occupancy(config));
-        a.equal("占用的 Face/Layer 数", 2, LayeredBoardCopycatAdapter.occupiedLayers(config).size());
-        a.equal("第一个占用层是 DOWN.OUTER", "DOWN.OUTER",
-                LayeredBoardCopycatAdapter.occupiedLayers(config).get(0).toString());
+        // 逐项开关：DOWN 的两层都开着，其它面一层都没有
+        a.isTrue("DOWN.OUTER 开着", LayeredBoardCopycatAdapter.slotEnabled(config, FaceDir.DOWN, BoardLayer.OUTER));
+        a.isTrue("DOWN.INNER 开着", LayeredBoardCopycatAdapter.slotEnabled(config, FaceDir.DOWN, BoardLayer.INNER));
+        a.isFalse("UP.OUTER 关着", LayeredBoardCopycatAdapter.slotEnabled(config, FaceDir.UP, BoardLayer.OUTER));
+        a.isTrue("DOWN 这一面有板", LayeredBoardCopycatAdapter.faceHasLayer(config, FaceDir.DOWN));
+        a.isFalse("UP 这一面没有板", LayeredBoardCopycatAdapter.faceHasLayer(config, FaceDir.UP));
 
         // 五个区域 + 窗：键名必须与方块实体逐字符一致
         for (BoardArea area : LayeredBoardSlots.MATERIAL_AREAS) {
@@ -989,98 +1019,64 @@ public final class PlacementSelfTest {
         BlockState flipped = railDisplay.with((BooleanProperty) north.property(), !before);
         a.equal("布尔属性取反生效", !before, flipped.get((BooleanProperty) north.property()));
 
-        // --- virtual property：分层薄板必须有两个，且都能循环
+        // --- virtual property：分层薄板是「12 个层开关 + 动态开窗 + 动态交汇点」
         edit.selectBlock(ModBlock.LAYERED_COPYCAT_BOARD);
-        List<VirtualSpec> virtuals = edit.adapter().virtualSpecs();
-        a.equal("分层薄板有两个 virtual property", 2, virtuals.size());
-        a.equal("第一个是占用层级", LayeredBoardCopycatAdapter.STRUCTURE_OCCUPANCY, virtuals.get(0).key());
-        a.equal("第二个是圆窗", LayeredBoardCopycatAdapter.STRUCTURE_WINDOWS, virtuals.get(1).key());
+        CopycatPlacementAdapter boardAdapter = edit.adapter();
+        List<VirtualSpec> boardSpecs = boardAdapter.virtualSpecs(edit.config());
+        long layerToggles = boardSpecs.stream().filter(s -> s.key().startsWith("layer.")).count();
+        long windowToggles = boardSpecs.stream().filter(s -> s.key().startsWith("window.")).count();
+        long junctionChoices = boardSpecs.stream().filter(s -> s.key().startsWith("junction.")).count();
+        log.add("   分层薄板结构项：层开关 " + layerToggles + "，开窗 " + windowToggles
+                + "，交汇点 " + junctionChoices + "（默认只有下面外层）");
+        a.equal("默认结构下有 12 个层开关", 12, (int) layerToggles);
+        a.isTrue("没有板的方向不出现开窗项（默认只有下面有板）", windowToggles <= 1);
+        a.isTrue("单块板的角落交汇点会出现（候选 ≥ 2 条边）", junctionChoices >= 1);
 
-        VirtualSpec occupancy = virtuals.get(0);
-        a.isTrue("占用候选不少于 3 项", occupancy.options().size() >= 3);
-        // 默认值必须在候选里找得到，否则 GUI 一上来点一下会跳到候选第 0 项（看起来像被重置）
-        a.equal("默认占用值就在候选里（下标有效）", LayeredBoardCopycatAdapter.DEFAULT_OCCUPANCY,
-                occupancy.options().get(occupancy.currentIndex(edit.config())).value());
-        a.isTrue("默认占用的下标是 0（点一下切到下一个真实选项，而不是跳回空）",
-                occupancy.currentIndex(edit.config()) == 0);
+        // 逐项开关：打开一个层只动这一位
+        PlacementConfig beforeToggle = edit.config();
+        VirtualSpec upOuter = boardSpecs.stream()
+                .filter(s -> s.key().equals("layer.up.outer")).findFirst().orElseThrow();
+        edit.update(upOuter.with(edit.config(), upOuter.next(edit.config())));
+        a.isTrue("打开上面外层之后这一位是开的",
+                LayeredBoardCopycatAdapter.slotEnabled(edit.config(), FaceDir.UP, BoardLayer.OUTER));
+        a.isTrue("其它层原样保留（下面外层仍然开着）",
+                LayeredBoardCopycatAdapter.slotEnabled(edit.config(), FaceDir.DOWN, BoardLayer.OUTER));
+        a.isTrue("点一下之后出现了 UP 的开窗项",
+                boardAdapter.virtualSpecs(edit.config()).stream()
+                        .anyMatch(s -> s.key().equals("window.up")));
+        a.equal("结构项改动写进了工具 NBT", edit.config(), PlacementConfigs.read(tool));
 
-        // 通过编辑状态改（也就是走 GUI 那条路），必须同时写进工具 NBT
-        int occupancyBefore = occupancy.current(edit.config());
-        edit.update(occupancy.with(edit.config(), occupancy.nextValue(edit.config())));
-        a.isTrue("占用切换后取值变了", occupancy.current(edit.config()) != occupancyBefore);
-        a.equal("占用切换后配置被写进了工具 NBT",
-                edit.config(), PlacementConfigs.read(tool));
+        // 关掉 UP 的两层 → 开窗项消失；再开回来 → 之前那个窗的值还在
+        VirtualSpec upWindow = boardAdapter.virtualSpecs(edit.config()).stream()
+                .filter(s -> s.key().equals("window.up")).findFirst().orElseThrow();
+        edit.update(upWindow.with(edit.config(), upWindow.next(edit.config())));
+        boolean upWindowValue = LayeredBoardCopycatAdapter.windowEnabled(edit.config(), FaceDir.UP);
+        edit.update(LayeredBoardCopycatAdapter.withSlot(edit.config(), FaceDir.UP, BoardLayer.OUTER, false));
+        a.isFalse("两层都关掉之后 UP 的开窗项消失",
+                boardAdapter.virtualSpecs(edit.config()).stream()
+                        .anyMatch(s -> s.key().equals("window.up")));
+        edit.update(LayeredBoardCopycatAdapter.withSlot(edit.config(), FaceDir.UP, BoardLayer.OUTER, true));
+        a.equal("UP 的开窗值在隐藏期间没有被重置", upWindowValue,
+                LayeredBoardCopycatAdapter.windowEnabled(edit.config(), FaceDir.UP));
+        edit.update(beforeToggle);
 
-        // 循环一整圈必须回到原点
-        PlacementConfig start = edit.config();
-        for (int i = 0; i < occupancy.options().size(); i++) {
-            edit.update(occupancy.with(edit.config(), occupancy.nextValue(edit.config())));
-        }
-        a.equal("占用循环一圈回到原值", start, edit.config());
+        // --- virtual property 的「内部键 / 内部值」与「显示文本」必须分开
+        // 配置里存的是 occupancy=0x… / guardrail_faces=0x… 这类内部表示，交汇点还存着槽位名；
+        // 界面上只允许画 LabelPart 里的文本。这一段用代码把两者钉开。
+        checkStructureItemDisplay(a, log, ModBlock.COPYCAT_GUARDRAIL);
+        checkStructureItemDisplay(a, log, ModBlock.LAYERED_COPYCAT_BOARD);
 
-        // 窗开关也能改
-        VirtualSpec windows = virtuals.get(1);
-        a.equal("默认窗开关是「不开」", LayeredBoardCopycatAdapter.DEFAULT_WINDOWS,
-                windows.current(edit.config()));
-        edit.update(windows.with(edit.config(), windows.nextValue(edit.config())));
-        a.isTrue("窗开关切换后不再是默认值",
-                windows.current(edit.config()) != LayeredBoardCopycatAdapter.DEFAULT_WINDOWS);
-
-        // --- virtual property 的「内部键/值」与「显示文本」必须分开
-        // 配置/NBT 里存的是 guardrail_faces=0x3、occupancy=0x10 这类内部表示；
-        // 界面上只允许出现 labelText / Option.labelText。这一段就是用代码把两者钉开。
-        for (CopycatPlacementAdapter adapter : PlacementAdapters.all()) {
-            for (VirtualSpec spec : adapter.virtualSpecs()) {
-                String label = spec.labelText();
-                a.check(adapter.name() + " 的 virtual `" + spec.key() + "` 有兜底标题文本",
-                        label != null && !label.isBlank(), "labelText=" + label);
-                a.check(adapter.name() + " 的 virtual `" + spec.key() + "` 兜底标题不是内部键名",
-                        label != null && !label.equals(spec.key()) && !label.contains(spec.key()),
-                        "labelText=" + label + "，key=" + spec.key());
-                a.isTrue(adapter.name() + " 的 virtual `" + spec.key() + "` 有翻译键",
-                        spec.labelKey() != null && !spec.labelKey().isBlank());
-                for (VirtualSpec.Option option : spec.options()) {
-                    a.check(adapter.name() + " 的 virtual `" + spec.key() + "` 选项 " + option.value()
-                                    + " 有兜底文本",
-                            option.labelText() != null && !option.labelText().isBlank(),
-                            "labelText=" + option.labelText());
-                    // 兜底文本绝不能是原始数值 / 十六进制掩码
-                    a.check(adapter.name() + " 的 virtual `" + spec.key() + "` 选项 " + option.value()
-                                    + " 的兜底文本不是裸数值",
-                            !option.labelText().matches("(?i)^(0x[0-9a-f]+|[0-9]+)$"),
-                            "labelText=" + option.labelText());
-                }
-
-                // 非法原始值：界面显示「无效」，点击则归一化到第一个候选项
-                PlacementConfig probe = edit.config();
-                int invalid = firstUnusedValue(spec);
-                if (invalid >= 0) {
-                    PlacementConfig broken = spec.with(probe, invalid);
-                    int readBack = spec.current(broken);
-                    boolean stillInvalid = spec.indexOfCurrent(broken) < 0;
-                    if (stillInvalid) {
-                        a.equal(adapter.name() + " 的 virtual `" + spec.key()
-                                + "`：非法值不进候选（界面显示「无效」）", -1, spec.indexOfCurrent(broken));
-                        a.equal(adapter.name() + " 的 virtual `" + spec.key()
-                                + "`：非法值点击后归一化到第一个候选项",
-                                spec.options().get(0).value(), spec.nextValue(broken));
-                        a.equal(adapter.name() + " 的 virtual `" + spec.key()
-                                + "`：非法值的当前选项落回第一个候选项",
-                                spec.options().get(0).value(), spec.currentOption(broken).value());
-                    } else {
-                        log.add("   （" + adapter.name() + " 的 `" + spec.key() + "` 会把 " + invalid
-                                + " 归一化成 " + readBack + "，跳过非法值断言）");
-                    }
-                }
-            }
-        }
-
-        // --- 材质槽列表
+        // --- 材质槽列表：全量显示 + 无效项置灰（与本 GUI 里 copycat_board 的展示方式一致）
         edit.selectBlock(ModBlock.COPYCAT_GUARDRAIL);
         var guardrailDisplay = edit.displayState();
         var slots = edit.adapter().slots(guardrailDisplay, edit.config());
-        a.equal("护栏列出 8 个材质槽", 8, slots.size());
+        a.equal("护栏 adapter 给全量 8 个槽（4 横梁 + 4 角柱）", 8, slots.size());
         a.isTrue("槽位带翻译键", slots.stream().allMatch(s -> s.labelKey() != null && !s.labelKey().isBlank()));
+        a.equal("界面列出全量 8 个槽（不做过滤）", 8, guiSlotKeys(edit.adapter(), guardrailDisplay, edit.config()).size());
+        a.equal("其中当前有效（有几何）的 3 个", 3,
+                (int) slots.stream().filter(AdapterSlot::structure).count());
+        a.isTrue("无效槽是可以被界面识别出来置灰的数据状态",
+                slots.stream().anyMatch(slot -> !slot.structure()));
 
         // 材质写入 / 清除
         String key = slots.get(0).key();
@@ -1095,25 +1091,84 @@ public final class PlacementSelfTest {
         a.isTrue("清空后工具 NBT 里也没有配置", !PlacementConfigs.hasConfig(tool));
     }
 
+    /** 把 {@code OrderedText} 里真正会被画出来的字符取出来（诊断用）。 */
+    private static String orderedTextOf(net.minecraft.text.Text text) {
+        StringBuilder out = new StringBuilder();
+        net.minecraft.text.OrderedText ordered = text.asOrderedText();
+        ordered.accept(new net.minecraft.text.CharacterVisitor() {
+            @Override
+            public boolean accept(int index, net.minecraft.text.Style style, int codePoint) {
+                out.appendCodePoint(codePoint);
+                return true;
+            }
+        });
+        return out.toString();
+    }
+
     /**
-     * 找一个「不在候选里」的整数值，用来测非法配置的显示与归一化。
+     * 结构项的「内部标识」与「显示文本」必须彻底分开。
      *
-     * @return 找不到（候选覆盖了 0..4095）时返回 -1
+     * <p>内部标识是配置 / NBT 里的东西：{@code occupancy=0x1}、{@code guardrail_faces=0x8}、
+     * 交汇点的槽位名 {@code down.outer.top_edge}。显示文本只允许来自
+     * {@link VirtualSpec.LabelPart}。这一段用代码把两者钉开：
+     * <ul>
+     *   <li>每一段显示文本都非空、且不是裸数值 / 十六进制 / 内部键名；</li>
+     *   <li>每一段都有翻译键（配合第 18 段的「翻译键必须在打包语言文件里」，界面不可能出现裸 key）；</li>
+     *   <li>候选项的 id 只写进配置、不出现在显示文本里；</li>
+     *   <li>配置里放一个候选集合里没有的值时，{@code current} 返回 {@code null}（界面显示「配置值无效」），
+     *       而 {@code next} 归一化到第一个候选项。</li>
+     * </ul>
      */
-    private static int firstUnusedValue(VirtualSpec spec) {
-        for (int candidate = 0; candidate < 4096; candidate++) {
-            boolean used = false;
+    private static void checkStructureItemDisplay(Assertions a, List<String> log, Block block) {
+        CopycatPlacementAdapter adapter = PlacementAdapters.resolve(block).orElseThrow();
+        PlacementConfig config = adapter.defaultConfig(block);
+        int specs = 0;
+        for (VirtualSpec spec : adapter.virtualSpecs(config)) {
+            specs++;
+            String tag = adapter.name() + " 的 `" + spec.key() + "`";
+            a.isTrue(tag + " 有标题文本", !spec.label().isEmpty());
+            checkLabelParts(a, tag + " 的标题", spec.label(), spec.key());
+            a.isTrue(tag + " 至少有一个候选项", !spec.options().isEmpty());
             for (VirtualSpec.Option option : spec.options()) {
-                if (option.value() == candidate) {
-                    used = true;
-                    break;
+                a.isTrue(tag + " 的候选项 " + option.id() + " 有显示文本", !option.label().isEmpty());
+                checkLabelParts(a, tag + " 的候选项 " + option.id(), option.label(), spec.key());
+                for (VirtualSpec.LabelPart part : option.label()) {
+                    a.check(tag + " 的候选项显示文本不是内部 id",
+                            !part.labelText().contains(option.id()),
+                            "labelText=" + part.labelText() + "，id=" + option.id());
                 }
             }
-            if (!used) {
-                return candidate;
+
+            // 配置里放一个候选集合里没有的值：界面显示「无效」，点击归一化到第一个候选
+            VirtualSpec.Option bogus = VirtualSpec.Option.of("no.such.slot", "test.bogus", "bogus");
+            PlacementConfig broken = spec.with(config, bogus);
+            if (spec.current(broken) == null) {
+                a.equal(tag + "：非法值不进候选（界面显示「无效」）", -1, spec.indexOfCurrent(broken));
+                a.equal(tag + "：非法值点击后归一化到第一个候选项",
+                        spec.options().get(0).id(), spec.next(broken).id());
+            } else {
+                log.add("   （" + tag + " 会把非法值归一化，跳过非法值断言）");
             }
         }
-        return -1;
+        a.isTrue(adapter.name() + " 有结构项可检", specs > 0);
+        log.add("   " + adapter.name() + " 结构项 " + specs + " 项，显示文本检查通过");
+    }
+
+    /** 一组显示文本：非空、有翻译键、不是裸数值 / 十六进制 / 内部键名。 */
+    private static void checkLabelParts(Assertions a, String tag, List<VirtualSpec.LabelPart> parts,
+                                        String internalKey) {
+        for (VirtualSpec.LabelPart part : parts) {
+            a.check(tag + " 的显示文本非空",
+                    part.labelText() != null && !part.labelText().isBlank(), "labelText=" + part.labelText());
+            a.check(tag + " 的翻译键非空",
+                    part.labelKey() != null && !part.labelKey().isBlank(), "labelKey=" + part.labelKey());
+            a.check(tag + " 的显示文本不是裸数值 / 十六进制",
+                    !part.labelText().matches("(?i)^(0x[0-9a-f]+|[0-9]+)$"),
+                    "labelText=" + part.labelText());
+            a.check(tag + " 的显示文本不是内部键名",
+                    !part.labelText().equals(internalKey) && !part.labelKey().equals(internalKey),
+                    "labelText=" + part.labelText() + "，key=" + internalKey);
+        }
     }
 
     // ================================================================ 12. 服务端校验 + 右键放置
@@ -1366,15 +1421,20 @@ public final class PlacementSelfTest {
 
         // --- ② 点一下切换 → 写进 config 的值必须真的变了
         PlacementConfig before = config;
-        int occupancyBefore = LayeredBoardCopycatAdapter.occupancy(config);
-        VirtualSpec occupancySpec = adapter.virtualSpecs().stream()
-                .filter(spec -> spec.key().equals(LayeredBoardCopycatAdapter.STRUCTURE_OCCUPANCY))
+        boolean downOuterBefore = LayeredBoardCopycatAdapter.slotEnabled(
+                config, FaceDir.DOWN, BoardLayer.OUTER);
+        VirtualSpec downOuterSpec = adapter.virtualSpecs(config).stream()
+                .filter(spec -> spec.key().equals("layer.down.outer"))
                 .findFirst().orElseThrow();
-        PlacementConfig after = occupancySpec.with(config, occupancySpec.nextValue(config));
-        a.isTrue("切换 virtual property 后 config 真的变了",
-                LayeredBoardCopycatAdapter.occupancy(after) != occupancyBefore);
+        PlacementConfig after = downOuterSpec.with(config, downOuterSpec.next(config));
+        a.isTrue("切换一个层开关后 config 真的变了",
+                LayeredBoardCopycatAdapter.slotEnabled(after, FaceDir.DOWN, BoardLayer.OUTER)
+                        != downOuterBefore);
         a.isTrue("切换后旧配置未被修改（不可变）",
-                LayeredBoardCopycatAdapter.occupancy(before) == occupancyBefore);
+                LayeredBoardCopycatAdapter.slotEnabled(before, FaceDir.DOWN, BoardLayer.OUTER)
+                        == downOuterBefore);
+        a.isTrue("切换一个层不会动其它层（下面内层仍然关着）",
+                !LayeredBoardCopycatAdapter.slotEnabled(after, FaceDir.DOWN, BoardLayer.INNER));
 
         // --- ③ NBT 往返 == config
         PlacementConfig roundTrip = PlacementConfig.fromNbt(after.toNbt());
@@ -1418,7 +1478,8 @@ public final class PlacementSelfTest {
 
         // --- ⑦ 被 virtual property 接管的属性必须被声明出来（GUI 靠它去重，避免两套入口）
         List<String> managed = new ArrayList<>();
-        for (VirtualSpec spec : railAdapter.virtualSpecs()) {
+        PlacementConfig railSample = railAdapter.defaultConfig(guardrail);
+        for (VirtualSpec spec : railAdapter.virtualSpecs(railSample)) {
             managed.addAll(spec.managedProperties());
         }
         for (Direction dir : CopycatGuardrailBlock.FACES) {
@@ -1426,7 +1487,7 @@ public final class PlacementSelfTest {
                     managed.contains(dir.getName()));
         }
         a.equal("分层薄板没有需要隐藏的属性（结构全在方块实体里）",
-                0, adapter.virtualSpecs().stream().mapToInt(s -> s.managedProperties().size()).sum());
+                0, adapter.virtualSpecs(config).stream().mapToInt(s -> s.managedProperties().size()).sum());
     }
 
     /** 复刻 PlacementService 里「adapter 结构属性 + 含水」那一步，用来比对最终状态。 */
@@ -2263,6 +2324,938 @@ public final class PlacementSelfTest {
         }
     }
 
+    // ================================================================ 20. 结构配置模型
+
+    /**
+     * 结构配置模型的代码级验证：<b>逐项布尔 + 动态展开</b>。
+     *
+     * <p>覆盖两组方块各自的结构项集合、角柱 / 开窗 / 交汇点的出现规则、材质槽的动态收缩、
+     * 以及旧配置的兼容转换。这一段的判据全部来自 adapter 的公开 API（与 GUI 走的是同一批），
+     * 所以「界面会长什么样」在这里是被算出来的，不是被描述的。
+     */
+    private static void runStructureModel(Assertions a, List<String> log) {
+        log.add("== 20. 结构配置模型（逐项布尔 + 动态展开）");
+
+        // 界面文本的构造路径必须「宽度与字形同源」：这里断言解析出来的字符串与真正会被
+        // 画出来的字形一致。原版 MutableText 的 asOrderedText() 会缓存重排结果而 append 不失效，
+        // 所以界面现在一律用解析好的字符串重新构造文本，这条断言就是那道防线。
+        net.minecraft.text.MutableText literal = net.minecraft.text.Text.literal("ABCDEF");
+        a.equal("Text.literal 的字形与 getString 一致", literal.getString(), orderedTextOf(literal));
+
+        runGuardrailStructureModel(a, log);
+        runBoardStructureModel(a, log);
+        runStructureCompat(a, log);
+
+        // 直接打出「默认配置下界面会长什么样」——用兜底文本（服务端没有语言文件，
+        // 走的就是 labelText 那一支），所以这一段既是证据也是排版检查。
+        for (Block block : List.of(ModBlock.COPYCAT_GUARDRAIL, ModBlock.LAYERED_COPYCAT_BOARD)) {
+            CopycatPlacementAdapter adapter = PlacementAdapters.resolve(block).orElseThrow();
+            PlacementConfig defaults = adapter.defaultConfig(block);
+            log.add("   默认配置下的结构项（adapter 给出的顺序）：");
+            for (VirtualSpec spec : adapter.virtualSpecs(defaults)) {
+                StringBuilder label = new StringBuilder();
+                for (VirtualSpec.LabelPart part : spec.label()) {
+                    if (label.length() > 0) {
+                        label.append(" / ");
+                    }
+                    label.append(part.labelText());
+                }
+                VirtualSpec.Option current = spec.current(defaults);
+                log.add("     " + label + " = "
+                        + (current == null ? "<无效>" : current.label().get(0).labelText()));
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- 护栏
+
+    private static void runGuardrailStructureModel(Assertions a, List<String> log) {
+        CopycatPlacementAdapter adapter = PlacementAdapters.resolve(ModBlock.COPYCAT_GUARDRAIL).orElseThrow();
+        BlockState state = ModBlock.COPYCAT_GUARDRAIL.getDefaultState();
+        int north = CopycatGuardrailBlock.bit(Direction.NORTH);
+        int east = CopycatGuardrailBlock.bit(Direction.EAST);
+        int south = CopycatGuardrailBlock.bit(Direction.SOUTH);
+        int west = CopycatGuardrailBlock.bit(Direction.WEST);
+
+        // --- ① 默认配置：只有北面 = 是，四个角柱默认都在
+        PlacementConfig defaults = adapter.defaultConfig(ModBlock.COPYCAT_GUARDRAIL);
+        a.equal("护栏默认只有北面", north, GuardrailCopycatAdapter.facesMask(defaults));
+        a.isTrue("护栏默认北面 = 是", GuardrailCopycatAdapter.faceEnabled(defaults, Direction.NORTH));
+        a.isFalse("护栏默认东面 = 否", GuardrailCopycatAdapter.faceEnabled(defaults, Direction.EAST));
+        a.isFalse("护栏默认南面 = 否", GuardrailCopycatAdapter.faceEnabled(defaults, Direction.SOUTH));
+        a.isFalse("护栏默认西面 = 否", GuardrailCopycatAdapter.faceEnabled(defaults, Direction.WEST));
+        a.equal("护栏默认四个角柱都是「是」", GuardrailCopycatAdapter.DEFAULT_CORNERS,
+                GuardrailCopycatAdapter.cornersMask(defaults));
+        for (GuardrailCopycatAdapter.Corner corner : GuardrailCopycatAdapter.Corner.values()) {
+            a.isTrue("默认角柱 " + corner.getName() + " = 是",
+                    GuardrailCopycatAdapter.cornerEnabled(defaults, corner));
+        }
+
+        // --- ② 四面全否 → 非法结构
+        PlacementConfig noFace = GuardrailCopycatAdapter.withFaces(defaults, 0);
+        a.notNull("四面全否被判为非法结构",
+                adapter.validateStructure(adapter.stateFrom(noFace.state(), noFace), noFace));
+        for (int mask = 1; mask < 16; mask++) {
+            PlacementConfig anyFace = GuardrailCopycatAdapter.withFaces(defaults, mask);
+            a.isTrue("掩码 " + StructureMasks.write(mask) + " 至少一面 → 合法",
+                    adapter.validateStructure(adapter.stateFrom(anyFace.state(), anyFace), anyFace) == null);
+        }
+
+        // --- ③ 只开北面 → 只出现东北角柱 / 西北角柱
+        a.equal("只开北面时的结构项 = 4 个面 + 东北 + 西北",
+                List.of("face.north", "face.east", "face.south", "face.west",
+                        "corner.northeast", "corner.northwest"),
+                specKeys(adapter, defaults));
+
+        // --- ④ 开北 + 东 → 角柱动态集合为 东北 / 西北 / 东南
+        PlacementConfig northEast = GuardrailCopycatAdapter.withFaces(defaults, north | east);
+        a.equal("开北 + 东时的角柱 = 东北 / 西北 / 东南",
+                List.of("corner.northeast", "corner.northwest", "corner.southeast"),
+                specKeys(adapter, northEast).stream().filter(key -> key.startsWith("corner.")).toList());
+        PlacementConfig allFaces = GuardrailCopycatAdapter.withFaces(defaults, 0xF);
+        a.equal("四面全开时四个角柱都出现",
+                List.of("corner.northeast", "corner.northwest", "corner.southeast", "corner.southwest"),
+                specKeys(adapter, allFaces).stream().filter(key -> key.startsWith("corner.")).toList());
+        PlacementConfig southWest = GuardrailCopycatAdapter.withFaces(defaults, south | west);
+        a.equal("开南 + 西时的角柱 = 西北（西）/ 东南（南）/ 西南",
+                List.of("corner.northwest", "corner.southeast", "corner.southwest"),
+                specKeys(adapter, southWest).stream().filter(key -> key.startsWith("corner.")).toList());
+
+        // --- ⑤ 材质槽：全量列出，只有「当前有效」的那些会被标成有效（GUI 据此决定是否置灰）
+        List<AdapterSlot> railSlots = adapter.slots(state, defaults);
+        a.equal("护栏材质区列出全量 8 个槽（4 横梁 + 4 角柱）", 8, guiSlotKeys(adapter, state, defaults).size());
+        a.equal("只开北面时有效的槽 = 北横梁 + 东北角柱 + 西北角柱",
+                List.of("north_row", "15_0", "0_0"), activeSlotKeys(adapter, state, defaults));
+        a.equal("开北 + 东时有效的槽多了东横梁与东南角柱",
+                List.of("north_row", "east_row", "15_0", "15_15", "0_0"),
+                activeSlotKeys(adapter, state, northEast));
+        PlacementConfig northNoCorner = GuardrailCopycatAdapter.withCorner(
+                defaults, GuardrailCopycatAdapter.Corner.NORTHEAST, false);
+        a.equal("关掉东北角柱之后它变成无效槽（仍然列出，只是置灰）",
+                List.of("north_row", "0_0"), activeSlotKeys(adapter, state, northNoCorner));
+        a.equal("关掉东北角柱之后材质区仍然是全量 8 个槽",
+                8, guiSlotKeys(adapter, state, northNoCorner).size());
+        a.isTrue("无效槽确实带着 structure=false 这个「置灰用」的状态",
+                railSlots.stream().filter(slot -> slot.key().equals("15_0"))
+                        .noneMatch(AdapterSlot::structure)
+                        || railSlots.stream().anyMatch(slot -> !slot.structure()));
+        a.equal("全量清单里标记为有效的槽 = 3", 3,
+                (int) railSlots.stream().filter(AdapterSlot::structure).count());
+
+        // --- ⑥ 关掉一个角柱 = 那根柱子真的有隐藏数据（与细实体的隐藏集合同一份）
+        a.equal("关掉东北角柱 → 隐藏集合只含 15_0",
+                List.of("15_0"),
+                List.copyOf(GuardrailCopycatAdapter.hiddenColumns(northNoCorner)));
+        a.isTrue("四个角柱全开时没有隐藏集合",
+                GuardrailCopycatAdapter.hiddenColumns(defaults).isEmpty());
+
+        // --- ⑦ 角柱开关「隐藏—再出现」不重置
+        PlacementConfig cornerOff = GuardrailCopycatAdapter.withCorner(defaults,
+                GuardrailCopycatAdapter.Corner.NORTHEAST, false);
+        PlacementConfig backToNorth = GuardrailCopycatAdapter.withFaces(cornerOff, north);
+        a.isFalse("重新只开北面之后东北角柱的选择还在（= 否）",
+                GuardrailCopycatAdapter.cornerEnabled(backToNorth, GuardrailCopycatAdapter.Corner.NORTHEAST));
+        PlacementConfig facesOff = GuardrailCopycatAdapter.withFaces(cornerOff, 0);
+        List<String> hiddenWhileInvisible = specKeys(adapter, facesOff);
+        a.equal("四面全关时没有任何角柱项（面都关了）",
+                List.of("face.north", "face.east", "face.south", "face.west"), hiddenWhileInvisible);
+        a.isFalse("四面全关期间角柱的值也没被改掉",
+                GuardrailCopycatAdapter.cornerEnabled(facesOff, GuardrailCopycatAdapter.Corner.NORTHEAST));
+
+        // --- ⑧ 显示文本：不含 raw mask / raw key
+        for (VirtualSpec spec : adapter.virtualSpecs(allFaces)) {
+            for (VirtualSpec.LabelPart part : spec.label()) {
+                a.check("护栏结构项标题不是裸掩码 / 裸键：" + part.labelText(),
+                        !part.labelText().matches("(?i)^(0x[0-9a-f]+|[0-9]+|face\\..*|corner\\..*)$"),
+                        "labelText=" + part.labelText());
+                a.isFalse("护栏结构项标题不含 0x：" + part.labelText(),
+                        part.labelText().toLowerCase(java.util.Locale.ROOT).contains("0x"));
+            }
+        }
+
+        // --- ⑨ 角柱身份与几何的角点键名一致（不能用另一套编号）
+        for (GuardrailCopycatAdapter.Corner corner : GuardrailCopycatAdapter.Corner.values()) {
+            a.isTrue("角柱 " + corner.getName() + " 的角点键名在几何里存在：" + corner.columnKey(),
+                    GuardrailParts.columnKeys().contains(corner.columnKey()));
+        }
+        log.add("   护栏：默认只有北面；角柱按相邻面动态出现；材质槽全量 8 个，其中真的有几何的 "
+                + activeSlotKeys(adapter, state, defaults).size() + " 个");
+    }
+
+    // ---------------------------------------------------------------- 分层薄板
+
+    private static void runBoardStructureModel(Assertions a, List<String> log) {
+        CopycatPlacementAdapter adapter = PlacementAdapters.resolve(ModBlock.LAYERED_COPYCAT_BOARD).orElseThrow();
+        BlockState state = ModBlock.LAYERED_COPYCAT_BOARD.getDefaultState();
+        PlacementConfig defaults = adapter.defaultConfig(ModBlock.LAYERED_COPYCAT_BOARD);
+
+        // --- ⑦ 默认配置：只有下面外层 = 是
+        a.equal("薄板默认只有下面外层", LayeredBoardSlots.slotBitMask(FaceDir.DOWN, BoardLayer.OUTER),
+                LayeredBoardCopycatAdapter.occupancy(defaults));
+        for (FaceDir face : FaceDir.values()) {
+            for (BoardLayer layer : BoardLayer.values()) {
+                boolean expected = face == FaceDir.DOWN && layer == BoardLayer.OUTER;
+                a.equal("默认 " + LayeredBoardSlots.describe(face, layer) + " = " + expected,
+                        expected, LayeredBoardCopycatAdapter.slotEnabled(defaults, face, layer));
+            }
+        }
+        a.equal("薄板默认不开窗", 0, LayeredBoardCopycatAdapter.windows(defaults));
+
+        // --- ⑧ 12 个面全否 → 非法结构
+        PlacementConfig empty = LayeredBoardCopycatAdapter.withOccupancy(defaults, 0);
+        a.notNull("12 个面全否被判为非法结构",
+                adapter.validateStructure(adapter.stateFrom(empty.state(), empty), empty));
+        a.isTrue("只有一个面 → 合法",
+                adapter.validateStructure(adapter.stateFrom(defaults.state(), defaults), defaults) == null);
+
+        // --- ⑨⑩ 开窗项按「这个方向有没有板」动态出现
+        List<String> defaultSpecs = specKeys(adapter, defaults);
+        long defaultWindows = defaultSpecs.stream().filter(key -> key.startsWith("window.")).count();
+        a.equal("默认只有下面有板 → 只有下面开窗项", List.of("window.down"),
+                defaultSpecs.stream().filter(key -> key.startsWith("window.")).toList());
+        a.equal("12 个层开关一直都在", 12,
+                (int) defaultSpecs.stream().filter(key -> key.startsWith("layer.")).count());
+
+        PlacementConfig upOuterOnly = LayeredBoardCopycatAdapter.withOccupancy(
+                defaults, LayeredBoardSlots.slotBitMask(FaceDir.UP, BoardLayer.OUTER));
+        a.equal("只开上面外层 → 只有上面开窗项", List.of("window.up"),
+                specKeys(adapter, upOuterOnly).stream().filter(k -> k.startsWith("window.")).toList());
+
+        PlacementConfig upBoth = LayeredBoardCopycatAdapter.withSlot(upOuterOnly, FaceDir.UP,
+                BoardLayer.INNER, true);
+        a.equal("上面两层都开 → 仍然是一个上面开窗项（窗是面级的）", List.of("window.up"),
+                specKeys(adapter, upBoth).stream().filter(k -> k.startsWith("window.")).toList());
+
+        PlacementConfig upInnerOff = LayeredBoardCopycatAdapter.withSlot(upBoth, FaceDir.UP,
+                BoardLayer.INNER, false);
+        a.equal("只留上面外层 → 上面开窗项仍然在", List.of("window.up"),
+                specKeys(adapter, upInnerOff).stream().filter(k -> k.startsWith("window.")).toList());
+        PlacementConfig upAllOff = LayeredBoardCopycatAdapter.withSlot(upInnerOff, FaceDir.UP,
+                BoardLayer.OUTER, false);
+        a.isTrue("两层都关 → 上面开窗项消失",
+                specKeys(adapter, upAllOff).stream().noneMatch(k -> k.startsWith("window.")));
+
+        // 开窗项隐藏—再出现不重置
+        PlacementConfig upWindowOn = LayeredBoardCopycatAdapter.withWindow(upBoth, FaceDir.UP, true);
+        PlacementConfig upOffWithWindow = LayeredBoardCopycatAdapter.withSlot(
+                LayeredBoardCopycatAdapter.withSlot(upWindowOn, FaceDir.UP, BoardLayer.OUTER, false),
+                FaceDir.UP, BoardLayer.INNER, false);
+        a.isTrue("两层关掉期间，上面开窗项不出现（值仍在配置里）",
+                specKeys(adapter, upOffWithWindow).stream().noneMatch(k -> k.startsWith("window.")));
+        a.isTrue("上面开窗的值没有被重置",
+                LayeredBoardCopycatAdapter.windowEnabled(upOffWithWindow, FaceDir.UP));
+
+        // --- ⑪ 材质槽：全量 66 个都列出，只有真的有几何的才是「有效」
+        List<String> onePlateActive = activeSlotKeys(adapter, state, defaults);
+        log.add("   薄板：默认（只开下面外层）时有效的材质槽 = " + onePlateActive);
+        a.equal("只开一块板时有效的材质槽 = 这一层的 5 个区域",
+                List.of("down.outer.body", "down.outer.top_edge", "down.outer.bottom_edge",
+                        "down.outer.left_edge", "down.outer.right_edge"),
+                onePlateActive);
+        a.isTrue("有效槽远少于 66 个", onePlateActive.size() <= 10);
+        a.equal("材质区仍然列出全量 66 个槽（无效的置灰，不过滤）",
+                66, guiSlotKeys(adapter, state, defaults).size());
+        a.equal("默认结构下有效的槽就是那 5 个", 5,
+                (int) adapter.slots(state, defaults).stream().filter(AdapterSlot::structure).count());
+
+        a.equal("开了下面两层 → 10 个有效区域槽",
+                10, activeSlotKeys(adapter, state,
+                        LayeredBoardCopycatAdapter.withOccupancy(defaults,
+                                LayeredBoardSlots.slotBitMask(FaceDir.DOWN, BoardLayer.OUTER)
+                                        | LayeredBoardSlots.slotBitMask(FaceDir.DOWN, BoardLayer.INNER)))
+                        .size());
+        a.isTrue("开窗之后窗槽才变成有效",
+                activeSlotKeys(adapter, state, LayeredBoardCopycatAdapter.withWindow(defaults, FaceDir.DOWN, true))
+                        .contains("down.window"));
+        a.isFalse("没开窗时窗槽不是有效槽（但仍在全量列表里）",
+                onePlateActive.contains("down.window"));
+        a.isTrue("没开窗时窗槽仍然列在材质区里（置灰）",
+                guiSlotKeys(adapter, state, defaults).contains("down.window"));
+
+        // --- ⑫ 顶点材质归属：只列 corner 级的 junction
+        PlacementConfig twoPlates = LayeredBoardCopycatAdapter.withOccupancy(defaults,
+                LayeredBoardSlots.slotBitMask(FaceDir.DOWN, BoardLayer.OUTER)
+                        | LayeredBoardSlots.slotBitMask(FaceDir.NORTH, BoardLayer.OUTER));
+        int junctionsOne = junctionSpecs(adapter, defaults).size();
+        int junctionsTwo = junctionSpecs(adapter, twoPlates).size();
+        log.add("   薄板：顶点归属项 单块板 " + junctionsOne + " 个，两块板 " + junctionsTwo + " 个");
+        a.isTrue("单块板至少有一个可切换的顶点（自身的四个角）", junctionsOne >= 1);
+        a.isTrue("结构变复杂之后顶点归属项变多", junctionsTwo > junctionsOne);
+        for (VirtualSpec spec : junctionSpecs(adapter, twoPlates)) {
+            a.isTrue("顶点归属项必然有多个候选边：" + spec.key(), spec.options().size() >= 2);
+        }
+
+        // --- ⑫′ GUI 只暴露顶点：中 / 棱 / 面 junction 不生成 StructureSpec
+        runVertexOnlyFilter(a, log, adapter, defaults, twoPlates);
+
+        for (LayeredBoardParts.Junction junction : LayeredBoardParts.junctions(
+                LayeredBoardCopycatAdapter.occupancy(twoPlates),
+                LayeredBoardCopycatAdapter.windows(twoPlates),
+                LayeredBoardCopycatAdapter.junctionOwners(twoPlates))) {
+            a.isTrue("几何枚举出的交汇点也必然有多个候选：" + junction.key(),
+                    junction.candidates().size() >= 2);
+        }
+
+        // 交汇点选择会写进配置，并且真的改掉「这个交汇点显示哪条边」
+        VirtualSpec junction = junctionSpecs(adapter, twoPlates).get(0);
+        String shownBefore = junction.current(twoPlates).id();
+        PlacementConfig switched = junction.with(twoPlates, junction.next(twoPlates));
+        a.isFalse("点击交汇点项之后显示归属变了",
+                shownBefore.equals(junction.current(switched).id()));
+        List<VirtualSpec> rebuilt = adapter.virtualSpecs(switched);
+        String shownAfter = rebuilt.stream().filter(spec -> spec.key().equals(junction.key()))
+                .findFirst().orElseThrow().current(switched).id();
+        a.equal("重建结构项之后显示的仍是新归属", junction.current(switched).id(), shownAfter);
+        a.isTrue("交汇点归属写进了配置的结构字段",
+                !LayeredBoardCopycatAdapter.junctionOwners(switched).isEmpty());
+        a.equal("写回的值就是候选槽名",
+                LayeredBoardCopycatAdapter.junctionOwners(switched).values().stream().findFirst().orElseThrow(),
+                junction.current(switched).id());
+
+        // --- 材质槽集合必须与「这份结构真正画出来的几何」逐一相同（含交点归属的影响）
+        for (PlacementConfig sample : List.of(defaults, twoPlates, switched, upBoth,
+                LayeredBoardCopycatAdapter.withWindow(defaults, FaceDir.DOWN, true))) {
+            java.util.Set<String> geometry = LayeredBoardParts.materialKeys(
+                    LayeredBoardCopycatAdapter.occupancy(sample),
+                    LayeredBoardCopycatAdapter.windows(sample),
+                    LayeredBoardCopycatAdapter.junctionOwners(sample));
+            a.equal("界面列出的有效槽集合 == 几何键集合（" + LayeredBoardCopycatAdapter.occupancy(sample) + "）",
+                    new java.util.TreeSet<>(geometry),
+                    new java.util.TreeSet<>(activeSlotKeys(adapter, state, sample)));
+            a.equal("每份结构下材质区都是全量 66 个槽（无效的置灰）",
+                    66, guiSlotKeys(adapter, state, sample).size());
+        }
+
+        // --- ⑬ 交汇点显示的是人类可读文案，不是 raw value
+        for (VirtualSpec spec : junctionSpecs(adapter, twoPlates)) {
+            for (VirtualSpec.Option option : spec.options()) {
+                a.isTrue("交汇点候选 id 是槽名（内部标识）：" + option.id(),
+                        option.id().contains("."));
+                for (VirtualSpec.LabelPart part : option.label()) {
+                    a.check("交汇点候选显示文本不是裸值：" + part.labelText(),
+                            !part.labelText().matches("(?i)^(0x[0-9a-f]+|[0-9]+)$"),
+                            "labelText=" + part.labelText());
+                    a.check("交汇点候选显示文本不是槽位码：" + part.labelText(),
+                            !part.labelText().equals(option.id()),
+                            "labelText=" + part.labelText() + "，id=" + option.id());
+                }
+            }
+        }
+
+        runJunctionLabels(a, log, adapter, defaults, twoPlates);
+        runStructureTooltipRules(a, log, adapter, defaults, twoPlates);
+    }
+
+    // ---------------------------------------------------------------- 交点标题 + 悬停提示
+
+    /**
+     * 交点行的标题必须描述「这是哪个物理交点」，而不是把所有候选边名拼起来。
+     *
+     * <p>判据用<b>兜底文本</b>（中文）：服务端没有加载 zh_cn，解析出来的是 en_us，
+     * 而这里要验的是「默认语言下这一行到底有多长、读起来是不是一个位置」。
+     */
+    private static void runJunctionLabels(Assertions a, List<String> log, CopycatPlacementAdapter adapter,
+                                          PlacementConfig defaults, PlacementConfig twoPlates) {
+        // --- 只开下面外层：恰好 4 个交点，名字就是这一层的四个角
+        List<VirtualSpec> single = junctionSpecs(adapter, defaults);
+        a.equal("单块板恰好 4 个交点行", 4, single.size());
+        List<String> names = new ArrayList<>();
+        for (VirtualSpec spec : single) {
+            names.add(joinFallback(spec.label()));
+        }
+        log.add("   单块板交点标题 = " + names);
+        a.equal("四个交点标题就是这一层的四个角",
+                List.of("底面·外层·左下角", "底面·外层·右下角", "底面·外层·左上角", "底面·外层·右上角"),
+                names);
+        for (int i = 0; i < single.size(); i++) {
+            VirtualSpec spec = single.get(i);
+            a.isTrue("交点标题很短（默认语言下 ≤ 9 字）：" + names.get(i),
+                    names.get(i).length() <= 9);
+            a.isFalse("交点标题里没有候选边名的拼接：" + names.get(i),
+                    names.get(i).contains("边"));
+            // 右侧取值必须是这一行候选之一
+            String shown = spec.current(defaults).id();
+            a.isTrue("交点「" + names.get(i) + "」当前归属在自己的候选里：" + shown,
+                    spec.options().stream().anyMatch(option -> option.id().equals(shown)));
+        }
+        a.equal("单块板的四个交点标题互不重复",
+                single.size(), new java.util.HashSet<>(names).size());
+
+        // --- 多块板交汇：标题也必须是短的位置名，候选只在提示里列
+        List<VirtualSpec> multi = junctionSpecs(adapter, twoPlates);
+        List<String> multiNames = new ArrayList<>();
+        for (VirtualSpec spec : multi) {
+            String name = joinFallback(spec.label());
+            multiNames.add(name);
+            a.isTrue("多面交点标题很短（默认语言下 ≤ 12 字，含分隔符）：" + name, name.length() <= 12);
+            a.isFalse("多面交点标题不是候选拼接：" + name, name.contains("边"));
+            for (VirtualSpec.Option option : spec.options()) {
+                a.isFalse("多面交点标题里没有塞候选名：" + name,
+                        name.contains(joinFallback(option.label())));
+            }
+            String shown = spec.current(twoPlates).id();
+            a.isTrue("多面交点「" + name + "」当前归属在自己的候选里",
+                    spec.options().stream().anyMatch(option -> option.id().equals(shown)));
+        }
+        // 标题必须能区分不同的交点：同一份结构下不允许重名
+        a.equal("多面交点标题互不重复（每个交点一个位置名）",
+                multi.size(), new java.util.HashSet<>(multiNames).size());
+        // 标题长度：正常 GUI 宽度下尽量不截断（截断了也还有悬停提示兜底）
+        int longest = 0;
+        String longestName = "";
+        for (int occupancy = 1; occupancy < LayeredBoardSlots.FULL_OCCUPANCY; occupancy += 29) {
+            PlacementConfig sample = LayeredBoardCopycatAdapter.withOccupancy(defaults, occupancy);
+            for (VirtualSpec spec : junctionSpecs(adapter, sample)) {
+                String name = joinFallback(spec.label());
+                if (name.length() > longest) {
+                    longest = name.length();
+                    longestName = name;
+                }
+            }
+        }
+        log.add("   交点标题最长 = " + longestName + "（" + longest + " 个字符，含分隔符）");
+        a.isTrue("交点标题最长不超过 14 个字符（默认语言）：" + longestName, longest <= 14);
+        log.add("   两块板交点原始数据 = " + LayeredBoardParts.junctions(
+                        LayeredBoardCopycatAdapter.occupancy(twoPlates),
+                        LayeredBoardCopycatAdapter.windows(twoPlates),
+                        LayeredBoardCopycatAdapter.junctionOwners(twoPlates)).stream()
+                .map(junction -> (junction.corner() ? "角" : "棱") + "@" + junction.cell()
+                        + " shown=" + junction.shown().name()
+                        + " candidates=" + junction.candidates().stream()
+                                .map(LayeredBoardParts.Slot::name).toList())
+                .toList());
+        log.add("   两块板交点标题 = " + multiNames);
+        // 各种占用组合下都不许出现重名（标题就是玩家区分行的唯一依据）
+        for (int occupancy = 1; occupancy < LayeredBoardSlots.FULL_OCCUPANCY; occupancy += 137) {
+            PlacementConfig sample = LayeredBoardCopycatAdapter.withOccupancy(defaults, occupancy);
+            List<String> sampleNames = new ArrayList<>();
+            for (VirtualSpec spec : junctionSpecs(adapter, sample)) {
+                sampleNames.add(joinFallback(spec.label()));
+            }
+            if (sampleNames.size() != new java.util.HashSet<>(sampleNames).size()
+                    && log.stream().noneMatch(line -> line.startsWith("   [重名诊断]"))) {
+                log.add("   [重名诊断] 占用 " + StructureMasks.write(occupancy));
+                for (LayeredBoardParts.Junction junction : LayeredBoardParts.junctions(
+                        LayeredBoardCopycatAdapter.occupancy(sample),
+                        LayeredBoardCopycatAdapter.windows(sample),
+                        LayeredBoardCopycatAdapter.junctionOwners(sample))) {
+                    log.add("     [j] corner=" + junction.corner() + " cell=" + junction.cell()
+                            + " candidates=" + junction.candidates().stream()
+                                    .map(LayeredBoardParts.Slot::name).toList());
+                }
+                for (VirtualSpec spec : junctionSpecs(adapter, sample)) {
+                    log.add("     [n] " + joinFallback(spec.label()));
+                }
+            }
+            a.equal("占用掩码 " + StructureMasks.write(occupancy) + " 下交点标题互不重复",
+                    sampleNames.size(), new java.util.HashSet<>(sampleNames).size());
+        }
+    }
+
+    /**
+     * 结构区的<b>顺序</b>与<b>corner-only 过滤</b>。
+     *
+     * <p>顺序是需求里的三段：12 个层开关（主结构）→ 有板方向的 6 个开窗开关 → 顶点材质归属。
+     * 「控制面存不存在的配置永远在上面」，顶点项不允许插到 12 个面开关前面。
+     *
+     * <p>过滤是另一条需求：棱 / 面 / 中间的 junction 继续参与后端渲染与细工凿交互，
+     * 但<b>不生成</b>玩家可编辑的 StructureSpec；GUI 里只留角点。
+     * 这里同时拿「几何枚举出的全部 junction」做对照组：被 GUI 丢掉的恰好是 {@code corner == false} 的那些。
+     */
+    private static void runVertexOnlyFilter(Assertions a, List<String> log, CopycatPlacementAdapter adapter,
+                                            PlacementConfig defaults, PlacementConfig twoPlates) {
+        for (PlacementConfig sample : List.of(defaults, twoPlates,
+                LayeredBoardCopycatAdapter.withWindows(
+                        LayeredBoardCopycatAdapter.withOccupancy(defaults, LayeredBoardSlots.FULL_OCCUPANCY),
+                        (1 << FaceDir.values().length) - 1))) {
+            List<VirtualSpec> specs = adapter.virtualSpecs(sample);
+            long layers = specs.stream().filter(spec -> spec.key().startsWith("layer.")).count();
+            long windows = specs.stream().filter(spec -> spec.key().startsWith("window.")).count();
+            List<VirtualSpec> vertices = junctionSpecs(adapter, sample);
+
+            // ① 12 个层开关必须都在最前面
+            a.equal("结构区前 12 项是层开关", 12, (int) layers);
+            for (int i = 0; i < 12; i++) {
+                a.isTrue("第 " + (i + 1) + " 项是层开关：" + specs.get(i).key(),
+                        specs.get(i).key().startsWith("layer."));
+            }
+            // ② 紧接着是开窗开关（只对当前有板的面出现）
+            for (int i = 12; i < 12 + (int) windows; i++) {
+                a.isTrue("第 " + (i + 1) + " 项是开窗开关：" + specs.get(i).key(),
+                        specs.get(i).key().startsWith("window."));
+            }
+            a.equal("开窗开关个数 = 当前有板的方向数", (int) windows,
+                    (int) LayeredBoardCopycatAdapter.DISPLAY_FACES.stream()
+                            .filter(face -> LayeredBoardCopycatAdapter.faceHasLayer(sample, face)).count());
+            // ③ 其余全部是顶点归属，且不允许插到前面去
+            a.equal("层 / 窗开关之后剩下的全部是顶点归属", specs.size(),
+                    12 + (int) windows + vertices.size());
+            for (int i = 12 + (int) windows; i < specs.size(); i++) {
+                a.isTrue("第 " + (i + 1) + " 项是顶点归属（corner junction）：" + specs.get(i).key(),
+                        isVertexSpec(specs.get(i)));
+            }
+            for (int i = 0; i < 12 + (int) windows; i++) {
+                a.isFalse("开关项里不混顶点项：" + specs.get(i).key(), isVertexSpec(specs.get(i)));
+            }
+
+            // ④ GUI 里的顶点项必须与「几何枚举出的 corner junction」逐一对应
+            java.util.Set<String> geometryCorners = new java.util.LinkedHashSet<>();
+            int nonCorner = 0;
+            for (LayeredBoardParts.Junction junction
+                    : LayeredBoardParts.junctions(LayeredBoardCopycatAdapter.occupancy(sample),
+                    LayeredBoardCopycatAdapter.windows(sample),
+                    LayeredBoardCopycatAdapter.junctionOwners(sample))) {
+                if (junction.corner()) {
+                    geometryCorners.add(LayeredBoardCopycatAdapter.JUNCTION_PREFIX + junction.key());
+                } else {
+                    nonCorner++;
+                }
+            }
+            java.util.Set<String> guiVertices = new java.util.LinkedHashSet<>();
+            for (VirtualSpec spec : vertices) {
+                guiVertices.add(spec.key());
+            }
+            a.equal("GUI 顶点项集合 == 几何里 corner junction 的集合", geometryCorners, guiVertices);
+            if (nonCorner > 0) {
+                for (int i = 0; i < specs.size(); i++) {
+                    a.isFalse("位置 " + (i + 1) + " 没有棱 / 面 junction：" + specs.get(i).key(),
+                            specs.get(i).key().startsWith("junction.")
+                                    && !geometryCorners.contains(specs.get(i).key()));
+                }
+                if (log.stream().noneMatch(line -> line.startsWith("   [corner-only]"))) {
+                    log.add("   [corner-only] 占用 " + StructureMasks.write(LayeredBoardCopycatAdapter.occupancy(sample))
+                            + "：几何共 " + (geometryCorners.size() + nonCorner) + " 个 junction，其中 GUI 暴露 "
+                            + geometryCorners.size() + " 个顶点，另有 " + nonCorner + " 个中 / 棱 / 面 junction 被过滤掉");
+                }
+            }
+            // ⑤ 顶点项永远有 ≥2 个候选，且当前归属一定落在候选里
+            for (VirtualSpec spec : vertices) {
+                a.isTrue("顶点项有多个候选：" + spec.key(), spec.options().size() >= 2);
+                VirtualSpec.Option current = spec.current(sample);
+                a.notNull("顶点项有当前归属：" + spec.key(), current);
+                if (current != null) {
+                    a.isTrue("顶点项当前归属在候选里：" + spec.key(),
+                            spec.options().stream().anyMatch(option -> option.id().equals(current.id())));
+                }
+            }
+        }
+    }
+
+    /**
+     * 悬停提示的触发条件：没有可说的东西就<b>一个框都不画</b>。
+     *
+     * <p>这正是上一版的行为缺陷：只要鼠标落在结构行上就无条件 {@code drawTooltip}，
+     * 普通布尔项也会弹一个紫黑色空框。现在只有两种情况会画：
+     * 文本真的被截断、或者这一项自己有多条候选来源。
+     */
+    private static void runStructureTooltipRules(Assertions a, List<String> log,
+                                                 CopycatPlacementAdapter adapter,
+                                                 PlacementConfig defaults, PlacementConfig twoPlates) {
+        // --- 护栏：四个面 + 四个角柱这些普通布尔项，没截断就什么都不画
+        CopycatPlacementAdapter rail = PlacementAdapters.resolve(ModBlock.COPYCAT_GUARDRAIL).orElseThrow();
+        PlacementConfig railConfig = rail.defaultConfig(ModBlock.COPYCAT_GUARDRAIL);
+        for (VirtualSpec spec : rail.virtualSpecs(railConfig)) {
+            List<StructureTooltip.Line> lines = StructureTooltip.lines(spec, railConfig, false, false);
+            a.equal("护栏普通结构项没截断时不产生提示：" + spec.key(), List.of(), lines);
+            a.isFalse("护栏普通结构项没截断时不该画提示：" + spec.key(),
+                    StructureTooltip.shouldDraw(lines));
+        }
+        // 被截断时给出完整标题
+        VirtualSpec railSpec = rail.virtualSpecs(railConfig).get(0);
+        List<StructureTooltip.Line> truncated = StructureTooltip.lines(railSpec, railConfig, true, false);
+        a.equal("护栏结构项标题被截断时给一行完整标题", 1, truncated.size());
+        a.equal("给出的就是完整标题（同一组文本段）", railSpec.label(), truncated.get(0).parts());
+        a.isFalse("给出的标题解析后不是空白", truncated.get(0).resolve().isBlank());
+        a.isTrue("被截断时有内容可画", StructureTooltip.shouldDraw(truncated));
+
+        // --- 薄板：12 个层开关 + 6 个开窗开关（全部展示出来时）同样什么都不画
+        PlacementConfig allBoard = LayeredBoardCopycatAdapter.withWindows(
+                LayeredBoardCopycatAdapter.withOccupancy(defaults, LayeredBoardSlots.FULL_OCCUPANCY),
+                (1 << 6) - 1);
+        int switches = 0;
+        for (VirtualSpec spec : adapter.virtualSpecs(allBoard)) {
+            if (spec.listsCandidates()) {
+                continue;
+            }
+            switches++;
+            a.equal("薄板开关项没截断时不产生提示：" + spec.key(),
+                    List.of(), StructureTooltip.lines(spec, allBoard, false, false));
+        }
+        a.equal("薄板共有 12 + 6 个开关项", 18, switches);
+
+        // --- 顶点归属：主动给出「这一项干什么」+ 候选来源 + 当前归属
+        for (VirtualSpec spec : junctionSpecs(adapter, twoPlates)) {
+            List<StructureTooltip.Line> lines = StructureTooltip.lines(spec, twoPlates, false, false);
+            a.isTrue("顶点项在没有截断时也给提示（候选来源是有效信息）：" + spec.key(),
+                    StructureTooltip.shouldDraw(lines));
+            // 说明一句 + 「候选材质来源」标题 + 每个候选一行 + 「当前」标题 + 当前一行
+            a.equal("顶点提示行数 = 1 + 1 + 候选数 + 1 + 1",
+                    spec.options().size() + 4, lines.size());
+            a.equal("顶点提示第一行是「这一项干什么」的说明",
+                    StructureTooltip.VERTEX_HINT, lines.get(0).parts().get(0));
+            a.equal("第二行是候选来源标题",
+                    StructureTooltip.CANDIDATES_TITLE, lines.get(1).parts().get(0));
+            for (StructureTooltip.Line line : lines) {
+                a.isFalse("顶点提示没有空白行", line.resolve().isBlank());
+            }
+            // 候选项在提示里带行首符号（BULLET + 候选自己的文本段），所以不能整段直接相等
+            for (VirtualSpec.Option option : spec.options()) {
+                a.isTrue("顶点提示列出了候选：" + option.id(),
+                        lines.stream().anyMatch(line -> isBulletLineOf(line, option)));
+            }
+            // 说明文字本身必须真的读得懂，不能是裸 key
+            String hintText = StructureTooltip.resolve(StructureTooltip.VERTEX_HINT);
+            a.isFalse("顶点说明文本不是裸翻译键：" + hintText, hintText.contains(".tooltip."));
+            a.isTrue("顶点说明文本非空：" + hintText, !hintText.isBlank());
+            a.isTrue("顶点提示给出了当前归属",
+                    lines.stream().anyMatch(line -> line.parts().get(0)
+                            .equals(StructureTooltip.CURRENT_TITLE)));
+        }
+
+        // --- 顶点归属项一定带说明行（这是它区别于普通开关的地方）
+        for (VirtualSpec spec : junctionSpecs(adapter, twoPlates)) {
+            List<StructureTooltip.Line> lines = StructureTooltip.lines(spec, twoPlates, false, false);
+            a.isTrue("顶点项提示非空：" + spec.key(), !lines.isEmpty());
+            a.isTrue("顶点项提示解释了「切换这个顶点使用哪条边的材质」：" + spec.key(),
+                    lines.stream().anyMatch(line -> StructureTooltip.VERTEX_HINT.equals(line.parts().get(0))));
+            a.isTrue("顶点项提示带候选来源标题",
+                    lines.stream().anyMatch(line -> line.parts().get(0).equals(StructureTooltip.CANDIDATES_TITLE)));
+            a.isTrue("顶点项提示带当前归属标题",
+                    lines.stream().anyMatch(line -> line.parts().get(0).equals(StructureTooltip.CURRENT_TITLE)));
+        }
+
+        // --- 取值被截断时给出完整取值（这一支走的是普通开关项：开关不主动列候选）
+        VirtualSpec toggleSpec = null;
+        for (VirtualSpec spec : adapter.virtualSpecs(allBoard)) {
+            if (!spec.listsCandidates()) {
+                toggleSpec = spec;
+                break;
+            }
+        }
+        a.notNull("薄板里能找到普通开关项", toggleSpec);
+        if (toggleSpec != null) {
+            a.equal("开关项没截断时不提示",
+                    List.of(), StructureTooltip.lines(toggleSpec, allBoard, false, false));
+            List<StructureTooltip.Line> valueLines = StructureTooltip.lines(toggleSpec, allBoard, false, true);
+            a.equal("开关项取值被截断时给出一行完整取值", 1, valueLines.size());
+            a.equal("给出的就是当前取值",
+                    toggleSpec.current(allBoard).label(), valueLines.get(0).parts());
+        }
+        // 顶点项本来就把取值列在候选里，所以取值截断标志不影响它的行数
+        VirtualSpec junction = junctionSpecs(adapter, twoPlates).get(0);
+        a.equal("顶点项的行数不受取值截断标志影响",
+                StructureTooltip.lines(junction, twoPlates, false, false).size(),
+                StructureTooltip.lines(junction, twoPlates, false, true).size());
+        a.isTrue("顶点项的当前归属一定出现在提示里",
+                StructureTooltip.lines(junction, twoPlates, false, false).stream()
+                        .anyMatch(line -> isBulletLineOf(line, junction.current(twoPlates))));
+
+        // --- 兜底：空列表 / 全空白一律不画
+        a.isFalse("空提示列表不画框", StructureTooltip.shouldDraw(List.of()));
+        StructureTooltip.Line blank = new StructureTooltip.Line(
+                List.of(VirtualSpec.LabelPart.of("", "   ")), "");
+        a.isFalse("只有空白行的提示不画框", StructureTooltip.shouldDraw(List.of(blank)));
+        a.isFalse("解析不出来的键不会变成裸 key",
+                StructureTooltip.resolve(VirtualSpec.LabelPart.of("no.such.key", "兜底")).contains("no.such.key"));
+
+        // --- 绘制阶段：提示必须由<b>最终 overlay 阶段</b>画，内容阶段只能排队
+        runOverlayPhaseRules(a);
+
+        log.add("   悬停提示：普通开关项 0 行（不画框），顶点项 "
+                + StructureTooltip.lines(junction, twoPlates, false, false).size() + " 行");
+    }
+
+    /**
+     * 提示的<b>绘制阶段</b>规则（{@link PlacerOverlay} 的状态机）。
+     *
+     * <p>这一条对应的是「tooltip 被遮挡」那个缺陷：提示框本身有内容，但画在了结构区行循环里，
+     * 于是后面画的材质区、滚动条、搜索框压在上面。修法是把它排进队列、留到整帧最后画。
+     * 这里把「哪一步能排队、哪一步能取走」变成可执行的断言，而不是靠读代码确认。
+     */
+    private static void runOverlayPhaseRules(Assertions a) {
+        PlacerOverlay<String> overlay = new PlacerOverlay<>();
+        a.equal("初始状态是 IDLE", PlacerOverlay.Phase.IDLE, overlay.phase());
+        a.isFalse("IDLE 阶段不能排队", overlay.queue("提示"));
+        a.equal("IDLE 阶段取不到东西", List.of(), overlay.takeForOverlay());
+
+        overlay.beginContent();
+        a.equal("beginContent 之后是 CONTENT 阶段", PlacerOverlay.Phase.CONTENT, overlay.phase());
+        a.isTrue("内容阶段可以排队", overlay.queue("顶点提示"));
+        a.isTrue("内容阶段不能取走（必须等到 overlay）", overlay.takeForOverlay().isEmpty());
+        overlay.queue("第二条");
+
+        overlay.beginOverlay();
+        a.equal("beginOverlay 之后是 OVERLAY 阶段", PlacerOverlay.Phase.OVERLAY, overlay.phase());
+        List<String> drawn = overlay.takeForOverlay();
+        a.equal("overlay 阶段取到本帧排队的全部提示", List.of("顶点提示", "第二条"), drawn);
+        a.equal("取走即清空，不会重复画", List.of(), overlay.takeForOverlay());
+        a.isFalse("overlay 阶段不再接受排队", overlay.queue("迟到"));
+        a.isTrue("队里已经是空的", overlay.isEmpty());
+
+        overlay.endFrame();
+        a.equal("endFrame 回到 IDLE", PlacerOverlay.Phase.IDLE, overlay.phase());
+
+        // 上一帧的残留不许带到下一帧
+        overlay.beginContent();
+        overlay.queue("上一帧的提示");
+        overlay.endFrame();
+        overlay.beginContent();
+        a.isTrue("新一帧开始会清掉上一帧的残留", overlay.isEmpty());
+        overlay.beginOverlay();
+        a.equal("残留被清掉之后 overlay 什么都不画", List.of(), overlay.takeForOverlay());
+        overlay.endFrame();
+    }
+
+    /** 这一行是不是「行首符号 + 某个候选项的文本段」（提示里的候选 / 当前两栏都长这样）。 */
+    private static boolean isBulletLineOf(StructureTooltip.Line line, VirtualSpec.Option option) {
+        List<VirtualSpec.LabelPart> parts = line.parts();
+        if (parts.size() != option.label().size() + 1) {
+            return false;
+        }
+        if (!StructureTooltip.BULLET.equals(parts.get(0))) {
+            return false;
+        }
+        return parts.subList(1, parts.size()).equals(option.label());
+    }
+
+    /** 一段显示文本的兜底文本拼起来（服务端没有中文语言文件，用它代表默认语言的显示效果）。 */
+    private static String joinFallback(List<VirtualSpec.LabelPart> parts) {
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < parts.size(); i++) {
+            if (i > 0) {
+                out.append("·");
+            }
+            out.append(parts.get(i).labelText());
+        }
+        return out.toString();
+    }
+
+    // ---------------------------------------------------------------- 旧配置兼容
+
+    /** 旧配置（掩码 / 名字两种写法）读进来之后必须能正常编辑、保存后写回新格式。 */
+    private static void runStructureCompat(Assertions a, List<String> log) {
+        BlockState railState = ModBlock.COPYCAT_GUARDRAIL.getDefaultState();
+        CopycatPlacementAdapter rail = PlacementAdapters.resolve(ModBlock.COPYCAT_GUARDRAIL).orElseThrow();
+        BlockState boardState = ModBlock.LAYERED_COPYCAT_BOARD.getDefaultState();
+        CopycatPlacementAdapter board = PlacementAdapters.resolve(ModBlock.LAYERED_COPYCAT_BOARD).orElseThrow();
+
+        // --- 旧护栏配置：只有 faces 掩码，没有 corners 键
+        PlacementConfig oldRail = PlacementConfig.of(railState)
+                .withStructure(GuardrailCopycatAdapter.STRUCTURE_FACES, "0x9");
+        PlacementConfig fromNbt = PlacementConfig.fromNbt(oldRail.toNbt());
+        a.equal("旧护栏配置：面掩码读回不变", 0x9, GuardrailCopycatAdapter.facesMask(fromNbt));
+        a.equal("旧护栏配置：缺角柱键 → 四个角柱都在", GuardrailCopycatAdapter.DEFAULT_CORNERS,
+                GuardrailCopycatAdapter.cornersMask(fromNbt));
+        a.isTrue("旧护栏配置能通过结构校验",
+                rail.validateStructure(rail.stateFrom(fromNbt.state(), fromNbt), fromNbt) == null);
+        a.equal("旧护栏配置能算出结构项（北 + 西 → 东北 / 西北 / 西南角柱）",
+                List.of("face.north", "face.east", "face.south", "face.west",
+                        "corner.northeast", "corner.northwest", "corner.southwest"),
+                specKeys(rail, fromNbt));
+        // 界面全量列出 8 个槽；「这一份结构里真的有几何」的是下面这 5 个。
+        a.equal("旧护栏配置的材质区仍然全量 8 个槽",
+                8, guiSlotKeys(rail, railState, fromNbt).size());
+        a.equal("旧护栏配置里有效的材质槽（顺序为先横梁后角柱）",
+                List.of("north_row", "west_row", "15_0", "0_15", "0_0"),
+                activeSlotKeys(rail, railState, fromNbt));
+        // 在旧配置上做一次界面操作 → 写回新格式（含角柱键）
+        PlacementConfig editedOld = GuardrailCopycatAdapter.withCorner(fromNbt,
+                GuardrailCopycatAdapter.Corner.NORTHWEST, false);
+        a.notNull("编辑旧配置之后角柱键真的写进了结构字段",
+                editedOld.structure(GuardrailCopycatAdapter.STRUCTURE_CORNERS));
+        PlacementConfig editedRoundTrip = PlacementConfig.fromNbt(editedOld.toNbt());
+        a.equal("编辑旧配置之后 NBT 往返一致", editedOld, editedRoundTrip);
+        a.isFalse("写回之后那一位是「关」",
+                GuardrailCopycatAdapter.cornerEnabled(editedRoundTrip,
+                        GuardrailCopycatAdapter.Corner.NORTHWEST));
+
+        // --- 旧护栏配置：名字形式
+        PlacementConfig namedRail = PlacementConfig.of(railState)
+                .withStructure(GuardrailCopycatAdapter.STRUCTURE_FACES, "north+east")
+                .withStructure(GuardrailCopycatAdapter.STRUCTURE_CORNERS, "none");
+        a.equal("名字形式 north+east → 两个面",
+                CopycatGuardrailBlock.bit(Direction.NORTH) | CopycatGuardrailBlock.bit(Direction.EAST),
+                GuardrailCopycatAdapter.facesMask(namedRail));
+        a.equal("名字形式 none → 四个角柱都关", 0, GuardrailCopycatAdapter.cornersMask(namedRail));
+        a.isTrue("名字形式的旧配置能通过结构校验",
+                rail.validateStructure(rail.stateFrom(namedRail.state(), namedRail), namedRail) == null);
+        a.equal("名字形式的旧配置里角柱关掉 → 有效的只剩两根横梁",
+                List.of("north_row", "east_row"), activeSlotKeys(rail, railState, namedRail));
+        a.equal("名字形式的旧配置里材质区仍然是全量 8 个槽（角柱置灰）",
+                8, guiSlotKeys(rail, railState, namedRail).size());
+
+        // --- 旧薄板配置：occupancy / windows 掩码
+        PlacementConfig oldBoard = PlacementConfig.of(boardState)
+                .withStructure(LayeredBoardCopycatAdapter.STRUCTURE_OCCUPANCY, "0x3")
+                .withStructure(LayeredBoardCopycatAdapter.STRUCTURE_WINDOWS, "0x1");
+        PlacementConfig boardNbt = PlacementConfig.fromNbt(oldBoard.toNbt());
+        a.equal("旧薄板配置：占用掩码读回不变", 3, LayeredBoardCopycatAdapter.occupancy(boardNbt));
+        a.equal("旧薄板配置：窗掩码读回不变", 1, LayeredBoardCopycatAdapter.windows(boardNbt));
+        a.isTrue("旧薄板配置能通过结构校验",
+                board.validateStructure(board.stateFrom(boardNbt.state(), boardNbt), boardNbt) == null);
+        a.equal("旧薄板配置能算出 10 个有效区域槽 + 1 个有效窗槽",
+                11, activeSlotKeys(board, boardState, boardNbt).size());
+        a.equal("旧薄板配置的材质区仍然全量 66 个槽（无效的置灰）",
+                66, guiSlotKeys(board, boardState, boardNbt).size());
+        a.isTrue("旧薄板配置能算出结构项",
+                !board.virtualSpecs(boardNbt).isEmpty());
+        // 旧薄板的「占用组合」名字形式
+        PlacementConfig namedBoard = PlacementConfig.of(boardState)
+                .withStructure(LayeredBoardCopycatAdapter.STRUCTURE_OCCUPANCY, "outer_only")
+                .withStructure(LayeredBoardCopycatAdapter.STRUCTURE_WINDOWS, "all");
+        a.equal("名字形式 outer_only → 六面外层", LayeredBoardCopycatAdapter.outerOnly(),
+                LayeredBoardCopycatAdapter.occupancy(namedBoard));
+        a.equal("名字形式 all → 六面都开窗", (1 << 6) - 1,
+                LayeredBoardCopycatAdapter.windows(namedBoard));
+        a.equal("名字形式下每个方向都有开窗项", 6,
+                (int) specKeys(board, namedBoard).stream().filter(k -> k.startsWith("window.")).count());
+        // 在旧配置上编辑 → NBT 往返
+        PlacementConfig boardEdited = LayeredBoardCopycatAdapter.withSlot(namedBoard,
+                FaceDir.UP, BoardLayer.INNER, false);
+        a.equal("编辑名字形式的旧配置之后 NBT 往返一致",
+                boardEdited, PlacementConfig.fromNbt(boardEdited.toNbt()));
+
+        // --- 不影响其它 copycat 方块
+        Block createPanel = Registries.BLOCK.get(new Identifier("create:copycat_panel"));
+        if (createPanel != net.minecraft.block.Blocks.AIR) {
+            CopycatPlacementAdapter create = PlacementAdapters.resolve(createPanel).orElseThrow();
+            a.isTrue("Create 伪装板没有任何结构项（不受本轮改动影响）",
+                    create.virtualSpecs(PlacementConfig.EMPTY).isEmpty());
+            // 旧接口 listInactiveSlots() 已经取消：「是否列出无效槽」不再是 adapter 的差异，
+            // 而是界面的统一策略（全量显示 + 置灰）。这里改成验「槽总数 == 界面列出的总数」——
+            // 等价于旧断言想表达的「不存在的槽也在列表里」。
+            List<AdapterSlot> createSlots = create.slots(createPanel.getDefaultState(),
+                    create.defaultConfig(createPanel));
+            a.isTrue("Create 伪装板没有任何结构项，槽位照旧全部列出",
+                    createSlots.stream().noneMatch(AdapterSlot::structure) || !createSlots.isEmpty());
+            a.equal("Create 伪装板界面列出的槽 = adapter 给出的全部槽",
+                    createSlots.size(), guiSlotKeys(create, createPanel.getDefaultState(),
+                            create.defaultConfig(createPanel)).size());
+        }
+        a.isTrue("没有结构项的 adapter 用默认实现",
+                PlacementAdapters.all().stream()
+                        .filter(adapter -> !adapter.name().contains("maris-decoration"))
+                        .allMatch(adapter -> adapter.virtualSpecs(PlacementConfig.EMPTY).isEmpty()));
+        log.add("   旧配置兼容：掩码形式与名字形式都能读出等价的逐项结构");
+    }
+
+    // ---------------------------------------------------------------- 结构项辅助
+
+    /** adapter 在当前配置下会给出的结构项的 key（顺序即界面顺序）。 */
+    private static List<String> specKeys(CopycatPlacementAdapter adapter, PlacementConfig config) {
+        List<String> keys = new ArrayList<>();
+        for (VirtualSpec spec : adapter.virtualSpecs(config)) {
+            keys.add(spec.key());
+        }
+        return keys;
+    }
+
+    /**
+     * 某个结构下界面会列出的材质槽 key。
+     *
+     * <p>界面是<b>全量显示 + 无效项置灰</b>（与 Copycats+ 的伪装薄板在这个 GUI 里的表现对齐），
+     * 所以这里就是 {@code adapter.slots(...)} 的全部 key，不做任何过滤。
+     * 「哪些槽当前有效」由 {@link #activeSlotKeys} 回答，两者之差就是界面要置灰的那些。
+     */
+    private static List<String> guiSlotKeys(CopycatPlacementAdapter adapter, BlockState state,
+                                            PlacementConfig config) {
+        List<String> keys = new ArrayList<>();
+        for (AdapterSlot slot : adapter.slots(state, config)) {
+            keys.add(slot.key());
+        }
+        return keys;
+    }
+
+    /**
+     * 某个结构下<b>真正有效</b>的材质槽 key（界面把它们画成正常亮色，其余置灰）。
+     *
+     * <p>判据是 {@link AdapterSlot#structure()}，与渲染 / 放置用的是同一个标志。
+     */
+    private static List<String> activeSlotKeys(CopycatPlacementAdapter adapter, BlockState state,
+                                               PlacementConfig config) {
+        List<String> keys = new ArrayList<>();
+        for (AdapterSlot slot : adapter.slots(state, config)) {
+            if (slot.structure()) {
+                keys.add(slot.key());
+            }
+        }
+        return keys;
+    }
+
+    /**
+     * 当前配置下界面会给出的<b>顶点材质归属</b>结构项（corner 级 junction）。
+     *
+     * <p>GUI 只暴露角点：棱 / 面 / 中间的 junction 仍然在后端参与渲染与细工凿交互，
+     * 但不生成玩家可编辑的 StructureSpec。所以这里按 key 前缀筛出来的必须是全集的<b>子集</b>，
+     * 每一条又都对应一个 {@code corner() == true} 的几何 junction。
+     */
+    private static List<VirtualSpec> junctionSpecs(CopycatPlacementAdapter adapter, PlacementConfig config) {
+        List<VirtualSpec> specs = new ArrayList<>();
+        for (VirtualSpec spec : adapter.virtualSpecs(config)) {
+            if (spec.key().startsWith(LayeredBoardCopycatAdapter.JUNCTION_PREFIX)) {
+                specs.add(spec);
+            }
+        }
+        return specs;
+    }
+
+    /** 这一项的 key 是不是「顶点（角点）材质归属」。 */
+    private static boolean isVertexSpec(VirtualSpec spec) {
+        return spec.key().startsWith(LayeredBoardCopycatAdapter.JUNCTION_PREFIX);
+    }
+
+    /** 结构项用到的样例配置：默认 / 全开 / 只开一块，保证覆盖到所有动态分支。 */
+    private static List<PlacementConfig> structureSampleConfigs(Block block, CopycatPlacementAdapter adapter) {
+        List<PlacementConfig> configs = new ArrayList<>();
+        PlacementConfig defaults = adapter.defaultConfig(block);
+        configs.add(defaults);
+        if (block == ModBlock.COPYCAT_GUARDRAIL) {
+            configs.add(GuardrailCopycatAdapter.withFaces(defaults, 0xF));
+            configs.add(GuardrailCopycatAdapter.withFaces(defaults, 0x0));
+        } else if (block == ModBlock.LAYERED_COPYCAT_BOARD) {
+            int all = LayeredBoardSlots.FULL_OCCUPANCY;
+            configs.add(LayeredBoardCopycatAdapter.withWindows(
+                    LayeredBoardCopycatAdapter.withOccupancy(defaults, all), (1 << 6) - 1));
+            configs.add(LayeredBoardCopycatAdapter.withOccupancy(defaults, 0));
+        }
+        return configs;
+    }
+
+    /** 全部结构项的标题翻译键（去重）。 */
+    private static List<String> structureLabelKeys() {
+        java.util.Set<String> keys = new java.util.LinkedHashSet<>();
+        forEachStructureLabel(false, keys::add);
+        return List.copyOf(keys);
+    }
+
+    /** 全部结构项候选项的翻译键（去重）。 */
+    private static List<String> structureOptionLabelKeys() {
+        java.util.Set<String> keys = new java.util.LinkedHashSet<>();
+        forEachStructureLabel(true, keys::add);
+        return List.copyOf(keys);
+    }
+
+    private static void forEachStructureLabel(boolean options, java.util.function.Consumer<String> consumer) {
+        for (Block block : List.of(ModBlock.COPYCAT_GUARDRAIL, ModBlock.LAYERED_COPYCAT_BOARD)) {
+            CopycatPlacementAdapter adapter = PlacementAdapters.resolve(block).orElseThrow();
+            for (PlacementConfig config : structureSampleConfigs(block, adapter)) {
+                for (VirtualSpec spec : adapter.virtualSpecs(config)) {
+                    if (!options) {
+                        for (VirtualSpec.LabelPart part : spec.label()) {
+                            consumer.accept(part.labelKey());
+                        }
+                    } else {
+                        for (VirtualSpec.Option option : spec.options()) {
+                            for (VirtualSpec.LabelPart part : option.label()) {
+                                consumer.accept(part.labelKey());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // ================================================================ 18. 翻译资源
 
     /**
@@ -2311,11 +3304,11 @@ public final class PlacementSelfTest {
                     "item.maris-decoration.copycat_placer.material.hint",
                     "item.maris-decoration.copycat_placer.option.on",
                     "item.maris-decoration.copycat_placer.option.off",
-                    "item.maris-decoration.copycat_placer.virtual.guardrail_faces",
-                    "item.maris-decoration.copycat_placer.virtual.layered_occupancy",
-                    "item.maris-decoration.copycat_placer.virtual.layered_windows",
-                    "item.maris-decoration.copycat_placer.occupancy.all",
-                    "item.maris-decoration.copycat_placer.window.none",
+                    // 顶点归属的悬停提示：这一句是玩家理解「顶点材质归属」这一项的唯一入口，
+                    // 上一轮就是漏了它（界面上只显示候选边名，玩家不知道点它是干什么的）。
+                    "item.maris-decoration.copycat_placer.tooltip.vertex",
+                    "item.maris-decoration.copycat_placer.tooltip.candidates",
+                    "item.maris-decoration.copycat_placer.tooltip.current",
                     "maris-decoration.copycat_placer.slot.create_copycat",
                     "maris-decoration.copycat_placer.slot.guardrail.north_row",
                     "maris-decoration.copycat_placer.slot.layered_board.up.outer.body",
@@ -2344,15 +3337,30 @@ public final class PlacementSelfTest {
             }
             a.equal(code + " 包含全部 " + required.size() + " 个必需词条", List.of(), missing);
 
-            // virtual property 的候选：朝向 16 个
-            int candidates = 0;
-            for (int mask = 0; mask < 16; mask++) {
-                if (text.contains("\"item.maris-decoration.copycat_placer.guardrail_faces."
-                        + Integer.toHexString(mask) + "\"")) {
-                    candidates++;
+            // 结构项（护栏的面 / 角柱、薄板的层 / 开窗）的每一个翻译键都必须真的在打包语言文件里。
+            // 这条断言是自维护的：adapter 新增一项却没加翻译，这里立刻失败——
+            // 界面上的表现就是「一行裸 key」，而那正是这一轮要消灭的东西。
+            List<String> structureKeys = structureLabelKeys();
+            List<String> missingStructure = new ArrayList<>();
+            for (String key : structureKeys) {
+                if (!text.contains("\"" + key + "\"")) {
+                    missingStructure.add(key);
                 }
             }
-            a.equal(code + " 有 16 个朝向候选", 16, candidates);
+            a.equal(code + " 结构项的 " + structureKeys.size() + " 个翻译键全部存在",
+                    List.of(), missingStructure);
+            log.add("   " + code + "：结构项翻译键 " + structureKeys.size() + " 个");
+
+            // 每一个候选项（含「开 / 关」）的翻译键同样必须存在
+            List<String> optionKeys = structureOptionLabelKeys();
+            List<String> missingOptions = new ArrayList<>();
+            for (String key : optionKeys) {
+                if (!text.contains("\"" + key + "\"")) {
+                    missingOptions.add(key);
+                }
+            }
+            a.equal(code + " 结构项候选项的 " + optionKeys.size() + " 个翻译键全部存在",
+                    List.of(), missingOptions);
         }
 
         // 物品模型与贴图也顺带确认（漏了同样只在游戏里才看得出来）

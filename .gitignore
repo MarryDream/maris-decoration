@@ -1,6 +1,8 @@
 # gradle
 
 .gradle/
+# 本机沙箱下的 GRADLE_USER_HOME（C: 的 ~/.gradle 在沙箱里不可写，把缓存整体复制到这里使用）
+.gradle-home/
 build/
 out/
 classes/

@@ -58,6 +58,22 @@ public final class PlacementConfig {
         public static final String LAYERED_BOARD_WINDOWS = "windows";
         /** 伪装护栏：四个方向的存在掩码（{@code 0..15}，位序见 CopycatGuardrailBlock#bit）。 */
         public static final String GUARDRAIL_FACES = "guardrail_faces";
+        /**
+         * 伪装护栏：四个角柱的存在掩码（{@code 0..15}）。
+         *
+         * <p>位序见 {@code GuardrailCopycatAdapter.Corner}：东北、西北、东南、西南。
+         * 缺失时按「四个角柱都在」处理——那是护栏原本（还没有这个开关时）的行为，
+         * 所以旧配置读进来不会变样。
+         */
+        public static final String GUARDRAIL_CORNERS = "guardrail_corners";
+        /**
+         * 分层伪装薄板：交汇点材质归属的前缀。
+         *
+         * <p>完整键名是 {@code junction.<交汇点 identity>}，值是「这个交汇点当前采用哪个材质槽」，
+         * 槽名与方块实体的 {@code junction_owners} 逐字符一致。identity 由
+         * {@code LayeredBoardParts} 生成，随占用掩码变化会自动失效（见 {@code staleJunctionOwners}）。
+         */
+        public static final String LAYERED_BOARD_JUNCTION_PREFIX = "junction.";
 
         private Key() {
         }

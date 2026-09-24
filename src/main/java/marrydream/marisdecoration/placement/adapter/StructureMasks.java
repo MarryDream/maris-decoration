@@ -33,12 +33,56 @@ public final class StructureMasks {
      * @return 落在 {@code [0, (1 << bits) - 1]} 内的掩码
      */
     public static int read(PlacementConfig config, String key, int bits, int fallback) {
+        return read(config, key, bits, fallback, null);
+    }
+
+    /**
+     * 读一个掩码，<b>额外接受「名字」形式</b>。
+     *
+     * <p>名字形式是历史遗留：更早的界面把结构压成了组合枚举，配置里可能留下
+     * {@code outer_only}、{@code north}、{@code north+east} 这类值。这些值的语义是明确的，
+     * 所以读取时按名字表换算回等价的掩码，而不是整份配置作废。
+     *
+     * <p>解析顺序：先按数值（{@code 0x...} / 十进制），失败再按名字表逐段解析
+     * （分隔符 {@code + , | 空格}），全部段都认得才算成功。
+     * 都失败时返回 {@code fallback}，绝不抛异常。
+     *
+     * @param names 名字到位掩码的映射；返回 {@code null} 表示不认识这个名字
+     */
+    public static int read(PlacementConfig config, String key, int bits, int fallback,
+                           java.util.function.Function<String, Integer> names) {
         String raw = config.structure(key);
         if (raw == null || raw.isBlank()) {
             return clamp(fallback, bits);
         }
         Integer parsed = parse(raw);
-        return parsed == null ? clamp(fallback, bits) : clamp(parsed, bits);
+        if (parsed != null) {
+            return clamp(parsed, bits);
+        }
+        if (names == null) {
+            return clamp(fallback, bits);
+        }
+        Integer named = parseNames(raw, names);
+        return named == null ? clamp(fallback, bits) : clamp(named, bits);
+    }
+
+    /** 把 {@code north+east} / {@code outer_only} 这类名字形式换算成掩码；认不全返回 {@code null}。 */
+    private static @Nullable Integer parseNames(String raw, java.util.function.Function<String, Integer> names) {
+        String[] parts = raw.trim().toLowerCase(java.util.Locale.ROOT).split("[+,|\\s]+");
+        int mask = 0;
+        int seen = 0;
+        for (String part : parts) {
+            if (part.isBlank()) {
+                continue;
+            }
+            Integer bits = names.apply(part);
+            if (bits == null) {
+                return null;
+            }
+            mask |= bits;
+            seen++;
+        }
+        return seen == 0 ? null : mask;
     }
 
     /** 把掩码写成规范字符串（十六进制、带 {@code 0x} 前缀）。 */

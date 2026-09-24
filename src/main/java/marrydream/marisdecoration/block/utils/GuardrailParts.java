@@ -230,7 +230,17 @@ public final class GuardrailParts {
      * 与「这个槽在几何上存不存在」无关——被藏起来的柱子照样应该能贴材质。
      */
     public static List<String> visibleKeys(BlockState state) {
-        return new ArrayList<>(boxesByKey(state, Set.of()).keySet());
+        return visibleKeys(state, Set.of());
+    }
+
+    /**
+     * 同上，但把 {@code hiddenColumns} 里的角柱也算进去。
+     *
+     * <p>给「伪装放置器」用：它在结构配置里可以关掉某几根角柱（关掉的角柱不画、也没有材质槽），
+     * 判据必须与渲染完全一致，所以这里直接复用 {@link #boxesByKey}。
+     */
+    public static List<String> visibleKeys(BlockState state, Set<String> hiddenColumns) {
+        return new ArrayList<>(boxesByKey(state, hiddenColumns).keySet());
     }
 
     /** 某个方向在本状态下实际可见的几何；{@code hiddenColumns} 里的角柱不参与。 */

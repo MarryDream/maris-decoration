@@ -23,6 +23,7 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -258,6 +259,27 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
         if (!hiddenColumns.add(columnKey)) {
             return false;
         }
+        sync();
+        return true;
+    }
+
+    /**
+     * 把隐藏集合整体替换成给定的角点（伪装放置器按结构配置写一次）。
+     *
+     * <p>与 {@link #hideColumn} / {@link #showAllColumns} 的区别只是「一次写一份完整状态」：
+     * 放置器手上就有一份「哪几个角柱不要」的完整答案，逐根加/删会在旧的隐藏状态上叠加，
+     * 结果是「上一次留下的隐藏柱」与这一次的混在一起。数据本身还是同一份 {@code hiddenColumns}，
+     * 渲染、材质、细工凿的行为都不变。
+     *
+     * @return 状态是否真的发生了变化
+     */
+    public boolean setHiddenColumns(Collection<String> columns) {
+        Set<String> next = columns == null || columns.isEmpty() ? Set.of() : Set.copyOf(columns);
+        if (hiddenColumns.equals(next)) {
+            return false;
+        }
+        hiddenColumns.clear();
+        hiddenColumns.addAll(next);
         sync();
         return true;
     }

@@ -207,6 +207,10 @@ public class PlacerScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        // 一帧开始：进入内容阶段。悬停提示只能在这一阶段「排队」，不会立刻画出来——
+        // 见 render 末尾的 overlay 阶段，以及 PlacerOverlay 里那套可自检的阶段规则。
+        overlay.beginContent();
+
         // 行表每帧重建：内容会随「选了哪个方块」「配置怎么改」随时变化，重建成本只有几十个
         // record 对象，比维护一套失效标记便宜得多，也不会出现忘记刷新
         rebuildRows();
@@ -257,7 +261,31 @@ public class PlacerScreen extends Screen {
 
         // 搜索框交给原版控件系统画
         super.render(context, mouseX, mouseY, delta);
+
+        // ---- overlay 阶段：内容全部画完之后，才画悬停提示。
+        //
+        // 这里是整个 render 的最后一步，并且此时所有 scissor 都已经关闭
+        // （每个内容方法自己成对 enable / disable，overlay 之前没有任何一个还开着）。
+        // 提示框因此是整帧最上层：不会被材质区、滚动条、搜索框盖住，也不受左右栏视口裁剪。
+        // 位置避让屏幕边缘由原版的 HoveredTooltipPositioner 负责。
+        overlay.beginOverlay();
+        for (TooltipRequest request : overlay.takeForOverlay()) {
+            context.drawTooltip(textRenderer, request.lines(), mouseX, mouseY);
+        }
+        overlay.endFrame();
     }
+
+    /**
+     * 一条排队等待 overlay 阶段绘制的提示。
+     *
+     * <p>文字在内容阶段就已经解析好（{@link StructureTooltip#resolve} + 过滤空白行），
+     * 排队时只带「已经能画的东西」，排空了的请求根本不会入队。
+     */
+    private record TooltipRequest(List<Text> lines) {
+    }
+
+    /** 本帧的 overlay 队列。规则见 {@link PlacerOverlay}，自检里逐条验过。 */
+    private final PlacerOverlay<TooltipRequest> overlay = new PlacerOverlay<>();
 
     // ---- 左栏：方块列表
     private void renderBlockList(DrawContext context, int mouseX, int mouseY) {
@@ -303,45 +331,69 @@ public class PlacerScreen extends Screen {
                     x + 2, viewport.y() + 2, COLOR_DIM);
         }
         context.disableScissor();
-        // 悬停时把完整注册名显示出来——列表里那行是省略过的
+        // 悬停时把完整注册名显示出来——列表里那行是省略过的。
+        // 只是「排队」：真正的绘制统一发生在整帧末尾的 overlay 阶段（见 render 的注释），
+        // 否则后画的右栏内容会盖住提示框。
         PlacerEditState.Entry hoveredEntry = hoveredEntry(mouseX, mouseY);
         if (hoveredEntry != null) {
-            context.drawTooltip(textRenderer, Text.literal(hoveredEntry.id().toString()), mouseX, mouseY);
+            queueTooltip(List.of(Text.literal(hoveredEntry.id().toString())));
         }
     }
 
     // ---- virtual property 的显示映射
 
+    /** 结构项标题里各段之间的分隔符（与材质槽的写法一致，例如「底面·外层·左下角」）。 */
+    private static final String LABEL_SEPARATOR = "·";
+
     /**
-     * virtual property 的行标题。
+     * 一行结构项的标题：把它的若干段文本逐个解析（翻译优先、兜底文本其次）再拼起来。
      *
-     * <p>走翻译键 + {@link VirtualSpec#labelText()} 兜底。<b>绝不</b>用
-     * {@link VirtualSpec#key()}：那是写进配置/NBT 的内部键名（{@code guardrail_faces}、
-     * {@code occupancy}），只在存档与配置里出现，不该漏到界面上。
+     * <p>分隔符是 {@link #LABEL_SEPARATOR}：标题描述的是「这一项是什么」
+     * （面 / 层 / 角 / 交点），不是「有哪些候选」——候选来源在悬停提示里，见
+     * {@link StructureTooltip}。
+     *
+     * <p><b>绝不</b>使用 {@link VirtualSpec#key()} 或 {@link VirtualSpec.Option#id()}：
+     * 那是写进配置 / NBT 的内部标识（{@code occupancy}、{@code junction.2:0+…}），
+     * 界面上永远不显示。
      */
-    private Text virtualLabelOf(VirtualSpec spec) {
-        return labelOf(spec.labelKey(), spec.labelText());
+    private String virtualLabelText(VirtualSpec spec) {
+        return joinParts(spec.label(), LABEL_SEPARATOR);
     }
 
     /**
-     * virtual property 的取值显示。
+     * 一行结构项的当前取值（纯文本）。
      *
-     * <p><b>这里是「配置里的原始整数 → 可读标签」的唯一映射点。</b>
-     * 配置里存的是裸整数（{@code guardrail_faces=0x3}、{@code occupancy=0x10}），
-     * 界面上只允许出现 {@link VirtualSpec.Option#labelText()} 自己的文本（或它的翻译）。
-     * 也就是说：{@code 0x3} 这类内部表示<b>永远不会</b>被画出来。
-     *
-     * <p>找不到匹配的 Option（旧工具 NBT 里存了一个当前候选集合里没有的值）时，显示一句
-     * 「配置值无效」而不是把原始值或十六进制掩码画出来。玩家下一次点击这个条目时
-     * {@link VirtualSpec#nextValue} 会把它归一化到第一个候选项；服务端的
-     * {@code validateStructure} 继续兜底，所以界面显示异常也不会真的放出幽灵方块。
+     * <p>取值同样只画候选项自己的文本。<b>这里是「配置里的内部值 → 可读文本」的唯一映射点。</b>
+     * 找不到匹配的候选项（旧配置里存了一个当前候选集合里没有的值）时显示「配置值无效」，
+     * 而不是把内部值 / 掩码 / 槽位码画出来；玩家下一次点击时
+     * {@link VirtualSpec#next} 会把它归一化到第一个候选项，服务端的 {@code validateStructure}
+     * 继续兜底。
      */
-    private Text virtualValueLabel(VirtualSpec spec, PlacementConfig config) {
-        if (spec.indexOfCurrent(config) < 0) {
-            return Text.translatable("item.maris-decoration.copycat_placer.screen.value_unknown");
+    private String virtualValueText(VirtualSpec spec, PlacementConfig config) {
+        VirtualSpec.Option current = spec.current(config);
+        if (current == null) {
+            return Text.translatable("item.maris-decoration.copycat_placer.screen.value_unknown").getString();
         }
-        VirtualSpec.Option option = spec.currentOption(config);
-        return labelOf(option.labelKey(), option.labelText());
+        return joinParts(current.label(), LABEL_SEPARATOR);
+    }
+
+    /**
+     * 把若干段「翻译键 + 兜底文本」解析成一段纯文本。
+     *
+     * <p>刻意返回 {@code String} 而不是拼一个 {@code MutableText}：界面上的宽度测量与绘制必须
+     * 落在<b>同一份内容</b>上。原版里 {@code MutableText.asOrderedText()} 会把重排结果缓存起来，
+     * 而 {@code append} 不会让缓存失效——「先量宽度、后追加内容」就会得到「框按新宽度画、
+     * 字形还是旧的」这种东西。直接给字符串，这条路根本不存在。
+     */
+    private String joinParts(List<VirtualSpec.LabelPart> parts, String separator) {
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < parts.size(); i++) {
+            if (i > 0) {
+                out.append(separator);
+            }
+            out.append(StructureTooltip.resolve(parts.get(i)));
+        }
+        return out.toString();
     }
 
     /**
@@ -425,6 +477,9 @@ public class PlacerScreen extends Screen {
         }
 
         int offset = rows.size();
+        VirtualSpec hoveredSpec = null;
+        boolean hoveredLabelTruncated = false;
+        boolean hoveredValueTruncated = false;
         for (int i = 0; i < virtuals.size(); i++) {
             VirtualRow row = virtuals.get(i);
             int index = offset + i;
@@ -435,14 +490,81 @@ public class PlacerScreen extends Screen {
             boolean hovered = viewport.contains(mouseX, mouseY)
                     && viewport.rowHovered(mouseY, index, LINE_HEIGHT);
             context.fill(x, y, x + width, y + LINE_HEIGHT - 1, hovered ? COLOR_HOVER : 0x00000000);
-            context.drawTextWithShadow(textRenderer,
-                    virtualLabelOf(row.spec()), x + 2, y + 2, COLOR_TEXT);
-            Text value = virtualValueLabel(row.spec(), this.state.config());
-            context.drawTextWithShadow(textRenderer, value,
-                    x + width - 4 - textRenderer.getWidth(value), y + 2, COLOR_VALUE);
+
+            // 取值靠右对齐，标题占剩下的宽度。两者都可能放不下，所以两边都过 fit，
+            // 并且**明确记下有没有真的发生截断**——悬停提示只在这两个标志为真、
+            // 或者这一项自己有候选来源时才出现（见 StructureTooltip）。
+            String fullValue = virtualValueText(row.spec(), this.state.config());
+            String shownValue = fit(fullValue, Math.max(8, width - 8 - 12));
+            int valueWidth = textRenderer.getWidth(shownValue);
+            boolean valueTruncated = !shownValue.equals(fullValue);
+
+            String fullLabel = virtualLabelText(row.spec());
+            String shownLabel = fit(fullLabel, Math.max(8, width - 8 - valueWidth));
+            boolean labelTruncated = !shownLabel.equals(fullLabel);
+
+            context.drawTextWithShadow(textRenderer, Text.literal(shownLabel), x + 2, y + 2, COLOR_TEXT);
+            context.drawTextWithShadow(textRenderer, Text.literal(shownValue),
+                    x + width - 4 - valueWidth, y + 2, COLOR_VALUE);
+            if (hovered) {
+                hoveredSpec = row.spec();
+                hoveredLabelTruncated = labelTruncated;
+                hoveredValueTruncated = valueTruncated;
+            }
         }
 
         context.disableScissor();
+
+        // 悬停提示放在裁剪之外：它要能盖住面板边缘，而且里面给的是完整信息。
+        // 只有「真的被截断」或「这一项自己有多条候选来源（顶点材质归属）」才排队；
+        // 没有可说的东西就一个框都不画——普通开关项（下面外层 / 东面内层 / 下面开窗…）走的就是这一支。
+        // 排队而不是立刻画：绘制在整帧末尾的 overlay 阶段，见 render 的注释。
+        if (hoveredSpec != null) {
+            queueStructureTooltip(hoveredSpec, hoveredLabelTruncated, hoveredValueTruncated);
+        }
+    }
+
+    /**
+     * 结构项的悬停提示：内容规则在 {@link StructureTooltip}，这里只负责把「能画的东西」排进 overlay 队列。
+     *
+     * <p>两道闸都必须过：{@link StructureTooltip#lines} 给出「这一项有什么可说的」，
+     * {@link StructureTooltip#shouldDraw} 再逐行解析一次文本；<b>空列表或全空白一律不入队</b>——
+     * 原版只要调用 {@code drawTooltip} 就会把紫黑色的提示框画出来，
+     * 于是「没什么可说的行」也会弹一个空框。
+     *
+     * <p>提示文本一律由解析好的字符串重新构造（{@code Text.literal}），不用
+     * {@code Text.empty()} 拼——理由见 {@link #joinParts} 的注释。
+     */
+    private void queueStructureTooltip(VirtualSpec spec, boolean labelTruncated, boolean valueTruncated) {
+        List<StructureTooltip.Line> lines = StructureTooltip.lines(
+                spec, this.state.config(), labelTruncated, valueTruncated);
+        if (!StructureTooltip.shouldDraw(lines)) {
+            return;
+        }
+        List<Text> rendered = new ArrayList<>(lines.size());
+        for (StructureTooltip.Line line : lines) {
+            String text = line.resolve();
+            if (!text.isBlank()) {
+                rendered.add(Text.literal(text));
+            }
+        }
+        if (rendered.isEmpty()) {
+            return;
+        }
+        queueTooltip(rendered);
+    }
+
+    /**
+     * 把一段已经解析好的提示排进 overlay 队列。
+     *
+     * <p>内容阶段之外调用会失败（返回 false）——那是代码放错阶段的信号，
+     * 由 {@link PlacerOverlay} 的阶段规则挡住，自检里也验了这条。
+     */
+    private void queueTooltip(List<Text> lines) {
+        if (lines == null || lines.isEmpty()) {
+            return;
+        }
+        overlay.queue(new TooltipRequest(List.copyOf(lines)));
     }
 
     // ---- 右栏下：材质
@@ -557,8 +679,9 @@ public class PlacerScreen extends Screen {
         int virtualIndex = index - propertyRows.size();
         if (virtualIndex >= 0 && virtualIndex < virtualRows.size()) {
             VirtualSpec spec = virtualRows.get(virtualIndex).spec();
-            // 取值切换：currentIndex 找不到当前原始值时从下标 0 开始，坏配置点一下即可回到合法候选
-            this.state.update(spec.with(this.state.config(), spec.nextValue(this.state.config())));
+            // 取值切换：当前值不在候选里时 next() 会归一化到第一个候选，
+            // 所以一份坏配置点一下就能回到合法状态。
+            this.state.update(spec.with(this.state.config(), spec.next(this.state.config())));
             return true;
         }
         return false;
@@ -639,12 +762,18 @@ public class PlacerScreen extends Screen {
         for (PropertySpec spec : visibleProperties(display)) {
             propertyRows.add(new PropertyRow(spec));
         }
-        for (VirtualSpec spec : adapter.virtualSpecs()) {
+        PlacementConfig config = state.config();
+        // 结构项由 adapter 按当前配置算出来：它只返回此刻真正存在的那几项
+        // （角柱 / 开窗 / 交汇点的动态展开全在那一层，GUI 不认识这些规则）。
+        for (VirtualSpec spec : adapter.virtualSpecs(config)) {
             virtualRows.add(new VirtualRow(spec));
         }
 
-        PlacementConfig config = state.config();
         for (AdapterSlot slot : adapter.slots(display, config)) {
+            // 材质区一律「全量显示 + 无效项置灰」，与本 GUI 里 Copycats+ 伪装薄板（copycat_board）
+            // 的展示方式一致：{@code structure} 为真的槽正常显示，为假的槽仍然列出来、只是压暗，
+            // 并且照样能点进去预先配材质（点击逻辑不区分有效 / 无效）。
+            // 放置语义不受影响：真正生效的仍然只有有效槽（见 PlacementService 的预演与 adapter.apply）。
             materialRows.add(new MaterialRow(slot.key(), slot.labelKey(), slot.labelText(),
                     slot.structure(), slot.hasMaterial(), slot.material()));
         }
@@ -687,7 +816,7 @@ public class PlacerScreen extends Screen {
         CopycatPlacementAdapter adapter = state.adapter();
         java.util.Set<String> managed = new java.util.HashSet<>();
         if (adapter != null) {
-            for (VirtualSpec spec : adapter.virtualSpecs()) {
+            for (VirtualSpec spec : adapter.virtualSpecs(state.config())) {
                 managed.addAll(spec.managedProperties());
             }
         }

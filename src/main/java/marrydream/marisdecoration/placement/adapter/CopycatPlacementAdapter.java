@@ -86,19 +86,6 @@ public interface CopycatPlacementAdapter {
     List<AdapterSlot> slots(BlockState state, PlacementConfig config);
 
     /**
-     * 这个方块的「virtual property」清单：不在方块状态里、但玩家需要配置的结构属性
-     * （分层薄板的占用/窗、护栏的四向掩码…）。
-     *
-     * <p>默认没有。有方块实体级结构信息的 adapter 覆写它，GUI 因此不需要认识任何具体方块类型。
-     *
-     * <p>返回的 spec 通过 {@link VirtualSpec#managedProperties()} 声明它接管了哪些方块状态属性；
-     * GUI 会把那些属性从「普通属性」列表里隐藏，避免同一个结构出现两套编辑入口。
-     */
-    default List<VirtualSpec> virtualSpecs() {
-        return VirtualSpec.none();
-    }
-
-    /**
      * config 自己的方块状态——GUI 显示属性、点击修改、NBT 保存、最终放置<b>全部</b>以它为准。
      *
      * <p>默认实现只做一件事：把 {@link #stateFrom} 的结果拿来用。对护栏这种「结构属性就在方块
@@ -143,6 +130,20 @@ public interface CopycatPlacementAdapter {
      */
     default @Nullable String validateStructure(BlockState state, PlacementConfig config) {
         return null;
+    }
+
+    /**
+     * 这个 adapter 的 virtual property（结构项），<b>只包含当前配置下真正存在的那些</b>。
+     *
+     * <p>参数是当前配置而不是没有参数：像「东北角柱只在与它相邻的两个面之一存在时才有意义」
+     * 「某个方向没有板就没有开窗项」「交汇点只在候选 ≥ 2 条边时才出现」这类<b>动态展开</b>，
+     * 只有 adapter 拿到配置才算得出来，GUI 不该知道这些规则。
+     *
+     * <p>被隐藏的项只是没被返回，配置里对应的值<b>原样保留</b>——
+     * 「隐藏之后再出现」不会重置玩家之前的选择。
+     */
+    default List<VirtualSpec> virtualSpecs(PlacementConfig config) {
+        return VirtualSpec.none();
     }
 
     /**

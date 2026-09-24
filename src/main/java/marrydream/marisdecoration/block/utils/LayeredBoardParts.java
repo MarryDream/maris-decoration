@@ -7,6 +7,7 @@ import marrydream.marisdecoration.block.utils.LayeredBoardSlots.FaceDir;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.Vec3i;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.util.shape.VoxelShapes;
 import org.jetbrains.annotations.Nullable;
@@ -16,6 +17,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -487,8 +489,12 @@ public final class LayeredBoardParts {
      *
      * <p>{@code candidates} 按槽名排序，循环顺序与遍历顺序无关；{@code key} 是写回 override 用的
      * 稳定 identity，两种来源各自独立、互不串味。
+     *
+     * <p>{@code cell} 是这个交汇点在方块内的<b>代表格</b>（0..15 的局部坐标）。它只用于显示：
+     * 界面要给它起一个「这是哪个交点」的名字，而名字只能来自物理位置——同一组面可能对应好几个
+     * 不同的交点，用候选列表拼名字既太长又会重名。它不参与任何几何判定，候选与归属的计算一个字没变。
      */
-    public record Junction( String key, List<Slot> candidates, Slot shown, boolean corner ) {
+    public record Junction( String key, List<Slot> candidates, Slot shown, boolean corner, Vec3i cell ) {
         /** 当前显示的那条边在候选里的位置。 */
         public int indexOfShown( ) {
             for ( int i = 0; i < candidates.size(); i++ ) {
@@ -1025,12 +1031,16 @@ public final class LayeredBoardParts {
         private final String[] keys;
         private final int[][] cells;
         private final int[][] candidates;
+        /** 每一项是不是「角交汇」（多条 run 在同一个 1px 位置相接）。 */
+        private final boolean[] corners;
         private final Map<String, Integer> index;
 
-        JunctionTables( String[] keys, int[][] cells, int[][] candidates, Map<String, Integer> index ) {
+        JunctionTables( String[] keys, int[][] cells, int[][] candidates, boolean[] corners,
+                        Map<String, Integer> index ) {
             this.keys = keys;
             this.cells = cells;
             this.candidates = candidates;
+            this.corners = corners;
             this.index = index;
         }
 
@@ -1221,6 +1231,7 @@ public final class LayeredBoardParts {
         String[] keys = new String[distinct];
         int[][] cells = new int[distinct][];
         int[][] candidates = new int[distinct][];
+        boolean[] cornerFlags = new boolean[distinct];
         Map<String, Integer> index = new java.util.HashMap<>( Math.max( 4, distinct * 2 ) );
         for ( int i = 0; i < distinct; i++ ) {
             int[] candidateCodes = candidateLists[i].toArray( );
@@ -1229,9 +1240,10 @@ public final class LayeredBoardParts {
                     : junctionKeyOfCodes( candidateCodes, 0, candidateCodes.length );
             cells[i] = cellLists[i].toArray( );
             candidates[i] = candidateCodes;
+            cornerFlags[i] = corners[i];
             index.put( keys[i], i );
         }
-        return new JunctionTables( keys, cells, candidates, Map.copyOf( index ) );
+        return new JunctionTables( keys, cells, candidates, cornerFlags, Map.copyOf( index ) );
     }
 
     /** 交汇点结构身份的粗筛散列。 */
@@ -1846,6 +1858,57 @@ public final class LayeredBoardParts {
     }
 
     /**
+     * 这份结构下<b>全部有歧义的交汇点</b>，按 identity 排序。
+     *
+     * <p>与 {@link #junctionAt} 的区别只是「怎么找到它」：那边是玩家点在哪儿、这边是完整枚举。
+     * 两者读的是同一张表（{@link JunctionTables}，由 {@code topology} 惰性构建并缓存），
+     * 所以「界面上列出来的交汇点」与「细工凿点得到的交汇点」必然是同一批：
+     * <b>候选 ≥ 2 条边才会进表</b>，唯一归属的位置根本不存在于这张表里。
+     *
+     * <p>当前归属（{@code shown}）按与渲染完全相同的规则算：默认归属来自
+     * {@code topology.baseCode}，玩家 override 命中候选时覆盖它，override 失效时自动回退。
+     *
+     * <p>给「伪装放置器」的配置界面用：把每个交汇点渲染成一行「选择哪条边的材质」。
+     * 不改动 junction 语义，也不改动任何缓存。
+     */
+    public static List<Junction> junctions( int occupancy, int windows, Map<String, String> junctionOwners ) {
+        Topology topology = topology( occupancy, windows );
+        JunctionTables tables = topology.tables( );
+        List<Junction> out = new ArrayList<>( tables.keys.length );
+        for ( int i = 0; i < tables.keys.length; i++ ) {
+            int[] candidateCodes = tables.candidates[i];
+            if ( candidateCodes.length < 2 || tables.cells[i].length == 0 ) {
+                continue;
+            }
+            int cell = tables.cells[i][0];
+            int shown = topology.baseCode[cell];
+            if ( junctionOwners != null && !junctionOwners.isEmpty( ) ) {
+                shown = applyOverrideCode( candidateCodes, 0, candidateCodes.length, shown,
+                        junctionOwners, tables.keys[i] );
+            }
+            List<Slot> candidates = new ArrayList<>( candidateCodes.length );
+            for ( int code : candidateCodes ) {
+                candidates.add( slotOf( code ) );
+            }
+            out.add( new Junction( tables.keys[i], List.copyOf( candidates ), slotOf( shown ),
+                    tables.corners[i], new Vec3i( cell >> 8, ( cell >> 4 ) & 15, cell & 15 ) ) );
+        }
+        out.sort( java.util.Comparator.comparing( Junction::key ) );
+        return List.copyOf( out );
+    }
+
+    /**
+     * 这份结构下<b>真的有几何</b>的材质槽键名集合（占用 + 窗 + 交汇点归属全都算进去）。
+     *
+     * <p>给「伪装放置器」用：材质列表只列这些槽，就不再是「66 个槽无脑全列」。
+     * 判据直接复用 {@link #boxesByKey}——渲染画出来的槽与界面列出来的槽因此永远一致，
+     * 不会出现「配了材质却什么都看不见」的槽。
+     */
+    public static Set<String> materialKeys( int occupancy, int windows, Map<String, String> junctionOwners ) {
+        return Set.copyOf( boxesByKey( occupancy, windows, junctionOwners ).keySet( ) );
+    }
+
+    /**
      * 命中点所在的可交互位置；那一格没有可切换的东西（候选不足 2 条）时返回 {@code null}。
      *
      * <p>{@code shown} 已经把玩家的 override 算进去了，所以细工凿可以直接从它往后循环一位；
@@ -1875,7 +1938,7 @@ public final class LayeredBoardParts {
         String key = corner
                 ? cornerKey( out, OUT_RUNS, out[OUT_RUN_COUNT] )
                 : junctionKeyOfCodes( out, OUT_CANDIDATES, count );
-        return new Junction( key, candidates, slotOf( out[OUT_SHOWN] ), corner );
+        return new Junction( key, candidates, slotOf( out[OUT_SHOWN] ), corner, new Vec3i( x, y, z ) );
     }
 
     /**
