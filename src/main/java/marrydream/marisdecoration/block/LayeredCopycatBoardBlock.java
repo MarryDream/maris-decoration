@@ -173,6 +173,32 @@ public class LayeredCopycatBoardBlock extends Block implements BlockEntityProvid
 
     // ---------------------------------------------------------------- 形状
 
+    /**
+     * 形状来自方块实体的占用掩码，所以方块设置里必须声明 {@code dynamicShape()}。
+     *
+     * <h2>为什么这条声明是必须的（不声明会怎样）</h2>
+     * 原版给每个 {@code BlockState} 预烤了一份 {@code ShapeCache}
+     * （{@code AbstractBlock.AbstractBlockState#initShapeCache}）：它在<b>注册期</b>用
+     * {@code EmptyBlockView.INSTANCE} + {@code BlockPos.ORIGIN} 调一次 {@code getCollisionShape}
+     * 与 {@code SideShapeType.matches}，把「碰撞箱」「六个面的 isSideSolid 结果」这些值全部缓存下来。
+     * 而 {@link #shapeAt} 要靠 {@code world.getBlockEntity(pos)} 拿占用掩码——那个空视图里没有
+     * 任何方块实体，于是预烤出来的碰撞箱是<b>空的</b>，六个面的 solid 判定全是 {@code false}。
+     *
+     * <p>后果不只是「没有碰撞箱」：原版 {@code AbstractBlockState#isSideSolid}（以及
+     * {@code isSideSolidFullSquare} / {@code isFullCube} / {@code isOpaqueFullCube}）在有缓存时
+     * <b>直接返回缓存值</b>，只有缓存为 {@code null} 时才拿真实世界现算。所以修复前一块贴了完整
+     * 外层面、碰撞箱确实是整格方块的薄板，对外仍然报告「六个面都不是完整实心面」——
+     * 原版梯子 {@code LadderBlock#canPlaceOn} 的唯一判据
+     * {@code state.isSideSolidFullSquare(world, pos, side)} 因此永远为 false，梯子贴不上去。
+     *
+     * <p>{@code hasDynamicBounds()} 为真时 {@code initShapeCache} 会<b>跳过</b>整个预烤，
+     * 上面那些查询于是全部退化成「拿真实世界现算」。这是原版给「形状取决于方块实体 / 邻居」的方块
+     * 准备的正规开关（栅栏、墙、栅栏门走的就是它），不是本 mod 的补丁。
+     *
+     * <h2>代价</h2>
+     * 只是不再缓存那几个标量；几何本身仍然由 {@link LayeredBoardParts#shape(int)} 按占用掩码缓存
+     * （{@code LayeredCopycatBoardBlockEntity#shape} 还有一层实例缓存），没有重复构建形状的开销。
+     */
     @Override
     public VoxelShape getOutlineShape( BlockState state, BlockView world, BlockPos pos, ShapeContext context ) {
         return shapeAt( world, pos );
@@ -187,6 +213,9 @@ public class LayeredCopycatBoardBlock extends Block implements BlockEntityProvid
      * 按方块实体里缓存的占用掩码取箱。
      *
      * <p>窗是<b>填充</b>不是洞，所以形状只跟占用有关，不需要读 {@code windows}。
+     *
+     * <p>拿不到方块实体时返回空箱：这是「这个位置现在没有薄板」的正确表达，
+     * 也正是原版预烤缓存会看到的那个结果（所以那个结果不能被当成权威，见上面的说明）。
      */
     private static VoxelShape shapeAt( BlockView world, BlockPos pos ) {
         if ( world.getBlockEntity( pos ) instanceof LayeredCopycatBoardBlockEntity board ) {

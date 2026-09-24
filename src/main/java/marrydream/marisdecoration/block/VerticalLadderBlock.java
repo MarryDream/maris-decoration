@@ -19,6 +19,33 @@ public class VerticalLadderBlock extends LadderBlock {
         super( settings );
     }
 
+    /**
+     * 能不能挂在这里。
+     *
+     * <h2>原版判据到底是什么</h2>
+     * 原版 {@code LadderBlock#canPlaceOn} 的唯一判据是
+     * {@code state.isSideSolidFullSquare(world, pos, facing.getOpposite())}：它读的是支撑方块
+     * 在那一面上的<b>几何</b>（{@code SideShapeType.FULL} → 碰撞箱的那一面是不是完整的
+     * 16×16 方块面），跟「这个方块注册时算不算实心」毫无关系。
+     *
+     * <h2>本类原来错在哪</h2>
+     * 原来这里写的是 {@code blockState.isSolid()}。那看起来「也是实心」，实际完全是另一回事：
+     * {@code BlockState#isSolid()} 返回的是方块<b>注册期</b>用 {@code EmptyBlockView} 烤好的一个
+     * boolean（{@code AbstractBlockState#solid}），既不看你贴的是哪一个面，也看不到任何方块实体。
+     * 于是几何来自方块实体的 {@code layered_copycat_board}（乃至 Copycats+ 的伪装方块）永远得到
+     * {@code false}——钢梯挂不上去，而这跟薄板本身能不能附着没有关系。
+     *
+     * <h2>现在的写法</h2>
+     * 不再自己复刻判据，而是<b>直接委托给原版</b>：
+     * {@code super.canPlaceAt(state, world, pos)}，只在自己特有的那一条上加分支。
+     * 自己抄一遍判据迟早会与上游分叉——本类就是活例子；Create 的 {@code MetalLadderBlock}
+     * 用的也是 {@code super} 委托。这样三种支撑面（原版完整方块、Copycats+ 伪装方块、
+     * 本 mod 那个几何来自方块实体的薄板）的判定与 {@code minecraft:ladder} 逐字节一致，
+     * 不需要给薄板加任何针对梯子的特判。
+     *
+     * <p>保留本类自己的那一条：<b>上方是朝向相同的同类梯子</b>时也能挂（爬梯「接着往上长」
+     * 的语义，原版没有这个概念）。
+     */
     @Override
     public boolean canPlaceAt( BlockState state, WorldView world, BlockPos pos ) {
         // 上方块为同方向本类型方块时，可以放置
@@ -27,10 +54,11 @@ public class VerticalLadderBlock extends LadderBlock {
             return true;
         }
 
-        Direction direction = state.get( FACING );
-        // 如果前方不是空气，可以放置（getOpposite 获取相反方向）
-        BlockState blockState = world.getBlockState( pos.offset( direction.getOpposite() ) );
-        return blockState.isSolid();
+        // 其余情况一律交给原版 LadderBlock 的 canPlaceAt——那是唯一权威的附着判据，
+        // 直接 return super 而不是自己把判据抄一遍：抄一遍就会在「判据到底是什么」这件事上
+        // 与上游分叉（本类历史上就是抄成了 isSolid()，于是动态方块上永远挂不住）。
+        // Create 的 MetalLadderBlock 用的也是这个写法。
+        return super.canPlaceAt( state, world, pos );
     }
 
     // 获取放置状态

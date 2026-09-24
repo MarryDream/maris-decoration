@@ -208,7 +208,12 @@ public final class ModBlock {
     ); // 伪装护栏（可贴任意方块材质，四向可叠加）
     public static final LayeredCopycatBoardBlock LAYERED_COPYCAT_BOARD = register(
             "layered_copycat_board",
-            new LayeredCopycatBoardBlock( FabricBlockSettings.copy( STEEL_GUARDRAIL ).strength( 2.0F, 3.0F ) ),
+            // dynamicBounds()：形状来自方块实体的占用掩码，必须声明成动态形状。
+            // 否则原版会在注册期用「没有方块实体的空视图」预烤一份空碰撞箱，并让
+            // isSideSolidFullSquare 永远返回 false——原版梯子因此贴不上竖直外层面。
+            // 详见 LayeredCopycatBoardBlock#getOutlineShape 的说明。
+            new LayeredCopycatBoardBlock( FabricBlockSettings.copy( STEEL_GUARDRAIL )
+                    .strength( 2.0F, 3.0F ).dynamicBounds() ),
             // 物品侧也要能往已有薄板里追加槽位（点的是旁边的普通方块时方块自己的 onUse 不会执行）
             block -> new LayeredCopycatBoardItem( block, new Item.Settings() )
     ); // 分层伪装薄板（六面各最多两层 1px 板，可分别伪装）

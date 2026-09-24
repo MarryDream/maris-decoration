@@ -7,6 +7,8 @@ import marrydream.marisdecoration.MarisDecoration;
 import marrydream.marisdecoration.block.CopycatGuardrailBlock;
 import marrydream.marisdecoration.block.CopycatGuardrailBlockEntity;
 import marrydream.marisdecoration.block.LayeredCopycatBoardBlockEntity;
+import marrydream.marisdecoration.block.VerticalLadderBlock;
+import marrydream.marisdecoration.block.enums.PropLadderShape;
 import marrydream.marisdecoration.block.utils.GuardrailParts;
 import marrydream.marisdecoration.block.utils.LayeredBoardParts;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots;
@@ -42,6 +44,8 @@ import marrydream.marisdecoration.placement.client.StructureTooltip;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.LadderBlock;
+import net.minecraft.block.ShapeContext;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
@@ -59,6 +63,8 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.world.BlockView;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -118,6 +124,8 @@ public final class PlacementSelfTest {
         section(sections, "10. 工具物品 / 配置 NBT", () -> runItemAndConfigNbt(assertions, sections));
         section(sections, "11. GUI 逻辑（广告位/属性/材质）", () -> runGuiLogic(assertions, sections));
         section(sections, "12. 服务端校验 + 右键放置", () -> runToolPlacement(harness, assertions, sections));
+        section(sections, "12b. 竖直面附着（原版梯子）", () -> runFaceAttachments(harness, assertions, sections));
+        section(sections, "12c. 梯子放置对比", () -> runLadderComparison(harness, assertions, sections));
         section(sections, "13. 落点解析（点击面只决定格子）", () -> runTargetPos(harness, assertions, sections));
         section(sections, "14. GUI/config 一致性（唯一事实来源）", () -> runConfigConsistency(assertions, sections));
         section(sections, "15. 零结构校验（幽灵方块）", () -> runStructureValidation(harness, assertions, sections));
@@ -1261,6 +1269,334 @@ public final class PlacementSelfTest {
         if (harness.blockEntityAt(creativePos) instanceof CopycatGuardrailBlockEntity rail) {
             a.isTrue("创造模式材质也照常铺上", rail.material(rowKey).isOf(Blocks.STONE));
         }
+    }
+
+    // ================================================================ 20b. 竖直面附着
+
+    /**
+     * 竖直外层面能不能被原版梯子当作「完整实心面」。
+     *
+     * <h2>原版的判据到底是什么</h2>
+     * {@code LadderBlock#canPlaceOn} 只有一条：
+     * {@code state.isSideSolidFullSquare(world, pos, facing.getOpposite())}。
+     * 它在 1.20.1 里落到 {@code SideShapeType.FULL.matches} →
+     * {@code Block.isFaceFullSquare(state.getSidesShape(...), side)}，
+     * 而 {@code getSidesShape} 默认返回的就是<b>碰撞箱</b>。所以：
+     * 判据看的是「碰撞箱在那个面上是不是铺满 16×16」，
+     * 不是 {@code getOutlineShape}，也不是「这个方块上贴了什么材质」。
+     *
+     * <h2>这一段的由来</h2>
+     * 薄板的碰撞箱来自方块实体的占用掩码（1px 厚的一层板），几何上它在那一面确实是完整正方形。
+     * 但原版会为每个方块状态<b>预烤</b>一份 {@code ShapeCache}——用的是没有方块实体的空视图，
+     * 于是 {@code isSideSolidFullSquare} 读到一个恒为 false 的缓存值，梯子贴不上去。
+     * 修法是给方块声明 {@code dynamicShape()}（见 {@code LayeredCopycatBoardBlock#getOutlineShape}）。
+     *
+     * <p>这一段的每一条都直接读真实世界的碰撞箱与 {@code isSideSolidFullSquare}，
+     * 并用<b>同一份判据</b>去问石头（对照组），保证「薄板 == 完整方块」。
+     * 刻意不经过 {@code PlacementService}：梯子是原版方块，这里验的是「本 mod 的方块有没有把
+     * 方块逻辑该看到的东西给出去」。
+     */
+    private static void runFaceAttachments(PlacementHarness harness, Assertions a, List<String> log) {
+        log.add("== 20b. 竖直面附着（原版梯子的 isSideSolidFullSquare）");
+
+        ServerWorld world = harness.world();
+
+        // --- ① 对照组：完整方块六个面都是完整实心面
+        BlockPos stone = harness.nextBare();
+        world.setBlockState(stone, Blocks.STONE.getDefaultState());
+        for (Direction side : Direction.values()) {
+            a.isTrue("对照：完整方块 " + side + " 面是完整实心面", canAttachTo(world, stone, side));
+        }
+
+        int placed = 0;
+        for (FaceDir face : FaceDir.values()) {
+            Direction support = face.toDirection();
+            boolean vertical = support.getAxis() != Direction.Axis.Y;
+            int occupancy = LayeredBoardSlots.slotBitMask(face, BoardLayer.OUTER);
+
+            // --- ② 一块只开这一个外层面的薄板
+            BlockPos boardPos = harness.nextBare();
+            world.setBlockState(boardPos, ModBlock.LAYERED_COPYCAT_BOARD.getDefaultState());
+            if (!(world.getBlockEntity(boardPos) instanceof LayeredCopycatBoardBlockEntity board)) {
+                a.check("薄板方块实体存在（" + face.getName() + ".outer）", false,
+                        String.valueOf(world.getBlockEntity(boardPos)));
+                continue;
+            }
+            board.setOccupancy(occupancy);
+            board.setMaterial(LayeredBoardSlots.materialKey(face, BoardLayer.OUTER, BoardArea.BODY),
+                    Blocks.OAK_PLANKS.getDefaultState(), null);
+
+            VoxelShape collision = world.getBlockState(boardPos)
+                    .getCollisionShape(world, boardPos, ShapeContext.absent());
+            log.add("   " + face.getName() + ".outer：碰撞箱 = " + collision.getBoundingBox()
+                    + "，六面实心 = " + solidFaceSummary(world, boardPos));
+            a.isFalse("薄板有碰撞箱（" + face.getName() + ".outer）", collision.isEmpty());
+            a.equal("薄板的形状与几何函数一致（" + face.getName() + ".outer）",
+                    LayeredBoardParts.shape(occupancy).getBoundingBox(), collision.getBoundingBox());
+            if (!vertical) {
+                // 上 / 下面：原版梯子只有四个水平朝向，贴不到水平面上；这里只记录形状
+                log.add("   （" + face.getName() + " 是水平面，梯子不适用）");
+                world.setBlockState(boardPos, Blocks.AIR.getDefaultState());
+                continue;
+            }
+
+            // --- ③ 找到这块板「完整实心」的那一面（1px 板只有外侧那一面是完整正方形）
+            Direction solid = null;
+            for (Direction side : List.of(Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST)) {
+                if (canAttachTo(world, boardPos, side)) {
+                    solid = side;
+                    break;
+                }
+            }
+            a.notNull("薄板 " + face.getName() + ".outer 至少有一个竖直面是完整实心面（能贴梯子的前提）",
+                    solid);
+            if (solid == null) {
+                world.setBlockState(boardPos, Blocks.AIR.getDefaultState());
+                continue;
+            }
+            // 与完整方块在同一方向上的判据必须一致
+            a.equal("薄板 " + face.getName() + ".outer 在 " + solid + " 面的附着判据与完整方块一致",
+                    canAttachTo(world, stone, solid), canAttachTo(world, boardPos, solid));
+
+            // --- ④ 梯子放在这个实心面外侧，朝向背向薄板：
+            //        梯子格 = 薄板格 + 实心面的方向，梯子 FACING = 实心面的方向
+            BlockPos ladderPos = boardPos.offset(solid);
+            Direction ladderFacing = solid;
+            world.setBlockState(ladderPos, Blocks.AIR.getDefaultState());
+            BlockState ladder = Blocks.LADDER.getDefaultState()
+                    .with(LadderBlock.FACING, ladderFacing)
+                    .with(LadderBlock.WATERLOGGED, false);
+
+            world.setBlockState(ladderPos, ladder, Block.NOTIFY_ALL);
+            BlockState inWorld = world.getBlockState(ladderPos);
+            log.add("   " + face.getName() + ".outer：实心面=" + solid + "，梯子 facing=" + ladderFacing
+                    + "，canPlaceAt=" + ladder.canPlaceAt(world, ladderPos)
+                    + "，放进世界之后 = " + inWorld.getBlock());
+            a.isTrue("薄板 " + face.getName() + ".outer 能真的贴住梯子", inWorld.isOf(Blocks.LADDER));
+            if (inWorld.isOf(Blocks.LADDER)) {
+                a.equal("贴住的梯子朝向正确", ladderFacing, inWorld.get(LadderBlock.FACING));
+                placed++;
+                // 邻居更新之后梯子仍然认为自己贴得住
+                world.setBlockState(boardPos, world.getBlockState(boardPos), Block.NOTIFY_ALL);
+                a.isTrue("邻居更新之后梯子仍然在（" + face.getName() + "）",
+                        world.getBlockState(ladderPos).isOf(Blocks.LADDER));
+            }
+
+            world.setBlockState(ladderPos, Blocks.AIR.getDefaultState());
+            world.setBlockState(boardPos, Blocks.AIR.getDefaultState());
+        }
+        a.equal("四个竖直方向都能真正贴住梯子", 4, placed);
+
+        // --- ⑤ 反过来：一个槽都没有时形状为空，不该凭空支持附着
+        BlockPos emptyBoard = harness.nextBare();
+        world.setBlockState(emptyBoard, ModBlock.LAYERED_COPYCAT_BOARD.getDefaultState());
+        a.isTrue("空占用（一个槽都没有）时形状为空",
+                world.getBlockState(emptyBoard)
+                        .getCollisionShape(world, emptyBoard, ShapeContext.absent()).isEmpty());
+        a.isFalse("空占用的薄板不支持任何一面的附着",
+                canAttachTo(world, emptyBoard, Direction.NORTH));
+
+        // --- ⑥ 12 个槽全占：每一面都应当是完整实心面
+        BlockPos fullBoard = harness.nextBare();
+        world.setBlockState(fullBoard, ModBlock.LAYERED_COPYCAT_BOARD.getDefaultState());
+        if (world.getBlockEntity(fullBoard) instanceof LayeredCopycatBoardBlockEntity board) {
+            board.setOccupancy(LayeredBoardSlots.FULL_OCCUPANCY);
+            for (Direction side : Direction.values()) {
+                a.isTrue("12 个槽全占时 " + side + " 面是完整实心面",
+                        canAttachTo(world, fullBoard, side));
+            }
+        }
+        log.add("   竖直面附着：4 个竖直方向全部与完整方块同判据；空占用不支持附着");
+    }
+
+    /** 原版梯子的判据：{@code state.isSideSolidFullSquare(world, pos, side)}。 */
+    private static boolean canAttachTo(BlockView world, BlockPos pos, Direction side) {
+        return world.getBlockState(pos).isSideSolidFullSquare(world, pos, side);
+    }
+
+    /** 一个方块六个面各自的「完整实心面」判定，紧凑成一行便于读日志。 */
+    private static String solidFaceSummary(BlockView world, BlockPos pos) {
+        StringBuilder out = new StringBuilder();
+        for (Direction side : Direction.values()) {
+            if (out.length() > 0) {
+                out.append(',');
+            }
+            out.append(side.getName().charAt(0)).append('=').append(canAttachTo(world, pos, side));
+        }
+        return out.toString();
+    }
+
+    /**
+     * 本 mod 的两个钢梯与 {@code minecraft:ladder} 的附着对比。
+     *
+     * <p>三种梯子问<b>同一组支撑面</b>，而且位置逐字节相同：梯子格 = 支撑格 + NORTH、
+     * 梯子 FACING = NORTH、要贴的那一面 = 支撑格的 SOUTH 面。所以三者结果不同只可能来自
+     * 它们自己的代码，不可能是测试摆位造成的。
+     *
+     * <p>支撑面覆盖三类：
+     * <ul>
+     *   <li><b>原版完整方块</b>——基本盘；</li>
+     *   <li><b>分层伪装薄板</b>——几何来自方块实体的动态面（这一轮刚修好 {@code dynamicBounds}）；</li>
+     *   <li><b>Copycats+ 伪装板</b>——装了才测，材质是石头，所以那一面是完整实心面。</li>
+     * </ul>
+     *
+     * <p>判据用<b>原版梯子自己的那条</b>（{@code isSideSolidFullSquare}）当基准：
+     * 两个钢梯的 {@code canPlaceAt} 必须与 {@code minecraft:ladder} 逐格相同。
+     * 垂直钢梯历史上用的是 {@code BlockState#isSolid()}——那是注册期烤好的 boolean，
+     * 看不到动态几何，所以薄板那一格只有它会是 false。
+     */
+    private static void runLadderComparison(PlacementHarness harness, Assertions a, List<String> log) {
+        log.add("== 20c. 梯子放置对比（minecraft:ladder / steel_fixed / steel_vertical）");
+
+        ServerWorld world = harness.world();
+        List<Block> ladders = List.of(Blocks.LADDER, ModBlock.STEEL_FIXED_LADDER,
+                ModBlock.STEEL_VERTICAL_LADDER);
+
+        // --- 支撑面一：原版完整方块
+        BlockPos stone = harness.nextBare();
+        world.setBlockState(stone, Blocks.STONE.getDefaultState());
+
+        // --- 支撑面二：分层薄板，北面外层 + 完整方块材质
+        BlockPos board = harness.nextBare();
+        world.setBlockState(board, ModBlock.LAYERED_COPYCAT_BOARD.getDefaultState());
+        if (world.getBlockEntity(board) instanceof LayeredCopycatBoardBlockEntity boardEntity) {
+            boardEntity.setOccupancy(LayeredBoardSlots.slotBitMask(FaceDir.NORTH, BoardLayer.OUTER));
+            boardEntity.setMaterial(
+                    LayeredBoardSlots.materialKey(FaceDir.NORTH, BoardLayer.OUTER, BoardArea.BODY),
+                    Blocks.OAK_PLANKS.getDefaultState(), null);
+        }
+
+        // --- 支撑面三：Copycats+ 伪装板（把一个 part 打开并配石头，找出它真正实心的那一面）
+        BlockPos copycatSupport = null;
+        Direction copycatFace = null;
+        if (BuiltinAdapters.copycatsLoaded()) {
+            Block copycatBoard = Registries.BLOCK.get(new Identifier("copycats:copycat_board"));
+            if (copycatBoard != Blocks.AIR
+                    && copycatBoard instanceof IMultiStateCopycatBlock multistate) {
+                outer:
+                for (String propertyName : multistate.storageProperties()) {
+                    Property<?> property = copycatBoard.getStateManager().getProperty(propertyName);
+                    if (!(property instanceof BooleanProperty booleanProperty)
+                            || !copycatBoard.getDefaultState().contains(booleanProperty)) {
+                        continue;
+                    }
+                    BlockState state = copycatBoard.getDefaultState().with(booleanProperty, true);
+                    BlockPos candidate = harness.nextBare();
+                    world.setBlockState(candidate, state);
+                    if (!(world.getBlockEntity(candidate) instanceof IMultiStateCopycatBlockEntity entity)) {
+                        continue;
+                    }
+                    entity.setMaterial(propertyName, Blocks.STONE.getDefaultState());
+                    for (Direction side : Direction.values()) {
+                        if (canAttachTo(world, candidate, side)) {
+                            copycatSupport = candidate;
+                            copycatFace = side;
+                            log.add("   （Copycats+ 伪装板：part=" + propertyName
+                                    + "，实心面=" + side + "）");
+                            break outer;
+                        }
+                    }
+                }
+            }
+            if (copycatSupport == null) {
+                log.add("   （Copycats+ 伪装板没找到「有完整实心面」的形态，跳过这一个 case）");
+            }
+        } else {
+            log.add("   （未装 Copycats+：跳过 Copycats+ 伪装板）");
+        }
+
+        // 每一个 case 都是「支撑格 + 要贴的那一面」，梯子按同一套规则摆：
+        // 梯子格 = 支撑格 + 那一面，梯子 FACING = 那一面。
+        // 三类支撑面各挑一个「确实是完整实心面」的方向（1px 板只有外侧那一面成立，
+        // 与完整方块只有表面成立是同一回事）。
+        record LadderCase(String name, BlockPos support, Direction face) {
+        }
+        List<LadderCase> cases = new ArrayList<>();
+        cases.add(new LadderCase("原版完整方块的北面", stone, Direction.NORTH));
+        // 薄板 NORTH.OUTER 的完整实心面就是它的北面（08b 段已逐面验过）
+        cases.add(new LadderCase("分层伪装薄板 NORTH.OUTER 的北面", board, Direction.NORTH));
+        if (copycatSupport != null) {
+            cases.add(new LadderCase("Copycats+ 伪装板的 " + copycatFace + " 面",
+                    copycatSupport, copycatFace));
+        }
+
+        for (LadderCase testCase : cases) {
+            BlockPos supportPos = testCase.support();
+            Direction face = testCase.face();
+            // 与 20b 段完全同一套摆位：梯子格 = 支撑格 + 实心面的方向，梯子 FACING = 实心面。
+            // （20b 段已逐面验过这一组在真实世界里 canPlaceAt 恒为真。）
+            BlockPos ladderPos = supportPos.offset(face);
+            Direction ladderFacing = face;
+
+            // 先用原版梯子实测一次，确认这一组摆位本身是成立的
+            world.setBlockState(ladderPos, Blocks.AIR.getDefaultState());
+            log.add("   [摆位] " + testCase.name() + "：梯子在 " + ladderPos.toShortString()
+                    + "，facing=" + ladderFacing
+                    + "，vanilla.canPlaceAt="
+                    + buildLadder(Blocks.LADDER, ladderFacing).canPlaceAt(world, ladderPos));
+
+            // 前提：这一面在真实世界里确实是完整实心面（三种梯子都应该能贴）
+            a.isTrue("【" + testCase.name() + "】这一面是完整实心面",
+                    canAttachTo(world, supportPos, face));
+
+            Boolean vanillaCanPlace = null;
+            for (Block ladderBlock : ladders) {
+                String name = nameOf(ladderBlock);
+                a.equal(name + " 的方块类", true, ladderBlock instanceof LadderBlock);
+                if (ladderBlock == ModBlock.STEEL_VERTICAL_LADDER) {
+                    a.isTrue("steel_vertical_ladder 确实是 VerticalLadderBlock",
+                            ladderBlock.getClass() == VerticalLadderBlock.class);
+                    a.equal("VerticalLadderBlock 的 canPlaceAt 就是本类重写的那一个",
+                            VerticalLadderBlock.class,
+                            ladderBlock.getClass());
+                }
+                world.setBlockState(ladderPos, Blocks.AIR.getDefaultState());
+                harness.clearEntitiesAt(ladderPos);
+
+                BlockState ladder = buildLadder(ladderBlock, ladderFacing);
+                boolean canPlace = ladder.canPlaceAt(world, ladderPos);
+                if (vanillaCanPlace == null) {
+                    vanillaCanPlace = canPlace;
+                } else {
+                    a.equal(name + " 的 canPlaceAt 与 minecraft:ladder 相同（" + testCase.name() + "）",
+                            vanillaCanPlace, canPlace);
+                }
+                a.isTrue(name + " 的 canPlaceAt 为真（" + testCase.name() + "）", canPlace);
+                // 直接对照「原版判据本身」：梯子的结论必须等于 isSideSolidFullSquare 的结果。
+                // 垂直钢梯历史上用的是 isSolid()，在薄板 / 伪装板这种动态方块上会给出 false。
+                a.equal(name + " 的 canPlaceAt == isSideSolidFullSquare（" + testCase.name() + "）",
+                        canAttachTo(world, supportPos, face), canPlace);
+
+                world.setBlockState(ladderPos, ladder, Block.NOTIFY_ALL);
+                BlockState inWorld = world.getBlockState(ladderPos);
+                log.add("   " + name + " 贴【" + testCase.name() + "】：canPlaceAt=" + canPlace
+                        + "，放进世界 = " + nameOf(inWorld.getBlock()));
+                a.isTrue(name + " 能贴住" + testCase.name(), inWorld.isOf(ladderBlock));
+                if (inWorld.isOf(ladderBlock)) {
+                    a.equal(name + " 朝向正确（" + testCase.name() + "）",
+                            ladderFacing, inWorld.get(LadderBlock.FACING));
+                    a.isTrue(name + " 在邻居更新后仍然贴住（" + testCase.name() + "）",
+                            inWorld.canPlaceAt(world, ladderPos));
+                }
+                world.setBlockState(ladderPos, Blocks.AIR.getDefaultState());
+            }
+        }
+        log.add("   梯子对比：三种梯子对同一组支撑面的 canPlaceAt 与落世界结果完全一致");
+    }
+
+    /**
+     * /** 造一个朝向给定的梯子状态；垂直钢梯需要补上它自己的 SHAPE 属性。 */
+    private static BlockState buildLadder(Block block, Direction facing) {
+        BlockState state = block.getDefaultState().with(LadderBlock.FACING, facing);
+        if (block instanceof VerticalLadderBlock) {
+            state = state.with(VerticalLadderBlock.SHAPE, PropLadderShape.START);
+        }
+        return state;
+    }
+
+    /** 方块的可读短名（注册名）。 */
+    private static String nameOf(Block block) {
+        return Registries.BLOCK.getId(block).toString();
     }
 
     // ================================================================ 13. 落点解析
