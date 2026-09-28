@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "maris-decoration:teak_log",
+    "maris-decoration:teak_wood",
+    "maris-decoration:stripped_teak_log",
+    "maris-decoration:stripped_teak_wood"
+  ]
+}

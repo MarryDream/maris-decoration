@@ -15,6 +15,14 @@ public final class ModModelProvider extends FabricModelProvider {
 
     @Override
     public void generateBlockStateModels(BlockStateModelGenerator generator) {
+        generator.registerLog(ModBlock.TEAK_LOG).log(ModBlock.TEAK_LOG).wood(ModBlock.TEAK_WOOD);
+        generator.registerLog(ModBlock.STRIPPED_TEAK_LOG).log(ModBlock.STRIPPED_TEAK_LOG).wood(ModBlock.STRIPPED_TEAK_WOOD);
+        generator.registerTintableCross(ModBlock.TEAK_SAPLING, BlockStateModelGenerator.TintType.NOT_TINTED);
+        var leavesModel = Models.LEAVES.upload(ModBlock.TEAK_LEAVES,
+                net.minecraft.data.client.TextureMap.all(ModBlock.TEAK_LEAVES), generator.modelCollector);
+        generator.blockStateCollector.accept(net.minecraft.data.client.VariantsBlockStateSupplier.create(
+                ModBlock.TEAK_LEAVES, net.minecraft.data.client.BlockStateVariant.create()
+                        .put(net.minecraft.data.client.VariantSettings.MODEL, leavesModel)));
         BlockStateModelGenerator.BlockTexturePool teak = generator.registerCubeAllModelTexturePool(ModBlock.TEAK_PLANKS);
         teak.stairs(ModBlock.TEAK_STAIRS);
         teak.slab(ModBlock.TEAK_SLABS);

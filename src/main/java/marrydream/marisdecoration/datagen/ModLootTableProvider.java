@@ -24,6 +24,7 @@ public final class ModLootTableProvider extends FabricBlockLootTableProvider {
     @Override
     public void generate() {
         Set<Block> specialDrops = Set.of(
+                ModBlock.TEAK_LEAVES,
                 ModBlock.TEAK_SLABS, ModBlock.STEEL_SLABS, ModBlock.CYAN_STEEL_SLABS, ModBlock.BLACK_STEEL_SLABS,
                 ModBlock.STEEL_PLUG_DOOR, ModBlock.STEEL_PLUG_DOOR_WITH_ROOF,
                 ModBlock.TEAK_STEEL_PLUG_DOOR_WITH_ROOF, ModBlock.CYAN_STEEL_PLUG_DOOR_WITH_ROOF,
@@ -36,6 +37,8 @@ public final class ModLootTableProvider extends FabricBlockLootTableProvider {
                 addDrop(block);
             }
         }
+        addDrop(ModBlock.TEAK_LEAVES, leavesDrops(ModBlock.TEAK_LEAVES, ModBlock.TEAK_SAPLING,
+                0.05F, 0.0625F, 0.083333336F, 0.1F));
         addDrop(ModBlock.TEAK_SLABS, slabDrops(ModBlock.TEAK_SLABS));
         addDrop(ModBlock.STEEL_SLABS, slabDrops(ModBlock.STEEL_SLABS));
         addDrop(ModBlock.CYAN_STEEL_SLABS, slabDrops(ModBlock.CYAN_STEEL_SLABS));

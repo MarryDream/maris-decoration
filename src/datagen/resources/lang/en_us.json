@@ -1,4 +1,10 @@
 {
+    "block.maris-decoration.teak_log": "Teak Log",
+    "block.maris-decoration.teak_wood": "Teak Wood",
+    "block.maris-decoration.stripped_teak_log": "Stripped Teak Log",
+    "block.maris-decoration.stripped_teak_wood": "Stripped Teak Wood",
+    "block.maris-decoration.teak_leaves": "Teak Leaves",
+    "block.maris-decoration.teak_sapling": "Teak Sapling",
     "item.maris-decoration.bubble_tea":  "Bubble Tea",
     "item.maris-decoration.bubble_tea.tooltip":  "Bubble tea with dandelion tea base, often used by someone to fill their stomach",
     "item.maris-decoration.bubble_tea.effect.tooltip":  "Get 20s of HASTE effect",

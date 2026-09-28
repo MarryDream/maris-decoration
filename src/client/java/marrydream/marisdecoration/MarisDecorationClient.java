@@ -2,6 +2,7 @@ package marrydream.marisdecoration;
 
 import marrydream.marisdecoration.client.CopycatGuardrailModel;
 import marrydream.marisdecoration.client.LayeredCopycatBoardModel;
+import marrydream.marisdecoration.client.TeakClientCheck;
 import marrydream.marisdecoration.client.tooltip.MarisTooltip;
 import marrydream.marisdecoration.client.tooltip.MarisTooltip.MarisCharacteristic;
 import marrydream.marisdecoration.block.CopycatGuardrailBlock;
@@ -9,6 +10,10 @@ import marrydream.marisdecoration.block.LayeredCopycatBoardBlock;
 import marrydream.marisdecoration.init.ModBlock;
 import marrydream.marisdecoration.init.ModInfo;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry;
+import net.minecraft.client.color.world.BiomeColors;
+import net.minecraft.client.color.world.FoliageColors;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.fabricmc.fabric.api.client.model.loading.v1.ModelModifier;
@@ -19,6 +24,18 @@ import net.minecraft.util.Identifier;
 public class MarisDecorationClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
+        if (Boolean.getBoolean("maris.teak.clientcheck")
+                && FabricLoader.getInstance().isDevelopmentEnvironment()) {
+            TeakClientCheck.register();
+        }
+        BlockRenderLayerMap.INSTANCE.putBlocks(RenderLayer.getCutoutMipped(), ModBlock.TEAK_LEAVES);
+        BlockRenderLayerMap.INSTANCE.putBlocks(RenderLayer.getCutout(), ModBlock.TEAK_SAPLING);
+        ColorProviderRegistry.BLOCK.register(
+                (state, world, pos, tint) -> world != null && pos != null
+                        ? BiomeColors.getFoliageColor(world, pos)
+                        : FoliageColors.getDefaultColor(), ModBlock.TEAK_LEAVES);
+        ColorProviderRegistry.ITEM.register(
+                (stack, tint) -> FoliageColors.getDefaultColor(), ModBlock.TEAK_LEAVES);
         // 伪装放置器：装上「打开配置界面 / 发送配置」这两个客户端钩子，
         // 并注册网络频道让发送合法。必须在物品被使用之前完成——这里就是最早的地方。
         marrydream.marisdecoration.placement.client.PlacerClientHooks.init();

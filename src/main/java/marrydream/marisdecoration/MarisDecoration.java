@@ -7,7 +7,10 @@ import marrydream.marisdecoration.init.ModItemGroup;
 import marrydream.marisdecoration.placement.adapter.PlacementAdapters;
 import marrydream.marisdecoration.placement.harness.CopycatPlacerCommand;
 import marrydream.marisdecoration.placement.network.ServerPlacerConfigHandler;
+import marrydream.marisdecoration.worldgen.ModWorldGeneration;
+import marrydream.marisdecoration.worldgen.TeakSelfTest;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +27,11 @@ public class MarisDecoration implements ModInitializer {
     public void onInitialize( ) {
         ModItem.init();
         ModBlock.init();
+        ModWorldGeneration.init();
+        if (Boolean.getBoolean("maris.teak.selftest")
+                && FabricLoader.getInstance().isDevelopmentEnvironment()) {
+            TeakSelfTest.register();
+        }
         // 必须在 ModBlock.init() 之后：方块实体类型要引用已注册的方块
         ModBlockEntity.init();
         ModItemGroup.init();

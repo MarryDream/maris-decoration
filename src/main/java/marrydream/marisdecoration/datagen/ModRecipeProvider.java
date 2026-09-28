@@ -32,6 +32,10 @@ public final class ModRecipeProvider extends FabricRecipeProvider {
 
     @Override
     public void generate(Consumer<RecipeJsonProvider> exporter) {
+        offerPlanksRecipe(exporter, ModBlock.TEAK_PLANKS,
+                marrydream.marisdecoration.worldgen.ModWorldGeneration.TEAK_LOG_ITEMS, 4);
+        offerBarkBlockRecipe(exporter, ModBlock.TEAK_WOOD, ModBlock.TEAK_LOG);
+        offerBarkBlockRecipe(exporter, ModBlock.STRIPPED_TEAK_WOOD, ModBlock.STRIPPED_TEAK_LOG);
         offerStairs(exporter, ModBlock.TEAK_STAIRS, ModBlock.TEAK_PLANKS);
         offerStairs(exporter, ModBlock.STEEL_STAIRS, ModBlock.STEEL_BLOCK);
         offerStairs(exporter, ModBlock.CYAN_STEEL_STAIRS, ModBlock.CYAN_STEEL_BLOCK);

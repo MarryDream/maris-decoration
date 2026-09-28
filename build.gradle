@@ -49,6 +49,19 @@ loom {
 	splitEnvironmentSourceSets()
 
 	runs {
+		teakClientCheck {
+			inherit client
+			name "Teak client check"
+			vmArg "-Dmaris.teak.clientcheck=true"
+			programArgs "--quickPlaySingleplayer", "teak-validation", "--width", "1280", "--height", "800"
+			runDir "build/teak-client"
+		}
+		teakTest {
+			inherit server
+			name "Teak integration tests"
+			vmArg "-Dmaris.teak.selftest=true"
+			runDir "build/teak-test"
+		}
 		datagen {
 			inherit server
 			name "Data Generation"
@@ -185,6 +198,20 @@ tasks.register('checkDatagenFresh') {
 }
 
 tasks.named('build') { dependsOn 'checkDatagenFresh' }
+
+// These optional integration runs use isolated worlds and must fail Gradle if their assertions fail.
+['runTeakTest': 'build/teak-test/teak-selftest.txt',
+ 'runTeakClientCheck': 'build/teak-client/teak-client-check.txt'].each { taskName, reportPath ->
+	tasks.matching { it.name == taskName }.configureEach {
+		doFirst { file(reportPath).delete() }
+		doLast {
+			def report = file(reportPath)
+			if (!report.exists() || report.text.contains('FAIL:') || !report.text.contains('PASS:')) {
+				throw new GradleException("Teak verification failed; see ${reportPath} and the run console")
+			}
+		}
+	}
+}
 
 /*
  * 伪装放置器的代码级自检。

@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_column_horizontal",
+  "textures": {
+    "end": "maris-decoration:block/teak_log_top",
+    "side": "maris-decoration:block/teak_log"
+  }
+}

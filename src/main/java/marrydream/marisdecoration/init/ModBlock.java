@@ -5,8 +5,12 @@ import marrydream.marisdecoration.block.ComponentWallBlock;
 import marrydream.marisdecoration.block.WallBlock;
 import marrydream.marisdecoration.item.LayeredCopycatBoardItem;
 import marrydream.marisdecoration.item.SteelVerticalLadderItem;
+import marrydream.marisdecoration.worldgen.TeakSaplingGenerator;
 import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.fabricmc.fabric.api.registry.FuelRegistry;
+import net.fabricmc.fabric.api.registry.CompostingChanceRegistry;
+import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
+import net.fabricmc.fabric.api.registry.StrippableBlockRegistry;
 import net.minecraft.block.*;
 import net.minecraft.block.enums.Instrument;
 import net.minecraft.block.piston.PistonBehavior;
@@ -24,6 +28,19 @@ import java.util.List;
 public final class ModBlock {
     private static final List<Block> REGISTERED_BLOCKS = new ArrayList<>();
     private static final List<Item> REGISTERED_ITEMS = new ArrayList<>();
+    public static final PillarBlock TEAK_LOG = register("teak_log",
+            new PillarBlock(FabricBlockSettings.copy(Blocks.OAK_LOG)), true);
+    public static final PillarBlock TEAK_WOOD = register("teak_wood",
+            new PillarBlock(FabricBlockSettings.copy(Blocks.OAK_WOOD)), true);
+    public static final PillarBlock STRIPPED_TEAK_LOG = register("stripped_teak_log",
+            new PillarBlock(FabricBlockSettings.copy(Blocks.STRIPPED_OAK_LOG)), true);
+    public static final PillarBlock STRIPPED_TEAK_WOOD = register("stripped_teak_wood",
+            new PillarBlock(FabricBlockSettings.copy(Blocks.STRIPPED_OAK_WOOD)), true);
+    public static final LeavesBlock TEAK_LEAVES = register("teak_leaves",
+            new LeavesBlock(FabricBlockSettings.copy(Blocks.OAK_LEAVES)), true);
+    public static final SaplingBlock TEAK_SAPLING = register("teak_sapling",
+            new SaplingBlock(new TeakSaplingGenerator(),
+                    FabricBlockSettings.copy(Blocks.OAK_SAPLING)), true);
     public static final Block TEAK_PLANKS = register(
             "teak_planks",
             new Block( FabricBlockSettings.create().mapColor( state -> MapColor.PALE_YELLOW ).instrument( Instrument.BASS ).strength( 2.0F, 3.0F ).sounds( BlockSoundGroup.WOOD ).burnable() ),
@@ -254,6 +271,17 @@ public final class ModBlock {
     ); // 钢内嵌门（带黑色屋顶）
 
     public static void init( ) {
+        StrippableBlockRegistry.register(TEAK_LOG, STRIPPED_TEAK_LOG);
+        StrippableBlockRegistry.register(TEAK_WOOD, STRIPPED_TEAK_WOOD);
+        var flammable = FlammableBlockRegistry.getDefaultInstance();
+        for (Block wood : List.of(TEAK_LOG, TEAK_WOOD, STRIPPED_TEAK_LOG, STRIPPED_TEAK_WOOD)) {
+            FuelRegistry.INSTANCE.add(wood, 300);
+            flammable.add(wood, 5, 5);
+        }
+        flammable.add(TEAK_LEAVES, 30, 60);
+        FuelRegistry.INSTANCE.add(TEAK_SAPLING, 100);
+        CompostingChanceRegistry.INSTANCE.add(TEAK_LEAVES, 0.3F);
+        CompostingChanceRegistry.INSTANCE.add(TEAK_SAPLING, 0.3F);
         FuelRegistry.INSTANCE.add( ModBlock.TEAK_PLANKS, 30 * 20 ); // 烧 30s
         FuelRegistry.INSTANCE.add( ModBlock.TEAK_STAIRS, 15 * 20 ); // 烧 15s
         FuelRegistry.INSTANCE.add( ModBlock.TEAK_SLABS, 75 * 2 ); // 烧 7.5s

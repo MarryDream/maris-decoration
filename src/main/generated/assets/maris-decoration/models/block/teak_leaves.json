@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:block/leaves",
+  "textures": {
+    "all": "maris-decoration:block/teak_leaves"
+  }
+}
