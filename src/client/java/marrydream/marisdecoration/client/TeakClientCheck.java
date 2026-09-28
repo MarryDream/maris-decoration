@@ -64,7 +64,11 @@ public final class TeakClientCheck {
 
     private static void verifyModels(MinecraftClient client) {
         for (Block block : List.of(ModBlock.TEAK_LOG, ModBlock.TEAK_WOOD, ModBlock.STRIPPED_TEAK_LOG,
-                ModBlock.STRIPPED_TEAK_WOOD, ModBlock.TEAK_LEAVES, ModBlock.TEAK_SAPLING)) {
+                ModBlock.STRIPPED_TEAK_WOOD, ModBlock.TEAK_LEAVES, ModBlock.TEAK_SAPLING,
+                // 木板家族：方块状态与物品模型都必须烤出来（栅栏门 / 压力板的物品模型来自数据生成器）
+                ModBlock.TEAK_PLANKS, ModBlock.WEATHERED_TEAK_PLANKS, ModBlock.TEAK_STAIRS, ModBlock.TEAK_SLABS,
+                ModBlock.TEAK_TRAPDOOR, ModBlock.TEAK_FENCE, ModBlock.TEAK_FENCE_GATE,
+                ModBlock.TEAK_PRESSURE_PLATE, ModBlock.TEAK_BUTTON)) {
             for (BlockState state : block.getStateManager().getStates()) {
                 var model = client.getBlockRenderManager().getModel(state);
                 if (model == client.getBakedModelManager().getMissingModel()) throw new AssertionError("Missing model " + state);
@@ -107,6 +111,12 @@ public final class TeakClientCheck {
                     BlockState state = blocks[i].getDefaultState();
                     if (state.contains(LeavesBlock.PERSISTENT)) state = state.with(LeavesBlock.PERSISTENT, true);
                     world.setBlockState(new BlockPos(-6 + i * 2, 200, 7), state);
+                }
+                // 木板家族摞在上面一排，位置与上排对齐，保证截图里每个方块都完整可见
+                Block[] wooden = {ModBlock.WEATHERED_TEAK_PLANKS, ModBlock.TEAK_STAIRS, ModBlock.TEAK_SLABS,
+                        ModBlock.TEAK_FENCE, ModBlock.TEAK_FENCE_GATE, ModBlock.TEAK_PRESSURE_PLATE, ModBlock.TEAK_BUTTON};
+                for (int i = 0; i < wooden.length; i++) {
+                    world.setBlockState(new BlockPos(-6 + i * 2, 201, 7), wooden[i].getDefaultState());
                 }
                 var player = server.getPlayerManager().getPlayer(playerId);
                 player.changeGameMode(GameMode.SPECTATOR);

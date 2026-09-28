@@ -3,9 +3,14 @@
   "values": [
     "#maris-decoration:teak_logs",
     "maris-decoration:teak_planks",
+    "maris-decoration:weathered_teak_planks",
     "maris-decoration:teak_stairs",
     "maris-decoration:teak_slab",
     "maris-decoration:teak_trapdoor",
+    "maris-decoration:teak_fence",
+    "maris-decoration:teak_fence_gate",
+    "maris-decoration:teak_pressure_plate",
+    "maris-decoration:teak_button",
     "maris-decoration:teak_wall",
     "maris-decoration:teak_roof"
   ]

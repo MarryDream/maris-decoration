@@ -26,6 +26,14 @@ public final class ModModelProvider extends FabricModelProvider {
         BlockStateModelGenerator.BlockTexturePool teak = generator.registerCubeAllModelTexturePool(ModBlock.TEAK_PLANKS);
         teak.stairs(ModBlock.TEAK_STAIRS);
         teak.slab(ModBlock.TEAK_SLABS);
+        // 栅栏、栅栏门、压力板、按钮都走原版模板；物品模型由数据生成器补成「父级指向方块模型」，
+        // 与手写方块状态（活板门、墙、屋顶）不同，它们不需要另写 models/item。
+        teak.fence(ModBlock.TEAK_FENCE);
+        teak.fenceGate(ModBlock.TEAK_FENCE_GATE);
+        teak.pressurePlate(ModBlock.TEAK_PRESSURE_PLATE);
+        teak.button(ModBlock.TEAK_BUTTON);
+        // 风化柚木木板只换贴图，模型和柚木木板一样是立方体全贴图
+        generator.registerCubeAllModelTexturePool(ModBlock.WEATHERED_TEAK_PLANKS);
 
         BlockStateModelGenerator.BlockTexturePool steel = generator.registerCubeAllModelTexturePool(ModBlock.STEEL_BLOCK);
         steel.stairs(ModBlock.STEEL_STAIRS);

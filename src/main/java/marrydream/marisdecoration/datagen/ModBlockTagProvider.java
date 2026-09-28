@@ -11,8 +11,10 @@ import java.util.concurrent.CompletableFuture;
 
 public final class ModBlockTagProvider extends FabricTagProvider.BlockTagProvider {
     private static final Block[] WOODEN = {
-            ModBlock.TEAK_PLANKS, ModBlock.TEAK_STAIRS, ModBlock.TEAK_SLABS,
-            ModBlock.TEAK_TRAPDOOR, ModBlock.TEAK_WALL, ModBlock.TEAK_ROOF
+            ModBlock.TEAK_PLANKS, ModBlock.WEATHERED_TEAK_PLANKS, ModBlock.TEAK_STAIRS, ModBlock.TEAK_SLABS,
+            ModBlock.TEAK_TRAPDOOR, ModBlock.TEAK_FENCE, ModBlock.TEAK_FENCE_GATE,
+            ModBlock.TEAK_PRESSURE_PLATE, ModBlock.TEAK_BUTTON,
+            ModBlock.TEAK_WALL, ModBlock.TEAK_ROOF
     };
     private static final Block[] METAL = {
             ModBlock.STEEL_BLOCK, ModBlock.CYAN_STEEL_BLOCK, ModBlock.BLACK_STEEL_BLOCK,
@@ -52,6 +54,10 @@ public final class ModBlockTagProvider extends FabricTagProvider.BlockTagProvide
         getOrCreateTagBuilder(BlockTags.WOODEN_STAIRS).add(ModBlock.TEAK_STAIRS);
         getOrCreateTagBuilder(BlockTags.WOODEN_SLABS).add(ModBlock.TEAK_SLABS);
         getOrCreateTagBuilder(BlockTags.WOODEN_TRAPDOORS).add(ModBlock.TEAK_TRAPDOOR);
+        getOrCreateTagBuilder(BlockTags.WOODEN_FENCES).add(ModBlock.TEAK_FENCE);
+        getOrCreateTagBuilder(BlockTags.FENCE_GATES).add(ModBlock.TEAK_FENCE_GATE);
+        getOrCreateTagBuilder(BlockTags.WOODEN_PRESSURE_PLATES).add(ModBlock.TEAK_PRESSURE_PLATE);
+        getOrCreateTagBuilder(BlockTags.WOODEN_BUTTONS).add(ModBlock.TEAK_BUTTON);
         getOrCreateTagBuilder(BlockTags.CLIMBABLE).add(ModBlock.STEEL_FIXED_LADDER, ModBlock.STEEL_VERTICAL_LADDER);
     }
 }

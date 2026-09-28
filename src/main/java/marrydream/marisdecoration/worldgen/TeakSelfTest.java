@@ -3,6 +3,8 @@ package marrydream.marisdecoration.worldgen;
 import marrydream.marisdecoration.init.ModBlock;
 import marrydream.marisdecoration.init.ModInfo;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
+import net.fabricmc.fabric.api.registry.FuelRegistry;
 import net.minecraft.block.*;
 import net.minecraft.item.*;
 import net.minecraft.registry.RegistryKeys;
@@ -10,6 +12,7 @@ import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.registry.tag.ItemTags;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.random.Random;
@@ -48,6 +51,12 @@ public final class TeakSelfTest {
         if (!success) throw new AssertionError(message);
     }
 
+    /** 原版燃料表里的燃烧时间（tick），经 Fabric 的 FuelRegistry 查询。 */
+    private static void checkFuel(ItemConvertible item, int expected) {
+        Integer actual = FuelRegistry.INSTANCE.get(item);
+        check(actual != null && actual == expected, "Fuel time of " + item + " is " + actual + ", expected " + expected);
+    }
+
     private static void clear(ServerWorld world) {
         clear(world, ORIGIN);
     }
@@ -80,6 +89,64 @@ public final class TeakSelfTest {
             check(server.getRecipeManager().get(ModInfo.id(recipe)).isPresent(), "Missing recipe " + recipe);
         }
         REPORT.add("PASS: biome whitelist, block/item tags, stripping and recipes");
+
+        // 木板家族：对照 1.20.1 原版的方块设置（Blocks 的 oak_*）、火焰蔓延表（FireBlock）与燃料表
+        var flammable = FlammableBlockRegistry.getDefaultInstance();
+        for (Block wooden : List.of(ModBlock.TEAK_PLANKS, ModBlock.WEATHERED_TEAK_PLANKS, ModBlock.TEAK_STAIRS,
+                ModBlock.TEAK_FENCE, ModBlock.TEAK_FENCE_GATE)) {
+            check(flammable.get(wooden).getBurnChance() == 5, "Burn chance " + wooden);
+            check(flammable.get(wooden).getSpreadChance() == 20, "Spread chance " + wooden);
+        }
+        // 原版没有把活板门、压力板、按钮放进火焰蔓延表，它们只是燃料
+        for (Block notFlammable : List.of(ModBlock.TEAK_TRAPDOOR, ModBlock.TEAK_PRESSURE_PLATE, ModBlock.TEAK_BUTTON)) {
+            check(flammable.get(notFlammable).getBurnChance() == 0, "Unexpected burn chance " + notFlammable);
+        }
+        check(flammable.get(ModBlock.TEAK_LOG).getBurnChance() == 5
+                && flammable.get(ModBlock.TEAK_LOG).getSpreadChance() == 5, "Log flammability");
+        check(flammable.get(ModBlock.TEAK_LEAVES).getBurnChance() == 30
+                && flammable.get(ModBlock.TEAK_LEAVES).getSpreadChance() == 60, "Leaf flammability");
+        checkFuel(ModBlock.TEAK_PLANKS, 300);
+        checkFuel(ModBlock.WEATHERED_TEAK_PLANKS, 300);
+        checkFuel(ModBlock.TEAK_STAIRS, 300);
+        checkFuel(ModBlock.TEAK_SLABS, 150);
+        checkFuel(ModBlock.TEAK_TRAPDOOR, 300);
+        checkFuel(ModBlock.TEAK_FENCE, 300);
+        checkFuel(ModBlock.TEAK_FENCE_GATE, 300);
+        checkFuel(ModBlock.TEAK_PRESSURE_PLATE, 300);
+        checkFuel(ModBlock.TEAK_BUTTON, 100);
+        // 方块设置：硬度与原版对应方块一致，音效由柚木 BlockSetType 提供
+        check(ModBlock.TEAK_PLANKS.getHardness() == 2.0F && ModBlock.TEAK_PLANKS.getDefaultState().isBurnable(), "Plank settings");
+        check(ModBlock.TEAK_TRAPDOOR.getHardness() == 3.0F, "Trapdoor hardness");
+        check(ModBlock.TEAK_PRESSURE_PLATE.getHardness() == 0.5F && ModBlock.TEAK_BUTTON.getHardness() == 0.5F,
+                "Redstone component hardness");
+        check(ModBlock.TEAK_TRAPDOOR.getDefaultState().getSoundGroup() == BlockSoundGroup.WOOD, "Trapdoor sound group");
+        check(ModBlock.TEAK_FENCE_GATE.getDefaultState().getSoundGroup() == BlockSoundGroup.WOOD, "Fence gate sound group");
+        check(ModBlock.WEATHERED_TEAK_PLANKS.getHardness() == ModBlock.TEAK_PLANKS.getHardness()
+                && ModBlock.WEATHERED_TEAK_PLANKS.getDefaultMapColor() == ModBlock.TEAK_PLANKS.getDefaultMapColor()
+                && ModBlock.WEATHERED_TEAK_PLANKS.getDefaultState().isBurnable(), "Weathered planks must copy the teak plank settings");
+        // 标签：方块侧照原版木材登记（风化柚木木板只做方块，不进 #minecraft:planks）
+        check(ModBlock.TEAK_PLANKS.getDefaultState().isIn(BlockTags.PLANKS), "Missing planks block tag");
+        check(ModBlock.TEAK_FENCE.getDefaultState().isIn(BlockTags.WOODEN_FENCES), "Missing wooden_fences block tag");
+        check(ModBlock.TEAK_FENCE_GATE.getDefaultState().isIn(BlockTags.FENCE_GATES), "Missing fence_gates block tag");
+        check(ModBlock.TEAK_PRESSURE_PLATE.getDefaultState().isIn(BlockTags.WOODEN_PRESSURE_PLATES),
+                "Missing wooden_pressure_plates block tag");
+        check(ModBlock.TEAK_BUTTON.getDefaultState().isIn(BlockTags.WOODEN_BUTTONS), "Missing wooden_buttons block tag");
+        for (Block wooden : List.of(ModBlock.TEAK_PLANKS, ModBlock.WEATHERED_TEAK_PLANKS, ModBlock.TEAK_STAIRS,
+                ModBlock.TEAK_SLABS, ModBlock.TEAK_TRAPDOOR, ModBlock.TEAK_FENCE, ModBlock.TEAK_FENCE_GATE,
+                ModBlock.TEAK_PRESSURE_PLATE, ModBlock.TEAK_BUTTON)) {
+            check(wooden.getDefaultState().isIn(BlockTags.AXE_MINEABLE), "Missing axe mineable " + wooden);
+        }
+        // 物品侧标签：原版燃料表就是按这些标签取值的
+        check(new ItemStack(ModBlock.TEAK_PLANKS).isIn(ItemTags.PLANKS), "Missing planks item tag");
+        check(new ItemStack(ModBlock.TEAK_FENCE).isIn(ItemTags.WOODEN_FENCES), "Missing wooden_fences item tag");
+        check(new ItemStack(ModBlock.TEAK_FENCE_GATE).isIn(ItemTags.FENCE_GATES), "Missing fence_gates item tag");
+        check(new ItemStack(ModBlock.TEAK_PRESSURE_PLATE).isIn(ItemTags.WOODEN_PRESSURE_PLATES),
+                "Missing wooden_pressure_plates item tag");
+        check(new ItemStack(ModBlock.TEAK_BUTTON).isIn(ItemTags.WOODEN_BUTTONS), "Missing wooden_buttons item tag");
+        for (String recipe : List.of("teak_fence", "teak_fence_gate", "teak_pressure_plate", "teak_button")) {
+            check(server.getRecipeManager().get(ModInfo.id(recipe)).isPresent(), "Missing recipe " + recipe);
+        }
+        REPORT.add("PASS: plank family settings, flammability, fuel times, tags and recipes");
 
         int minHeight = 100, maxHeight = 0, minWidth = 100, maxWidth = 0;
         for (int seed = 0; seed < 64; seed++) {

@@ -41,11 +41,18 @@ public final class ModBlock {
     public static final SaplingBlock TEAK_SAPLING = register("teak_sapling",
             new SaplingBlock(new TeakSaplingGenerator(),
                     FabricBlockSettings.copy(Blocks.OAK_SAPLING)), true);
+    // ---- 柚木木板家族：方块设置逐项对齐原版木材（对照 net.minecraft.block.Blocks 的 oak_* 系列） ----
     public static final Block TEAK_PLANKS = register(
             "teak_planks",
-            new Block( FabricBlockSettings.create().mapColor( state -> MapColor.PALE_YELLOW ).instrument( Instrument.BASS ).strength( 2.0F, 3.0F ).sounds( BlockSoundGroup.WOOD ).burnable() ),
+            new Block( FabricBlockSettings.create().mapColor( MapColor.PALE_YELLOW ).instrument( Instrument.BASS ).strength( 2.0F, 3.0F ).sounds( BlockSoundGroup.WOOD ).burnable() ),
             true
     ); // 柚木木板
+    public static final Block WEATHERED_TEAK_PLANKS = register(
+            "weathered_teak_planks",
+            // 与原版「同族变体」一样只换贴图：整份复制柚木木板的设置（硬度、抗爆、音效、乐器、可点燃）
+            new Block( FabricBlockSettings.copy( TEAK_PLANKS ) ),
+            true
+    ); // 风化柚木木板
     public static final StairsBlock TEAK_STAIRS = register(
             "teak_stairs",
             new StairsBlock( TEAK_PLANKS.getDefaultState(), FabricBlockSettings.copy( TEAK_PLANKS ) ),
@@ -55,12 +62,40 @@ public final class ModBlock {
             "teak_slab",
             new SlabBlock( FabricBlockSettings.copy( TEAK_PLANKS ) ),
             true
-    ); // 柚木半砖
+    ); // 柚木台阶
     public static final TrapdoorBlock TEAK_TRAPDOOR = register(
             "teak_trapdoor",
-            new TrapdoorBlock( FabricBlockSettings.copy( TEAK_PLANKS ).nonOpaque(), BlockSetType.BIRCH ),
+            // 原版木活板门：strength( 3.0F ) + nonOpaque() + allowsSpawning( never ) + burnable()；
+            // 音效由 BlockSetType 提供（TrapdoorBlock 构造器会自己写进设置里），所以不写 sounds()。
+            new TrapdoorBlock( FabricBlockSettings.create().mapColor( TEAK_PLANKS.getDefaultMapColor() ).instrument( Instrument.BASS ).strength( 3.0F ).nonOpaque().allowsSpawning( Blocks::never ).burnable(), ModWoodType.TEAK_SET_TYPE ),
             true
     ); // 柚木活板门
+    public static final FenceBlock TEAK_FENCE = register(
+            "teak_fence",
+            new FenceBlock( FabricBlockSettings.create().mapColor( TEAK_PLANKS.getDefaultMapColor() ).solid().instrument( Instrument.BASS ).strength( 2.0F, 3.0F ).sounds( BlockSoundGroup.WOOD ).burnable() ),
+            true
+    ); // 柚木栅栏
+    public static final FenceGateBlock TEAK_FENCE_GATE = register(
+            "teak_fence_gate",
+            // 栅栏门的方块音效与开关音效都取自 WoodType
+            new FenceGateBlock( FabricBlockSettings.create().mapColor( TEAK_PLANKS.getDefaultMapColor() ).solid().instrument( Instrument.BASS ).strength( 2.0F, 3.0F ).burnable(), ModWoodType.TEAK ),
+            true
+    ); // 柚木栅栏门
+    public static final PressurePlateBlock TEAK_PRESSURE_PLATE = register(
+            "teak_pressure_plate",
+            // 原版木压力板：0.5 硬度、无碰撞、可点燃、被活塞破坏，音效与咔哒声取自 BlockSetType
+            new PressurePlateBlock( PressurePlateBlock.ActivationRule.EVERYTHING,
+                    FabricBlockSettings.create().mapColor( TEAK_PLANKS.getDefaultMapColor() ).solid().instrument( Instrument.BASS ).noCollision().strength( 0.5F ).burnable().pistonBehavior( PistonBehavior.DESTROY ),
+                    ModWoodType.TEAK_SET_TYPE ),
+            true
+    ); // 柚木压力板
+    public static final ButtonBlock TEAK_BUTTON = register(
+            "teak_button",
+            // 原版木按钮：0.5 硬度、无碰撞、被活塞破坏，按下保持 30 tick、弹射物可触发；
+            // 原版木按钮并不设为可点燃，这里保持一致。
+            new ButtonBlock( FabricBlockSettings.create().noCollision().strength( 0.5F ).pistonBehavior( PistonBehavior.DESTROY ), ModWoodType.TEAK_SET_TYPE, 30, true ),
+            true
+    ); // 柚木按钮
     public static final Block STEEL_BLOCK = register(
             "steel_block",
             new Block( FabricBlockSettings.create().mapColor( state -> MapColor.TERRACOTTA_CYAN ).instrument( Instrument.IRON_XYLOPHONE ).strength( 8.0f, 15.0f ) ),
@@ -274,20 +309,36 @@ public final class ModBlock {
         StrippableBlockRegistry.register(TEAK_LOG, STRIPPED_TEAK_LOG);
         StrippableBlockRegistry.register(TEAK_WOOD, STRIPPED_TEAK_WOOD);
         var flammable = FlammableBlockRegistry.getDefaultInstance();
+        // 原木类：燃烧几率 5 / 蔓延几率 5，与原版原木一致
         for (Block wood : List.of(TEAK_LOG, TEAK_WOOD, STRIPPED_TEAK_LOG, STRIPPED_TEAK_WOOD)) {
             FuelRegistry.INSTANCE.add(wood, 300);
             flammable.add(wood, 5, 5);
+        }
+        // 木板与衍生品：燃烧几率 5 / 蔓延几率 20，与原版木板、楼梯、台阶、栅栏、栅栏门一致。
+        // 原版没有把活板门、压力板、按钮放进火焰蔓延表（三者只是燃料），这里同样不登记。
+        for (Block wooden : List.of(TEAK_PLANKS, WEATHERED_TEAK_PLANKS, TEAK_STAIRS, TEAK_SLABS,
+                TEAK_FENCE, TEAK_FENCE_GATE)) {
+            flammable.add(wooden, 5, 20);
         }
         flammable.add(TEAK_LEAVES, 30, 60);
         FuelRegistry.INSTANCE.add(TEAK_SAPLING, 100);
         CompostingChanceRegistry.INSTANCE.add(TEAK_LEAVES, 0.3F);
         CompostingChanceRegistry.INSTANCE.add(TEAK_SAPLING, 0.3F);
-        FuelRegistry.INSTANCE.add( ModBlock.TEAK_PLANKS, 30 * 20 ); // 烧 30s
-        FuelRegistry.INSTANCE.add( ModBlock.TEAK_STAIRS, 15 * 20 ); // 烧 15s
-        FuelRegistry.INSTANCE.add( ModBlock.TEAK_SLABS, 75 * 2 ); // 烧 7.5s
-        FuelRegistry.INSTANCE.add( ModBlock.TEAK_WALL, 6 * 20 ); // 烧 6s
-        FuelRegistry.INSTANCE.add( ModBlock.TEAK_ROOF, 3 * 20 ); // 烧 3s
-        FuelRegistry.INSTANCE.add( ModBlock.TEAK_TRAPDOOR, 15 * 20 ); // 烧 15s
+        // 燃烧时间（tick）与原版木材一致：木板 / 楼梯 / 活板门 / 栅栏 / 栅栏门 / 压力板 300、台阶 150、按钮 100。
+        // 这些值同样能由物品标签（#minecraft:planks 等）带出来；这里显式登记是把整族配置集中在一处，
+        // 并覆盖没有对应原版标签的风化柚木木板。
+        FuelRegistry.INSTANCE.add( TEAK_PLANKS, 300 );
+        FuelRegistry.INSTANCE.add( WEATHERED_TEAK_PLANKS, 300 );
+        FuelRegistry.INSTANCE.add( TEAK_STAIRS, 300 );
+        FuelRegistry.INSTANCE.add( TEAK_SLABS, 150 );
+        FuelRegistry.INSTANCE.add( TEAK_TRAPDOOR, 300 );
+        FuelRegistry.INSTANCE.add( TEAK_FENCE, 300 );
+        FuelRegistry.INSTANCE.add( TEAK_FENCE_GATE, 300 );
+        FuelRegistry.INSTANCE.add( TEAK_PRESSURE_PLATE, 300 );
+        FuelRegistry.INSTANCE.add( TEAK_BUTTON, 100 );
+        // 柚木墙与柚木屋顶是本模组自有的形状，原版没有对应参照，燃料时间沿用原设定；也未登记为可点燃。
+        FuelRegistry.INSTANCE.add( TEAK_WALL, 6 * 20 ); // 烧 6s
+        FuelRegistry.INSTANCE.add( TEAK_ROOF, 3 * 20 ); // 烧 3s
     }
 
     private static Identifier registerBlock( String id, Block block ) {
