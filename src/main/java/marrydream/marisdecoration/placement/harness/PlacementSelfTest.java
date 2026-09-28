@@ -9,6 +9,7 @@ import marrydream.marisdecoration.block.CopycatGuardrailBlockEntity;
 import marrydream.marisdecoration.block.LayeredCopycatBoardBlockEntity;
 import marrydream.marisdecoration.block.VerticalLadderBlock;
 import marrydream.marisdecoration.block.enums.PropLadderShape;
+import marrydream.marisdecoration.block.utils.BoardFaceCulling;
 import marrydream.marisdecoration.block.utils.GuardrailParts;
 import marrydream.marisdecoration.block.utils.LayeredBoardParts;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots;
@@ -70,7 +71,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static marrydream.marisdecoration.placement.harness.PlacementHarness.Assertions;
 import static marrydream.marisdecoration.placement.harness.PlacementHarness.clearInventory;
@@ -134,6 +137,7 @@ public final class PlacementSelfTest {
         section(sections, "18. 翻译资源", () -> runTranslations(world, assertions, sections));
         section(sections, "19. 界面几何", () -> runLayoutGeometry(assertions, sections));
         section(sections, "20. 结构配置模型", () -> runStructureModel(assertions, sections));
+        section(sections, "20d. 护栏渲染 cullFace", () -> runGuardrailCullFaceModel(assertions, sections));
 
         return report(assertions, sections);
     }
@@ -2703,6 +2707,271 @@ public final class PlacementSelfTest {
         }
     }
 
+    // ---------------------------------------------------------------- 护栏渲染：cullFace 判定
+
+    /**
+     * 护栏渲染的 cullFace 判定（代码级验证，不需要客户端）。
+     *
+     * <h2>为什么这一步必须在 main 侧验</h2>
+     * 渲染路径用的几何是 {@link GuardrailParts#boxesByKey} 给出的盒子，材质模型的 quad 由
+     * {@code BakedModelHelper.cropAndMove} 逐顶点 clamp 进这些盒子。那个搬运<b>不会</b>改
+     * quad 的 cullFace——所以如果渲染层照抄源材质模型的 cullFace，就会出现「贴在方块内部的
+     * 端面带着某个方向的 cullFace」。这里把渲染层真正会发射的每一张 quad 复算一遍，逐张断言
+     * 「带 cullFace 的 quad 必须真的落在对应方向的外边界上」。
+     *
+     * <h2>覆盖范围</h2>
+     * 15 种方向组合（单方向 / 相邻两方向 / 相对两方向 / 三方向 / 四方向）× 每种组合的每个部件，
+     * 所以不存在「只验了截图里那个方向」。
+     */
+    private static void runGuardrailCullFaceModel(Assertions a, List<String> log) {
+        log.add("== 20d. 护栏渲染 cullFace（cropAndMove 之后的落点判定）");
+
+        int checked = 0;
+        /** 0 = 贴边界面的 quad、1 = 方块内部的 quad、2 = 修复前会被错误剔除的内部 quad。 */
+        int[] counters = new int[3];
+
+        for (int mask = 1; mask < 16; mask++) {
+            BlockState state = guardrailState(mask);
+            Map<String, List<Box>> boxes = GuardrailParts.boxesByKey(state, Set.of());
+            a.isFalse("掩码 " + mask + " 至少有一个可见槽位", boxes.isEmpty());
+
+            for (Map.Entry<String, List<Box>> entry : boxes.entrySet()) {
+                String key = entry.getKey();
+                for (Box box : entry.getValue()) {
+                    // 掩码里每个方向都必须真的有横梁几何（多方向不能把某个方向吃掉）
+                    if (key.endsWith("_row")) {
+                        Direction dir = directionOfName(key.substring(0, key.length() - "_row".length()));
+                        a.notNull("横梁键名能解析回方向：" + key, dir);
+                        if (dir != null) {
+                            a.isTrue("掩码 " + mask + " 里 " + dir + " 有横梁，所以它的位必须开着",
+                                    CopycatGuardrailBlock.maskHas(mask, dir));
+                        }
+                    }
+                    checked += emitAndCheckBox(a, key, box, mask, counters);
+                }
+            }
+        }
+
+        int boundaryQuads = counters[0];
+        int interiorQuads = counters[1];
+        int regressionQuads = counters[2];
+        log.add("   护栏 cullFace：覆盖 15 种方向组合、共 " + checked + " 个盒子，"
+                + "贴边界面的 quad " + boundaryQuads + " 张、方块内部 quad " + interiorQuads
+                + " 张（其中 " + regressionQuads + " 张是修复前会被邻居错误剔除的）");
+        a.isTrue("确实存在贴外边界的 quad（否则说明判定把所有面都判成内部了）", boundaryQuads > 0);
+        a.isTrue("确实存在方块内部的 quad（否则说明判定把所有面都判成边界了）", interiorQuads > 0);
+        // 这一条保证这段自检真的覆盖了那个 bug：如果一张「会被错误剔除」的内部面都没有，
+        // 说明几何或摆位变了、这段验证已经触及不到问题所在，必须有人重新看一眼。
+        a.isTrue("确实存在「修复前会被错误剔除」的内部 quad（回归覆盖有效）", regressionQuads > 0);
+
+        // --- 四方向对称：每根横梁的盒子必定贴着本方向的 BlockPos 边界，
+        //     而且那一张「外侧」quad 必须正好拿到本方向的 cullFace。
+        //     四个方向走的是同一套规则，所以这里不需要按方向写特例。
+        for (int mask = 1; mask < 16; mask++) {
+            BlockState state = guardrailState(mask);
+            Map<String, List<Box>> boxes = GuardrailParts.boxesByKey(state, Set.of());
+            for (Direction dir : CopycatGuardrailBlock.FACES) {
+                if (!CopycatGuardrailBlock.maskHas(mask, dir)) {
+                    continue;
+                }
+                List<Box> rows = boxes.get(GuardrailParts.rowKey(dir));
+                a.notNull("掩码 " + mask + " 里 " + dir + " 横梁必须有几何", rows);
+                if (rows == null) {
+                    continue;
+                }
+                int axis = dir.getAxis().ordinal();
+                boolean atMin = dir.getDirection() == Direction.AxisDirection.NEGATIVE;
+                for (Box box : rows) {
+                    a.equal("掩码 " + mask + " " + dir + " 横梁贴在本方向边界上的那一面",
+                            dir, boundaryFaceOf(dir, box));
+                    Direction outerCull = BoardFaceCulling.boxCullFace(axis,
+                            (float) (atMin ? axisMin(box, axis) : axisMax(box, axis)), box);
+                    a.equal("掩码 " + mask + " " + dir + " 横梁朝本方向那一张 quad 的 cullFace",
+                            dir, outerCull);
+                }
+            }
+        }
+
+        // --- 多方向不许互相污染：某一根横梁的判定只能取决于它自己那一根，
+        //     与同格里还有哪些别的方向无关。参照是「只开这一个方向」时的签名；
+        //     加入任何其它方向之后都必须逐字不变。
+        //     （东/西、南/北互为镜像，签名本来就差一个符号，所以不能横向互相比较。）
+        for (Direction dir : CopycatGuardrailBlock.FACES) {
+            List<String> alone = rowSignatureOf(guardrailState(CopycatGuardrailBlock.bit(dir)), dir);
+            for (int mask = 1; mask < 16; mask++) {
+                if (!CopycatGuardrailBlock.maskHas(mask, dir) || mask == CopycatGuardrailBlock.bit(dir)) {
+                    continue;
+                }
+                a.equal("掩码 " + mask + " 里 " + dir + " 横梁的 cullFace 签名必须与只开它自己时一致"
+                                + "（同格其它方向不许污染它）",
+                        alone, rowSignatureOf(guardrailState(mask), dir));
+            }
+        }
+
+        log.add("   护栏 cullFace：四方向对称性、多方向互不污染、单方向 vs 多方向一致性均通过");
+    }
+
+    /**
+     * 这根横梁「贴在本方向边界上」的那一面是哪个方向；没有贴边界的面时返回 {@code null}。
+     *
+     * <p>横梁是本方向那一面的一部分，所以它必定在「本方向的轴」上顶着 0 或 1。
+     */
+    private static Direction boundaryFaceOf(Direction dir, Box box) {
+        for (Direction side : Direction.values()) {
+            if (side.getAxis() != dir.getAxis()) {
+                continue;
+            }
+            boolean atMin = side.getDirection() == Direction.AxisDirection.NEGATIVE;
+            double coord = atMin ? axisMin(box, side.getAxis().ordinal())
+                    : axisMax(box, side.getAxis().ordinal());
+            boolean onBoundary = atMin
+                    ? coord <= BoardFaceCulling.PLANE_EPSILON
+                    : coord >= 1.0 - BoardFaceCulling.PLANE_EPSILON;
+            if (onBoundary) {
+                return side;
+            }
+        }
+        return null;
+    }
+
+    /** 某个掩码里某个方向的横梁的 cullFace 签名（已排序，可比）。 */
+    private static List<String> rowSignatureOf(BlockState state, Direction dir) {
+        List<String> out = new ArrayList<>();
+        List<Box> boxes = GuardrailParts.boxesByKey(state, Set.of())
+                .get(GuardrailParts.rowKey(dir));
+        if (boxes == null) {
+            return out;
+        }
+        for (Box box : boxes) {
+            out.addAll(cullSignature(box));
+        }
+        java.util.Collections.sort(out);
+        return out;
+    }
+
+    /**
+     * 一个盒子上六类 quad 的<b>旋转无关</b>判定签名：{轴 + 方向 + 有没有 cullFace}。
+     *
+     * <p>刻意不写绝对方向名与盒子坐标：把结构整体转 90° 时它们本来就会跟着变，
+     * 写进去只会让「判定是不是对称」这件事被坐标差异淹没。真正该不变的是
+     * 「这个部件的哪一类 quad 被判定成贴着外边界」。
+     */
+    private static List<String> cullSignature(Box box) {
+        List<String> out = new ArrayList<>();
+        for (int[] quad : MATERIAL_CUBE_QUADS) {
+            int axis = quad[1];
+            boolean atMin = quad[0] < 0;
+            float plane = atMin ? (float) axisMin(box, axis) : (float) axisMax(box, axis);
+            Direction cull = BoardFaceCulling.boxCullFace(axis, plane, box);
+            out.add(axis + (atMin ? "-" : "+") + "|" + (cull != null));
+        }
+        return out;
+    }
+
+    /**
+     * 复算一个盒子真正会发射的 quad 并逐张断言。
+     *
+     * <p>源四边形的形状在这里不重要——{@code cropAndMove} 是逐顶点 clamp，任何与盒子某轴垂直的
+     * 源面落进盒子之后都会落在盒子的某个面上；决定落点的是「源面的法线指向哪一个轴、哪一个方向」。
+     * 所以对每个轴、每个符号各算一次就覆盖了全部落点。
+     */
+    private static int emitAndCheckBox(Assertions a, String key, Box box, int mask, int[] counters) {
+        int quads = 0;
+        for (int[] quad : MATERIAL_CUBE_QUADS) {
+            int sign = quad[0];
+            int axis = quad[1];
+            boolean atMin = sign < 0;
+            float plane = atMin ? (float) axisMin(box, axis) : (float) axisMax(box, axis);
+            Direction cull = BoardFaceCulling.boxCullFace(axis, plane, box);
+            quads++;
+
+            double boxMin = axisMin(box, axis);
+            double boxMax = axisMax(box, axis);
+            boolean boxFaceAtBlockBoundary = atMin
+                    ? boxMin <= BoardFaceCulling.PLANE_EPSILON
+                    : boxMax >= 1.0 - BoardFaceCulling.PLANE_EPSILON;
+
+            String tag = "掩码 " + mask + " " + key + " " + boxKey(box)
+                    + " quad(轴=" + axis + (atMin ? "-" : "+") + ")";
+
+            if (cull != null) {
+                counters[0]++;
+                // 核心不变量：带 cullFace 的 quad 必须真的贴在对应方向的外边界上
+                a.isTrue(tag + " 带了 cullFace=" + cull + "，所以 box 在该方向必须压在方块边界上",
+                        boxFaceAtBlockBoundary);
+                a.equal(tag + " cullFace 必须与落点方向一致", boundaryOf(axis, atMin), cull);
+            } else {
+                counters[1]++;
+                // 落在方块内部的面绝不允许带 cullFace，否则邻居的完整固体方块会把内部几何一起剔掉
+                a.isFalse(tag + " 落在方块内部，所以不允许带任何 cullFace", boxFaceAtBlockBoundary);
+                // 与修复前的做法逐张对照：旧代码只是 emitter.copyFrom(quad) 之后直接 emit，
+                // 于是 quad 保留了材质模型给它的 cullFace —— 也就是 (axis, atMin) 对应的那个方向。
+                // 这一张 quad 落在方块内部，所以旧值必定非空且与新判定不同：
+                // 它是「照抄源 cullFace 就会出错」的受害面，这条断言就是那个 bug 的回归防线。
+                Direction copiedFromMaterial = boundaryOf(axis, atMin);
+                a.isFalse(tag + " 修复前会照抄材质模型的 cullFace=" + copiedFromMaterial
+                                + "，新判定必须是 null",
+                        cull == copiedFromMaterial);
+                counters[2]++;
+            }
+        }
+        return quads;
+    }
+
+    /** 某个轴负/正端对应的世界方向。 */
+    private static Direction boundaryOf(int axis, boolean atMin) {
+        if (axis == 0) {
+            return atMin ? Direction.WEST : Direction.EAST;
+        }
+        if (axis == 1) {
+            return atMin ? Direction.DOWN : Direction.UP;
+        }
+        return atMin ? Direction.NORTH : Direction.SOUTH;
+    }
+
+    /**
+     * 一个完整立方体材质模型的 6 张面，写成 {@code {符号, 轴}}：符号 -1 表示该轴的负端面。
+     *
+     * <p>任何伪装材质模型都至少包含这 6 张与坐标轴垂直的 quad，它们就是 cropAndMove 之后
+     * 唯一能留下面积的那些（其余朝向会被 clamp 成零面积）。
+     */
+    private static final int[][] MATERIAL_CUBE_QUADS = {
+            {-1, 0}, {1, 0}, {-1, 1}, {1, 1}, {-1, 2}, {1, 2}
+    };
+
+    private static double axisMin(Box box, int axis) {
+        return axis == 0 ? box.minX : axis == 1 ? box.minY : box.minZ;
+    }
+
+    private static double axisMax(Box box, int axis) {
+        return axis == 0 ? box.maxX : axis == 1 ? box.maxY : box.maxZ;
+    }
+
+    private static String boxKey(Box box) {
+        return String.format(java.util.Locale.ROOT, "[%.4f,%.4f,%.4f -> %.4f,%.4f,%.4f]",
+                box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
+    }
+
+    /** 用位掩码造一个护栏状态。 */
+    private static BlockState guardrailState(int mask) {
+        BlockState state = ModBlock.COPYCAT_GUARDRAIL.getDefaultState();
+        for (Direction dir : CopycatGuardrailBlock.FACES) {
+            state = state.with(CopycatGuardrailBlock.PROPERTY_BY_DIRECTION.get(dir),
+                    CopycatGuardrailBlock.maskHas(mask, dir));
+        }
+        return state;
+    }
+
+    /** 由 {@code north}/{@code east}/… 反解方向。 */
+    private static Direction directionOfName(String name) {
+        for (Direction dir : CopycatGuardrailBlock.FACES) {
+            if (dir.asString().equals(name)) {
+                return dir;
+            }
+        }
+        return null;
+    }
+
     // ---------------------------------------------------------------- 护栏
 
     private static void runGuardrailStructureModel(Assertions a, List<String> log) {
@@ -3834,3 +4103,4 @@ public final class PlacementSelfTest {
         writeReportFile(writer.toString());
     }
 }
+

@@ -7,23 +7,25 @@ import org.jetbrains.annotations.Nullable;
 /**
  * 「一张 quad 最终落在哪里」到「它该不该带 cullFace」的判定。
  *
- * <p>分层伪装薄板的几何全部来自 {@link LayeredBoardParts#boxesByKey}，输出的是<b>零厚度的平面盒</b>。
- * 渲染时材质模型自己的 quad 会被 {@code BakedModelHelper.cropAndMove} 搬进这些平面里，
- * 而这个搬运是<b>逐顶点 clamp</b>、不是三维求交：顶点被夹进盒子之后，法线与平面不平行的源面
- * 会被压成一条零面积的线，而法线与平面平行的两个相对面（材质的 up / down，或 north / south、
- * west / east）会<b>一起落在同一个平面上</b>。
+ * <p>两种动态模型都靠 {@code BakedModelHelper.cropAndMove} 把伪装材质模型自己的 quad 搬进自己的
+ * 几何体，而这个搬运是<b>逐顶点 clamp</b>、不是三维求交——搬运之后源 quad 的 cullFace
+ * <b>已经不可信</b>了：材质模型里一个「贴着方块西面」的 quad，被 clamp 进一个东侧盒子的内部平面之后，
+ * 仍然带着 {@code WEST}，于是原版会去问「西边那个 BlockPos 是不是实心方块」，把方块<b>内部</b>的
+ * 几何一并剔掉。所以四类方法都必须由「最终落在哪里」重新判定，绝不能让源 cullFace 活下来。
  *
- * <p>所以最终 quad 的 cullFace 不能沿用源材质模型的 cullFace——crop / move 之后源 quad 的几何
- * 位置已经不可信了。规则只有两条，六个方向完全对称：
- *
+ * <h2>两种情况</h2>
  * <ul>
- *   <li>这张 quad 所在的平面正好贴在 BlockPos 某个外边界上 → 它是贴着邻居的，带上该方向的
- *       cullFace，交给原版正常的邻居遮挡剔除。零厚度平面让材质的两个相对面共面重叠，带上同
- *       一个方向之后，只要有完整方块遮挡就会一起被剔除，不会再互相打架；邻居是空气时谁都
- *       不会被剔除，背面照常可见。</li>
- *   <li>平面在方块内部（INNER 层、方块内部平面、窗内壁）→ cullFace 必须是 {@code null}，
- *       否则原版会去问「那个方向的相邻 BlockPos 是不是实心方块」，把内部几何一并剔掉。</li>
+ *   <li><b>零厚度平面盒</b>（{@code layered_copycat_board} 的 1px 板）：
+ *       {@link #planeAxis} 认出所在平面，{@link #boundaryCullFace} 给结论。
+ *       法线与平面平行的两个相对面会一起落在同一个平面上，带同一个 cullFace 之后不会互相打架；</li>
+ *   <li><b>有厚度的盒子</b>（{@code copycat_guardrail} 的 1px 横梁、16px 角柱）：
+ *       先按 {@link #isParallelTo} 找出 quad 垂直于哪个轴，再用
+ *       {@link #boxCullFace} 判断那一层是不是盒子的外沿、且压在 BlockPos 边界上。</li>
  * </ul>
+ *
+ * <p>规则本身只有一条，六个方向完全对称：<b>只有正好贴在 BlockPos 外边界上的面才允许参与邻居
+ * 遮挡剔除</b>；落在方块内部的平面（INNER 层、横梁端面、横梁与角柱的接触面、两方向之间的内部面）
+ * cullFace 必须是 {@code null}。
  *
  * <p>放在 main 侧是为了让无客户端环境下的代码级验证能直接调用这一份实现，而不是复制一遍。
  */
@@ -57,6 +59,66 @@ public final class BoardFaceCulling {
             return 2;
         }
         return -1;
+    }
+
+    /**
+     * 这张 quad 落在「有厚度的盒子」的某个完整面上时，该带哪个 cullFace。
+     *
+     * <p>与 {@link #boundaryCullFace} 是同一件事的两种几何：那边处理零厚度平面盒，
+     * 这边处理护栏那种真正有体积的盒子（1px 横梁、16px 角柱）。规则完全一致：
+     * <b>只有正好贴在 BlockPos 外边界上的那个面才允许参与邻居遮挡剔除</b>，
+     * 落在方块内部的那些面（横梁的端面、横梁与角柱的接触面、两方向之间的内部面）一律
+     * {@code null}。
+     *
+     * <p>判据只看两件事，不需要方向特判：
+     * <ul>
+     *   <li>quad 是否与 {@code axis} 垂直（顶点在这个轴上共面）——垂直于某个轴的源面被 clamp
+     *       进盒子之后才会落在盒子的某个面上，其它朝向的源面会退化成零面积；</li>
+     *   <li>{@code planeCoord}（quad 最终所在的那一层）是否等于盒子的某个外沿，且该外沿
+     *       正好压在 BlockPos 的边界上。</li>
+     * </ul>
+     *
+     * @param axis      盒子/quad 的法线轴，0 = X、1 = Y、2 = Z
+     * @param planeCoord quad 最终所在那一层的坐标（盒子坐标系 0..1）
+     * @param box       目标盒子
+     * @return 贴在外边界时返回该方向；落在方块内部时返回 {@code null}
+     */
+    @Nullable
+    public static Direction boxCullFace( int axis, float planeCoord, Box box ) {
+        if ( axis < 0 || axis > 2 ) {
+            return null;
+        }
+        double min = axis == 0 ? box.minX : axis == 1 ? box.minY : box.minZ;
+        double max = axis == 0 ? box.maxX : axis == 1 ? box.maxY : box.maxZ;
+        boolean atMin = Math.abs( planeCoord - min ) <= PLANE_EPSILON;
+        boolean atMax = Math.abs( planeCoord - max ) <= PLANE_EPSILON;
+        if ( atMin && atMax ) {
+            // 零厚度：这一层同时是盒子的两面（平面盒就是这么被判定成外边界的）
+            if ( min <= PLANE_EPSILON ) {
+                return negativeOf( axis );
+            }
+            if ( min >= 1.0 - PLANE_EPSILON ) {
+                return positiveOf( axis );
+            }
+            return null;
+        }
+        if ( atMin && min <= PLANE_EPSILON ) {
+            return negativeOf( axis );
+        }
+        if ( atMax && max >= 1.0 - PLANE_EPSILON ) {
+            return positiveOf( axis );
+        }
+        return null;
+    }
+
+    /** 某个轴负方向：X→WEST、Y→DOWN、Z→NORTH。 */
+    private static Direction negativeOf( int axis ) {
+        return axis == 0 ? Direction.WEST : axis == 1 ? Direction.DOWN : Direction.NORTH;
+    }
+
+    /** 某个轴正方向：X→EAST、Y→UP、Z→SOUTH。 */
+    private static Direction positiveOf( int axis ) {
+        return axis == 0 ? Direction.EAST : axis == 1 ? Direction.UP : Direction.SOUTH;
     }
 
     /**

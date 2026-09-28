@@ -5,6 +5,7 @@ import com.simibubi.create.foundation.model.BakedModelHelper;
 import io.github.fabricators_of_create.porting_lib.models.CustomParticleIconModel;
 import marrydream.marisdecoration.MarisDecoration;
 import marrydream.marisdecoration.block.CopycatGuardrailBlockEntity.RenderData;
+import marrydream.marisdecoration.block.utils.BoardFaceCulling;
 import marrydream.marisdecoration.block.utils.GuardrailParts;
 import net.fabricmc.fabric.api.renderer.v1.RendererAccess;
 import net.fabricmc.fabric.api.renderer.v1.material.BlendMode;
@@ -97,6 +98,10 @@ public class CopycatGuardrailModel extends ForwardingBakedModel implements Custo
         MeshBuilder meshBuilder = RendererAccess.INSTANCE.getRenderer().meshBuilder();
         QuadEmitter emitter = meshBuilder.getEmitter();
 
+        // 每次烘焙一个 scratch：区块网格是并行烘焙的，放在实例字段上会跨线程打架。
+        // 一次调用只分配这一次（12 个 float），不是每个 quad / 每个盒子一次。
+        float[] vertexScratch = new float[BoardFaceCulling.VERTEX_FLOATS];
+
         grouped.forEach((material, list) -> {
             BakedModel model = MinecraftClient.getInstance().getBlockRenderManager().getModel(material);
             // 材质自己的 render layer，必须在 quad 被搬进 mesh 之前就换上
@@ -113,9 +118,29 @@ public class CopycatGuardrailModel extends ForwardingBakedModel implements Custo
                 }
                 // tint 也必须跟着 quad 自己的材质走，见 applyMaterialTint
                 applyMaterialTint(quad, material, blockView, pos);
+                // 源 quad 的四个顶点只跟材质模型有关、与目标盒子无关，所以在盒子循环外取一次。
+                // 复用同一个 scratch，避免每个 (quad, box) 组合都分配一次数组。
+                for (int vertex = 0; vertex < 4; vertex++) {
+                    vertexScratch[vertex * 3] = quad.x(vertex);
+                    vertexScratch[vertex * 3 + 1] = quad.y(vertex);
+                    vertexScratch[vertex * 3 + 2] = quad.z(vertex);
+                }
                 for (Box box : list) {
+                    // 只保留「垂直于某个轴」的源面：cropAndMove 是逐顶点 clamp，法线不与盒子轴
+                    // 平行的源面会被压成一条零面积的线，一个像素都画不出来，直接跳过。
+                    int quadAxis = BoardFaceCulling.quadPlaneAxis(vertexScratch);
+                    if (quadAxis < 0) {
+                        continue;
+                    }
                     emitter.copyFrom(quad);
                     BakedModelHelper.cropAndMove(emitter, spriteFinder.find(emitter), box, Vec3d.ZERO);
+                    // cullFace 必须按「这张 quad 最终落在盒子的哪一层」重判，见 BoardFaceCulling。
+                    // 照抄源材质模型的 cullFace 正是这个方块之前的渲染 bug：一根贴着北边界的横梁，
+                    // 它朝南那张内部面仍然带着材质模型的 SOUTH；于是南边挨着完整固体方块时，
+                    // 原版会去问「南边那个 BlockPos 是不是实心方块」，把方块内部的面一起剔掉，
+                    // 表现就是横梁末端缺面 / 尖角状残片。
+                    emitter.cullFace(BoardFaceCulling.boxCullFace(quadAxis,
+                            vertexScratch[quadAxis], box));
                     emitter.emit();
                 }
                 return false;
