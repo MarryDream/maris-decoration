@@ -42,6 +42,7 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -516,11 +517,10 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
         }
 
         if (!world.isClient) {
-            // 每个部件独立付账：贴一次扣一个物品，四根柱子分别贴就是四个。
-            // 不做「同种材料只付一次」的去重——那样拆掉整块时也只能还回一份，与逐根独立消耗对不上。
-            blockEntity.setMaterial(key, material, stack);
+            boolean needsPayment = !blockEntity.hasMaterialBlock(material.getBlock());
+            blockEntity.setMaterial(key, material, needsPayment ? stack : null);
             world.playSound(null, pos, material.getSoundGroup().getPlaceSound(), SoundCategory.BLOCKS, 1.0F, 0.75F);
-            if (!player.isCreative()) {
+            if (!player.isCreative() && needsPayment) {
                 stack.decrement(1);
             }
         }
@@ -552,11 +552,14 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
             if (blockEntity.hasMaterial(key)) {
                 continue;
             }
-            blockEntity.setMaterial(key, material, offhand);
+            boolean needsPayment = !blockEntity.hasMaterialBlock(material.getBlock());
+            blockEntity.setMaterial(key, material, needsPayment ? offhand : null);
             if (player.isCreative()) {
                 continue;
             }
-            offhand.decrement(1);
+            if (needsPayment) {
+                offhand.decrement(1);
+            }
             if (offhand.isEmpty()) {
                 player.setStackInHand(Hand.OFF_HAND, ItemStack.EMPTY);
                 break;
@@ -606,11 +609,6 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
         BlockPos pos = context.getBlockPos();
         PlayerEntity player = context.getPlayer();
 
-        if (faceCount(state) <= 1) {
-            // 最后一面交给默认实现：破坏方块 -> 护栏方块走战利品表，伪装材质走 onStateReplaced
-            return IWrenchable.super.onSneakWrenched(state, context);
-        }
-
         // 隐藏的柱子已经不在可见几何里，不该被扳手选中（否则会拆掉一根看不见的柱子的材质）
         Set<String> hidden = world.getBlockEntity(pos) instanceof CopycatGuardrailBlockEntity blockEntity
                 ? blockEntity.hiddenColumns()
@@ -621,7 +619,34 @@ public class CopycatGuardrailBlock extends Block implements BlockEntityProvider,
             return ActionResult.PASS;
         }
         if (!world.isClient) {
-            world.setBlockState(pos, state.with(PROPERTY_BY_DIRECTION.get(target), false));
+            BlockState nextState = state.with(PROPERTY_BY_DIRECTION.get(target), false);
+            if (world.getBlockEntity(pos) instanceof CopycatGuardrailBlockEntity blockEntity) {
+                // Structural membership deliberately ignores hiddenColumns: hidden columns still exist.
+                Set<String> removedKeys = new LinkedHashSet<>(GuardrailParts.visibleKeys(state, Set.of()));
+                removedKeys.removeAll(GuardrailParts.visibleKeys(nextState, Set.of()));
+
+                // Copycats+ emits exactly one material break event for the part under the wrench.
+                // Other material slots that disappear with this direction are cleared silently.
+                String hitKey = GuardrailParts.materialKey(hitPart);
+                BlockState hitMaterial = blockEntity.material(hitKey);
+                for (String key : removedKeys) {
+                    ItemStack returned = blockEntity.takeConsumedItemForRemoval(key);
+                    if (player != null && !player.isCreative() && !returned.isEmpty()) {
+                        player.getInventory().offerOrDrop(returned);
+                    }
+                }
+                if (!hitMaterial.isAir()) {
+                    world.syncWorldEvent(2001, pos, Block.getRawIdFromState(hitMaterial));
+                }
+            }
+
+            if (faceCount(state) <= 1) {
+                // Materials have already followed Copycats+' offerOrDrop path. The default path
+                // supplies the structure item, break events and final whole-block feedback.
+                return IWrenchable.super.onSneakWrenched(state, context);
+            }
+
+            world.setBlockState(pos, nextState);
             if (player != null && !player.isCreative()) {
                 // 拆一面返还一个护栏方块，同样直接进背包
                 player.getInventory().offerOrDrop(new ItemStack(this));

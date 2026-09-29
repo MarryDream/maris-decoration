@@ -106,6 +106,11 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
         return consumedItems.getOrDefault(key, ItemStack.EMPTY);
     }
 
+    /** Whether another slot at this position already uses this block material. */
+    public boolean hasMaterialBlock(Block block) {
+        return materials.values().stream().anyMatch(state -> !state.isAir() && state.isOf(block));
+    }
+
     /**
      * 给某个槽位附着伪装材质；{@code consumed} 是被消耗的那个物品堆。
      *
@@ -165,8 +170,24 @@ public class CopycatGuardrailBlockEntity extends SmartBlockEntity implements Ren
      */
     public ItemStack takeConsumedItemForRemoval(String key) {
         ItemStack returned = consumedItem(key);
+        BlockState removed = material(key);
         materials.put(key, NO_MATERIAL);
         consumedItems.put(key, ItemStack.EMPTY);
+
+        // Copycats+ charges once per material type at a BlockPos. Keep that payment attached
+        // to another reference until the last slot using the material is removed.
+        if (!returned.isEmpty() && !removed.isAir()) {
+            for (String otherKey : GuardrailParts.allKeys()) {
+                if (otherKey.equals(key) || !material(otherKey).isOf(removed.getBlock())) {
+                    continue;
+                }
+                if (consumedItem(otherKey).isEmpty()) {
+                    consumedItems.put(otherKey, returned);
+                }
+                returned = ItemStack.EMPTY;
+                break;
+            }
+        }
         sync();
         return returned;
     }

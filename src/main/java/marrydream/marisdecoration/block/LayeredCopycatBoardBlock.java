@@ -781,6 +781,30 @@ public class LayeredCopycatBoardBlock extends Block implements BlockEntityProvid
             return ActionResult.SUCCESS;
         }
 
+        // Copycats+ emits one material break event for the part under the wrench before
+        // removing it. Keep the existing layer/payment cleanup below unchanged.
+        BlockState feedbackMaterial = null;
+        BoardHit feedbackHit = hitAt( localHit( context.getHitPos(), pos ), board );
+        if ( feedbackHit != null && feedbackHit.area() != BoardArea.WINDOW
+                && feedbackHit.face() == cell.face() && feedbackHit.layer() == cell.layer() ) {
+            String feedbackKey = LayeredBoardSlots.materialKey(
+                    feedbackHit.face(), feedbackHit.layer(), feedbackHit.area() );
+            BlockState candidate = board.material( feedbackKey );
+            if ( !candidate.isAir() ) {
+                feedbackMaterial = candidate;
+            }
+        }
+        if ( feedbackMaterial == null ) {
+            for ( BoardArea area : LayeredBoardSlots.MATERIAL_AREAS ) {
+                BlockState candidate = board.material(
+                        LayeredBoardSlots.materialKey( cell.face(), cell.layer(), area ) );
+                if ( !candidate.isAir() ) {
+                    feedbackMaterial = candidate;
+                    break;
+                }
+            }
+        }
+
         // 先把这一层的材质取下来（最后一个引用才真返还）
         for ( BoardArea area : LayeredBoardSlots.MATERIAL_AREAS ) {
             String key = LayeredBoardSlots.materialKey( cell.face(), cell.layer(), area );
@@ -800,10 +824,14 @@ public class LayeredCopycatBoardBlock extends Block implements BlockEntityProvid
             player.getInventory().offerOrDrop( new ItemStack( this ) );
         }
 
+        if ( feedbackMaterial != null ) {
+            world.syncWorldEvent( 2001, pos, Block.getRawIdFromState( feedbackMaterial ) );
+        }
         if ( board.slotCount() == 0 ) {
-            // 拆光了：直接移除方块。此时占用为 0、材质也已在上面清空，
-            // onStateReplaced 不会再掉任何东西出来。
-            world.removeBlock( pos, false );
+            // The last part follows Create's generic wrench removal path. This supplies the
+            // whole-block break feedback and break-event hooks without duplicating item returns:
+            // occupancy and the layer materials are already empty at this point.
+            return IWrenchable.super.onSneakWrenched( state, context );
         }
         IWrenchable.playRemoveSound( world, pos );
         return ActionResult.SUCCESS;
