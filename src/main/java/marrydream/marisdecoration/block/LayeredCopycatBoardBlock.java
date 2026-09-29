@@ -817,6 +817,20 @@ public class LayeredCopycatBoardBlock extends Block implements BlockEntityProvid
             }
         }
 
+        // Window material is shared by both layers of a face. Keep it while the other layer
+        // still exists; when this is the face's last layer, settle it through the same
+        // offerOrDrop path before block removal can reach onStateReplaced/dropAllMaterials.
+        BoardLayer otherLayer = cell.layer() == BoardLayer.OUTER ? BoardLayer.INNER : BoardLayer.OUTER;
+        if ( !LayeredBoardSlots.hasSlot( board.occupancy(), cell.face(), otherLayer ) ) {
+            String windowKey = LayeredBoardSlots.windowKey( cell.face() );
+            if ( board.hasMaterial( windowKey ) ) {
+                ItemStack returned = board.takeConsumedItemForRemoval( windowKey );
+                if ( player != null && !player.isCreative() && !returned.isEmpty() ) {
+                    player.getInventory().offerOrDrop( returned );
+                }
+            }
+        }
+
         board.removeSlot( cell.face(), cell.layer() );
 
         if ( player != null && !player.isCreative() ) {

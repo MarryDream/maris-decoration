@@ -8,6 +8,8 @@ import marrydream.marisdecoration.block.LayeredCopycatBoardBlockEntity;
 import marrydream.marisdecoration.block.LayeredCopycatBoardBlockEntity.RenderData;
 import marrydream.marisdecoration.block.utils.BoardFaceCulling;
 import marrydream.marisdecoration.block.utils.LayeredBoardParts;
+import marrydream.marisdecoration.block.utils.LayeredBoardParts.Slot;
+import marrydream.marisdecoration.block.utils.LayeredBoardSlots.FaceDir;
 import net.fabricmc.fabric.api.renderer.v1.RendererAccess;
 import net.fabricmc.fabric.api.renderer.v1.material.BlendMode;
 import net.fabricmc.fabric.api.renderer.v1.material.RenderMaterial;
@@ -96,16 +98,30 @@ public class LayeredCopycatBoardModel extends ForwardingBakedModel implements Cu
                 MinecraftClient.getInstance().getBakedModelManager().getAtlas( SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE ) );
 
         // 同一种材质的所有几何体合成一组，每组只发射一次材质模型
-        Map<BlockState, List<Box>> grouped = new LinkedHashMap<>();
+        Map<MaterialKey, List<RenderPart>> grouped = new LinkedHashMap<>();
         boxes.forEach( ( key, list ) -> {
-            BlockState material = materials.get( key );
-            if ( material == null || material.isAir() ) {
-                material = UNPAINTED;
+            BlockState stored = materials.get( key );
+            boolean defaultMaterial = stored == null || stored.isAir();
+            BlockState material = defaultMaterial ? UNPAINTED : stored;
+            List<RenderPart> parts = grouped.computeIfAbsent(
+                    new MaterialKey( material, defaultMaterial ), unused -> new ArrayList<>() );
+            boolean defaultWindow = defaultMaterial && key.endsWith( ".window" );
+            Slot slot = defaultWindow ? Slot.parse( key ) : null;
+            FaceDir windowFace = slot == null ? null : slot.face();
+            for ( Box box : list ) {
+                if ( windowFace == null ) {
+                    parts.add( new RenderPart( box, null ) );
+                    continue;
+                }
+                for ( Box piece : DefaultMaterialCrop.splitWindowPanel( windowFace, box ) ) {
+                    parts.add( new RenderPart( piece,
+                            DefaultMaterialCrop.windowPanelSource( windowFace, piece ) ) );
+                }
             }
-            grouped.computeIfAbsent( material, unused -> new ArrayList<>() ).addAll( list );
         } );
 
-        grouped.forEach( ( material, list ) -> {
+        grouped.forEach( ( key, list ) -> {
+            BlockState material = key.material();
             BakedModel model = MinecraftClient.getInstance().getBlockRenderManager().getModel( material );
             // 材质自己的 render layer，必须在 quad 被搬进 mesh 之前就换上
             RenderMaterial materialBlendMode = blendModeOf( material );
@@ -128,7 +144,8 @@ public class LayeredCopycatBoardModel extends ForwardingBakedModel implements Cu
                     vertexScratch[vertex * 3 + 1] = quad.y( vertex );
                     vertexScratch[vertex * 3 + 2] = quad.z( vertex );
                 }
-                for ( Box box : list ) {
+                for ( RenderPart part : list ) {
+                    Box box = part.target();
                     // 目标盒子是零厚度的「平面」。cropAndMove 是逐顶点 clamp 到盒子里，不是真正的
                     // 三维求交，所以法线轴与这个平面不平行的源面会被压成一条零面积的线——那种
                     // quad 一个像素都画不出来，直接跳过。留下的只有材质自身与平面平行的那两个面
@@ -138,7 +155,12 @@ public class LayeredCopycatBoardModel extends ForwardingBakedModel implements Cu
                         continue;
                     }
                     emitter.copyFrom( quad );
-                    BakedModelHelper.cropAndMove( emitter, spriteFinder.find( emitter ), box, Vec3d.ZERO );
+                    if ( part.defaultSource() == null ) {
+                        BakedModelHelper.cropAndMove( emitter, spriteFinder.find( emitter ), box, Vec3d.ZERO );
+                    } else {
+                        DefaultMaterialCrop.cropAndMove( emitter, spriteFinder.find( emitter ),
+                                part.defaultSource(), box );
+                    }
                     // cullFace 由「最终 quad 落在哪里」决定，见 BoardFaceCulling 的说明。
                     // 贴 BlockPos 外边界 → 带该方向 cullFace，交给原版正常的邻居遮挡剔除；
                     // 落在方块内部 → null，内部几何不会被邻居错误剔掉（这是之前那次修复的规则）。
@@ -152,6 +174,12 @@ public class LayeredCopycatBoardModel extends ForwardingBakedModel implements Cu
         } );
 
         meshBuilder.build().outputTo( context.getEmitter() );
+    }
+
+    private record MaterialKey( BlockState material, boolean defaultMaterial ) {
+    }
+
+    private record RenderPart( Box target, @Nullable Box defaultSource ) {
     }
 
     /**

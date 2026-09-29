@@ -84,13 +84,16 @@ public class CopycatGuardrailModel extends ForwardingBakedModel implements Custo
         }
 
         // 同一种材质的所有几何体合成一组，每组只发射一次材质模型
-        Map<BlockState, List<Box>> grouped = new LinkedHashMap<>();
+        Map<MaterialKey, List<RenderPart>> grouped = new LinkedHashMap<>();
         boxes.forEach((key, list) -> {
-            BlockState material = materials.get(key);
-            if (material == null || material.isAir()) {
-                material = UNPAINTED;
-            }
-            grouped.computeIfAbsent(material, unused -> new ArrayList<>()).addAll(list);
+            BlockState stored = materials.get(key);
+            boolean defaultMaterial = stored == null || stored.isAir();
+            BlockState material = defaultMaterial ? UNPAINTED : stored;
+            List<RenderPart> parts = grouped.computeIfAbsent(
+                    new MaterialKey(material, defaultMaterial), unused -> new ArrayList<>());
+            boolean defaultRail = defaultMaterial && key.endsWith("_row");
+            for (Box box : list)
+                parts.add(new RenderPart(box, defaultRail ? DefaultMaterialCrop.withTopSample(box) : null));
         });
 
         SpriteFinder spriteFinder = SpriteFinder.get(
@@ -102,7 +105,8 @@ public class CopycatGuardrailModel extends ForwardingBakedModel implements Custo
         // 一次调用只分配这一次（12 个 float），不是每个 quad / 每个盒子一次。
         float[] vertexScratch = new float[BoardFaceCulling.VERTEX_FLOATS];
 
-        grouped.forEach((material, list) -> {
+        grouped.forEach((key, list) -> {
+            BlockState material = key.material();
             BakedModel model = MinecraftClient.getInstance().getBlockRenderManager().getModel(material);
             // 材质自己的 render layer，必须在 quad 被搬进 mesh 之前就换上
             RenderMaterial materialBlendMode = blendModeOf(material);
@@ -125,7 +129,8 @@ public class CopycatGuardrailModel extends ForwardingBakedModel implements Custo
                     vertexScratch[vertex * 3 + 1] = quad.y(vertex);
                     vertexScratch[vertex * 3 + 2] = quad.z(vertex);
                 }
-                for (Box box : list) {
+                for (RenderPart part : list) {
+                    Box box = part.target();
                     // 只保留「垂直于某个轴」的源面：cropAndMove 是逐顶点 clamp，法线不与盒子轴
                     // 平行的源面会被压成一条零面积的线，一个像素都画不出来，直接跳过。
                     int quadAxis = BoardFaceCulling.quadPlaneAxis(vertexScratch);
@@ -133,7 +138,11 @@ public class CopycatGuardrailModel extends ForwardingBakedModel implements Custo
                         continue;
                     }
                     emitter.copyFrom(quad);
-                    BakedModelHelper.cropAndMove(emitter, spriteFinder.find(emitter), box, Vec3d.ZERO);
+                    if (part.defaultSource() == null)
+                        BakedModelHelper.cropAndMove(emitter, spriteFinder.find(emitter), box, Vec3d.ZERO);
+                    else
+                        DefaultMaterialCrop.cropAndMove(emitter, spriteFinder.find(emitter),
+                                part.defaultSource(), box);
                     // cullFace 必须按「这张 quad 最终落在盒子的哪一层」重判，见 BoardFaceCulling。
                     // 照抄源材质模型的 cullFace 正是这个方块之前的渲染 bug：一根贴着北边界的横梁，
                     // 它朝南那张内部面仍然带着材质模型的 SOUTH；于是南边挨着完整固体方块时，
@@ -150,6 +159,12 @@ public class CopycatGuardrailModel extends ForwardingBakedModel implements Custo
         });
 
         meshBuilder.build().outputTo(context.getEmitter());
+    }
+
+    private record MaterialKey(BlockState material, boolean defaultMaterial) {
+    }
+
+    private record RenderPart(Box target, @Nullable Box defaultSource) {
     }
 
     /**
