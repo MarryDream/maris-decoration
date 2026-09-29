@@ -61,6 +61,17 @@ public final class ModRecipeProvider extends FabricRecipeProvider {
                         ModBlock.COPYCAT_GUARDRAIL, 4)
                 .criterion("has_zinc_ingot", conditionsFromTag(ZINC_INGOTS))
                 .offerTo(exporter, ModInfo.id("copycat_guardrail_from_zinc_ingots_stonecutting"));
+        offerCopycatLadder(exporter, ModBlock.COPYCAT_STEEL_FIXED_LADDER,
+                "copycat_steel_fixed_ladder_from_zinc_ingots_stonecutting");
+        offerCopycatLadder(exporter, ModBlock.COPYCAT_STEEL_VERTICAL_LADDER,
+                "copycat_steel_vertical_ladder_from_zinc_ingots_stonecutting");
+    }
+
+    private static void offerCopycatLadder(Consumer<RecipeJsonProvider> exporter, ItemConvertible result, String id) {
+        SingleItemRecipeJsonBuilder
+                .createStonecutting(Ingredient.fromTag(ZINC_INGOTS), RecipeCategory.BUILDING_BLOCKS, result, 6)
+                .criterion("has_zinc_ingot", conditionsFromTag(ZINC_INGOTS))
+                .offerTo(exporter, ModInfo.id(id));
     }
 
     private static void offerStairs(Consumer<RecipeJsonProvider> exporter, ItemConvertible result, ItemConvertible input) {

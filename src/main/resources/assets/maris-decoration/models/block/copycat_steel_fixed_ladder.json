@@ -1,0 +1,4 @@
+{
+  "parent": "maris-decoration:block/fixed_ladder",
+  "textures": { "all": "create:block/copycat_base" }
+}

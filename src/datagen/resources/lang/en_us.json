@@ -327,5 +327,7 @@
     "maris-decoration.property.bottom_northeast":  "Bottom north east",
     "maris-decoration.property.bottom_northwest":  "Bottom north west",
     "maris-decoration.property.bottom_southeast":  "Bottom south east",
-    "maris-decoration.property.bottom_southwest":  "Bottom south west"
+    "maris-decoration.property.bottom_southwest":  "Bottom south west",
+    "block.maris-decoration.copycat_steel_fixed_ladder": "Copycat Steel Fixed Ladder",
+    "block.maris-decoration.copycat_steel_vertical_ladder": "Copycat Steel Vertical Ladder"
 }

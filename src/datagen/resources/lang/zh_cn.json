@@ -346,5 +346,7 @@
     "maris-decoration.property.bottom_northeast":  "下东北",
     "maris-decoration.property.bottom_northwest":  "下西北",
     "maris-decoration.property.bottom_southeast":  "下东南",
-    "maris-decoration.property.bottom_southwest":  "下西南"
+    "maris-decoration.property.bottom_southwest":  "下西南",
+    "block.maris-decoration.copycat_steel_fixed_ladder": "伪装固定梯",
+    "block.maris-decoration.copycat_steel_vertical_ladder": "伪装垂直爬梯"
 }

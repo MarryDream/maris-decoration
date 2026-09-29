@@ -243,6 +243,16 @@ public final class ModBlock {
             new VerticalLadderBlock( FabricBlockSettings.copy( STEEL_FIXED_LADDER ) ),
             block -> new SteelVerticalLadderItem( block, new Item.Settings() )
     ); // 垂直钢爬梯
+    public static final CopycatSteelFixedLadderBlock COPYCAT_STEEL_FIXED_LADDER = register(
+            "copycat_steel_fixed_ladder",
+            new CopycatSteelFixedLadderBlock(FabricBlockSettings.copy(STEEL_FIXED_LADDER)),
+            true
+    );
+    public static final CopycatSteelVerticalLadderBlock COPYCAT_STEEL_VERTICAL_LADDER = register(
+            "copycat_steel_vertical_ladder",
+            new CopycatSteelVerticalLadderBlock(FabricBlockSettings.copy(STEEL_VERTICAL_LADDER)),
+            true
+    );
     public static final GuardrailBlock STEEL_GUARDRAIL = register(
             "steel_guardrail",
             new GuardrailBlock( STEEL_BLOCK.getDefaultState(), FabricBlockSettings.create().instrument( Instrument.IRON_XYLOPHONE ).nonOpaque().notSolid() ),

@@ -1,11 +1,14 @@
 package marrydream.marisdecoration;
 
 import marrydream.marisdecoration.client.CopycatGuardrailModel;
+import marrydream.marisdecoration.client.CopycatLadderModel;
 import marrydream.marisdecoration.client.LayeredCopycatBoardModel;
 import marrydream.marisdecoration.client.TeakClientCheck;
 import marrydream.marisdecoration.client.tooltip.MarisTooltip;
 import marrydream.marisdecoration.client.tooltip.MarisTooltip.MarisCharacteristic;
 import marrydream.marisdecoration.block.CopycatGuardrailBlock;
+import marrydream.marisdecoration.block.CopycatSteelFixedLadderBlock;
+import marrydream.marisdecoration.block.CopycatSteelVerticalLadderBlock;
 import marrydream.marisdecoration.block.LayeredCopycatBoardBlock;
 import marrydream.marisdecoration.init.ModBlock;
 import marrydream.marisdecoration.init.ModInfo;
@@ -61,6 +64,12 @@ public class MarisDecorationClient implements ClientModInitializer {
                 MarisCharacteristic.COMPOSITE_STATE,
                 MarisCharacteristic.SEGMENT_CAMOUFLAGE,
                 MarisCharacteristic.ADJUSTABLE_STATE );
+
+        MarisTooltip.register(ModBlock.COPYCAT_STEEL_FIXED_LADDER.asItem(),
+                MarisCharacteristic.CAMOUFLAGE);
+        MarisTooltip.register(ModBlock.COPYCAT_STEEL_VERTICAL_LADDER.asItem(),
+                MarisCharacteristic.CAMOUFLAGE,
+                MarisCharacteristic.SEGMENT_CAMOUFLAGE);
 
         // copycat_guardrail 的几何由模板模型描述（每个方向一个单面模型，按角柱归属规则
         // 组合成 16 个变体），真正的贴图在渲染时根据方块实体里的伪装材质动态替换。
@@ -130,8 +139,24 @@ public class MarisDecorationClient implements ClientModInitializer {
                     return new LayeredCopycatBoardModel( model );
                 }
         ) );
+
+        ModelLoadingPlugin.register(context -> context.modifyModelAfterBake().register(
+                ModelModifier.WRAP_PHASE, (model, ctx) -> {
+                    Identifier id = ctx.id();
+                    if (id == null || !ModInfo.MOD_ID.equals(id.getNamespace())) return model;
+                    String path = id.getPath();
+                    if (!CopycatSteelFixedLadderBlock.ID_PATH.equals(path)
+                            && !CopycatSteelVerticalLadderBlock.ID_PATH.equals(path)) return model;
+                    if (!LOGGED_LADDER_WRAP) {
+                        LOGGED_LADDER_WRAP = true;
+                        MarisDecoration.LOGGER.info("[copycat_ladders] 已包装动态模型，首个匹配 id = {}", id);
+                    }
+                    return model instanceof CopycatLadderModel ? model
+                            : new CopycatLadderModel(model, CopycatSteelFixedLadderBlock.ID_PATH.equals(path));
+                }));
 	}
 
     private static volatile boolean LOGGED_WRAP = false;
     private static volatile boolean LOGGED_BOARD_WRAP = false;
+    private static volatile boolean LOGGED_LADDER_WRAP = false;
 }
