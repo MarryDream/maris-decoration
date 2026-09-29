@@ -5,6 +5,7 @@ import marrydream.marisdecoration.block.CopycatGuardrailBlock;
 import marrydream.marisdecoration.block.CopycatLadderBlockEntity;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUsageContext;
@@ -14,12 +15,32 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
 public final class CopycatLadderInteraction {
     private CopycatLadderInteraction() {
+    }
+
+    /** Applies a valid offhand material to the requested slot after the ladder is placed. */
+    public static void applyPlacedMaterial(World world, BlockPos pos, @Nullable LivingEntity placer, String slot) {
+        if (world.isClient || !(placer instanceof PlayerEntity player)) return;
+
+        ItemStack offhand = player.getOffHandStack();
+        BlockState material = CopycatGuardrailBlock.getAcceptedMaterial(
+                world, pos, offhand, Direction.getEntityFacingOrder(placer)[0]);
+        if (material == null || !(world.getBlockEntity(pos) instanceof CopycatLadderBlockEntity be)
+                || be.hasMaterial(slot)) return;
+
+        boolean pay = !be.hasMaterialBlock(material.getBlock());
+        be.setMaterial(slot, material, pay ? offhand : null);
+        if (!player.isCreative() && pay) {
+            offhand.decrement(1);
+            if (offhand.isEmpty()) player.setStackInHand(Hand.OFF_HAND, ItemStack.EMPTY);
+        }
     }
 
     public static ActionResult use(BlockState state, World world, BlockPos pos, PlayerEntity player,
