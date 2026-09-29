@@ -3,6 +3,7 @@ package marrydream.marisdecoration.block.utils;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import marrydream.marisdecoration.block.CopycatGuardrailBlock;
 import marrydream.marisdecoration.block.CopycatLadderBlockEntity;
+import marrydream.marisdecoration.item.CopycatPlacerItem;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.LivingEntity;
@@ -28,6 +29,8 @@ public final class CopycatLadderInteraction {
     /** Applies a valid offhand material to the requested slot after the ladder is placed. */
     public static void applyPlacedMaterial(World world, BlockPos pos, @Nullable LivingEntity placer, String slot) {
         if (world.isClient || !(placer instanceof PlayerEntity player)) return;
+        if (player.getMainHandStack().getItem() instanceof CopycatPlacerItem
+                || player.getOffHandStack().getItem() instanceof CopycatPlacerItem) return;
 
         ItemStack offhand = player.getOffHandStack();
         BlockState material = CopycatGuardrailBlock.getAcceptedMaterial(

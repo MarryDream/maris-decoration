@@ -9,6 +9,7 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * 「某一种伪装方块」在放置器里的适配器。
@@ -69,6 +70,15 @@ public interface CopycatPlacementAdapter {
      */
     default @Nullable BlockState stateFrom(BlockState state, PlacementConfig config) {
         return state;
+    }
+
+    /**
+     * Builds the final state when placement depends on the target's neighbours.
+     * Most copycats are fully described by their config, so the default keeps the old path.
+     */
+    default @Nullable BlockState stateForPlacement(BlockState state, PlacementConfig config,
+                                                   World world, BlockPos pos) {
+        return stateFrom(state, config);
     }
 
     /**
@@ -144,6 +154,11 @@ public interface CopycatPlacementAdapter {
      */
     default List<VirtualSpec> virtualSpecs(PlacementConfig config) {
         return VirtualSpec.none();
+    }
+
+    /** State properties derived from the world rather than edited in the placer UI. */
+    default Set<String> hiddenProperties(PlacementConfig config) {
+        return Set.of();
     }
 
     /**

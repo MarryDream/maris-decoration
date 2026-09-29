@@ -816,6 +816,7 @@ public class PlacerScreen extends Screen {
         CopycatPlacementAdapter adapter = state.adapter();
         java.util.Set<String> managed = new java.util.HashSet<>();
         if (adapter != null) {
+            managed.addAll(adapter.hiddenProperties(state.config()));
             for (VirtualSpec spec : adapter.virtualSpecs(state.config())) {
                 managed.addAll(spec.managedProperties());
             }

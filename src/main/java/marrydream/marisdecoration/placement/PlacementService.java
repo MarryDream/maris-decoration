@@ -138,7 +138,7 @@ public final class PlacementService {
         CopycatPlacementAdapter adapter = resolved.get();
 
         // ---- 3. 最终状态 = 预设状态 → adapter 写入特殊结构属性 → 按目标位置的水体写 WATERLOGGED
-        BlockState shaped = adapter.stateFrom(configured, config);
+        BlockState shaped = adapter.stateForPlacement(configured, config, world, pos);
         if (shaped == null || shaped.getBlock() != block) {
             // adapter 把方块换掉了 / 做不出合法状态：预设与方块对不上
             return PlacementResult.failed(PlacementFailure.INVALID_STATE);

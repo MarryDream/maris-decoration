@@ -6,10 +6,12 @@ import com.simibubi.create.content.decoration.copycat.CopycatSpecialCases;
 import marrydream.marisdecoration.MarisDecoration;
 import marrydream.marisdecoration.block.CopycatGuardrailBlock;
 import marrydream.marisdecoration.block.CopycatGuardrailBlockEntity;
+import marrydream.marisdecoration.block.CopycatLadderBlockEntity;
 import marrydream.marisdecoration.block.LayeredCopycatBoardBlockEntity;
 import marrydream.marisdecoration.block.VerticalLadderBlock;
 import marrydream.marisdecoration.block.enums.PropLadderShape;
 import marrydream.marisdecoration.block.utils.BoardFaceCulling;
+import marrydream.marisdecoration.block.utils.CopycatLadderParts;
 import marrydream.marisdecoration.block.utils.GuardrailParts;
 import marrydream.marisdecoration.block.utils.LayeredBoardParts;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots;
@@ -119,6 +121,7 @@ public final class PlacementSelfTest {
         section(sections, "2. adapter resolver", () -> runAdapterResolution(assertions, sections));
         section(sections, "3. 分层薄板槽位", () -> runLayeredBoardSlots(assertions, sections));
         section(sections, "4. 伪装护栏槽位", () -> runGuardrailSlots(assertions, sections));
+        section(sections, "4b. 伪装梯子放置器", () -> runCopycatLadderAdapter(harness, assertions, sections));
         section(sections, "5. 创造模式放置", () -> runCreativePlacements(harness, assertions, sections));
         section(sections, "6. 生存模式放置", () -> runSurvivalPlacements(harness, assertions, sections));
         section(sections, "7. 含水", () -> runWaterlogged(harness, assertions, sections));
@@ -377,6 +380,71 @@ public final class PlacementSelfTest {
     }
 
     // ================================================================ 5. 创造模式放置
+
+    private static void runCopycatLadderAdapter(PlacementHarness harness, Assertions a, List<String> log) {
+        log.add("== 4b. Copycat ladder adapter");
+
+        CopycatPlacementAdapter fixedAdapter = PlacementAdapters.resolve(ModBlock.COPYCAT_STEEL_FIXED_LADDER)
+                .orElseThrow();
+        CopycatPlacementAdapter verticalAdapter = PlacementAdapters.resolve(ModBlock.COPYCAT_STEEL_VERTICAL_LADDER)
+                .orElseThrow();
+        a.equal("fixed ladder adapter", "maris-decoration:copycat_ladder", fixedAdapter.name());
+        a.equal("vertical ladder adapter", "maris-decoration:copycat_ladder", verticalAdapter.name());
+
+        PlacementConfig fixedConfig = fixedAdapter.defaultConfig(ModBlock.COPYCAT_STEEL_FIXED_LADDER)
+                .withState(ModBlock.COPYCAT_STEEL_FIXED_LADDER.getDefaultState()
+                        .with(LadderBlock.FACING, Direction.NORTH))
+                .withSlot(CopycatLadderParts.MATERIAL, Blocks.OAK_PLANKS.getDefaultState());
+        a.equal("fixed ladder exposes one material slot", List.of(CopycatLadderParts.MATERIAL),
+                fixedAdapter.slots(fixedConfig.state(), fixedConfig).stream().map(AdapterSlot::key).toList());
+        a.isTrue("fixed ladder has no extra hidden property",
+                fixedAdapter.hiddenProperties(fixedConfig).isEmpty());
+
+        PlacementConfig verticalConfig = verticalAdapter.defaultConfig(ModBlock.COPYCAT_STEEL_VERTICAL_LADDER)
+                .withState(ModBlock.COPYCAT_STEEL_VERTICAL_LADDER.getDefaultState()
+                        .with(LadderBlock.FACING, Direction.NORTH)
+                        .with(VerticalLadderBlock.SHAPE, PropLadderShape.NORMAL))
+                .withSlot(CopycatLadderParts.SUPPORT, Blocks.OAK_PLANKS.getDefaultState())
+                .withSlot(CopycatLadderParts.RUNG, Blocks.WHITE_WOOL.getDefaultState());
+        a.equal("vertical ladder exposes support and rung slots",
+                List.of(CopycatLadderParts.SUPPORT, CopycatLadderParts.RUNG),
+                verticalAdapter.slots(verticalConfig.state(), verticalConfig).stream()
+                        .map(AdapterSlot::key).toList());
+        a.equal("vertical ladder hides only its derived shape property",
+                Set.of(VerticalLadderBlock.SHAPE.getName()), verticalAdapter.hiddenProperties(verticalConfig));
+
+        BlockPos fixedPos = harness.next();
+        harness.world().setBlockState(fixedPos.south(), Blocks.STONE.getDefaultState(), Block.NOTIFY_ALL);
+        PlacementResult fixedResult = PlacementService.place(harness.world(), fixedPos, fixedConfig);
+        a.isTrue("fixed ladder placer placement succeeds", fixedResult.success());
+        if (harness.blockEntityAt(fixedPos) instanceof CopycatLadderBlockEntity fixedEntity) {
+            a.isTrue("fixed ladder material is applied",
+                    fixedEntity.material(CopycatLadderParts.MATERIAL).isOf(Blocks.OAK_PLANKS));
+        } else {
+            a.check("fixed ladder block entity exists", false, String.valueOf(harness.blockEntityAt(fixedPos)));
+        }
+
+        BlockPos lowerPos = harness.next();
+        BlockPos upperPos = lowerPos.up();
+        harness.world().setBlockState(upperPos.south(), Blocks.STONE.getDefaultState(), Block.NOTIFY_ALL);
+        PlacementResult upperResult = PlacementService.place(harness.world(), upperPos, verticalConfig);
+        a.isTrue("supported vertical ladder placement succeeds", upperResult.success());
+        a.equal("supported vertical ladder is START", PropLadderShape.START,
+                harness.stateAt(upperPos).get(VerticalLadderBlock.SHAPE));
+        if (harness.blockEntityAt(upperPos) instanceof CopycatLadderBlockEntity verticalEntity) {
+            a.isTrue("vertical support material is applied",
+                    verticalEntity.material(CopycatLadderParts.SUPPORT).isOf(Blocks.OAK_PLANKS));
+            a.isTrue("vertical rung material is applied",
+                    verticalEntity.material(CopycatLadderParts.RUNG).isOf(Blocks.WHITE_WOOL));
+        } else {
+            a.check("vertical ladder block entity exists", false, String.valueOf(harness.blockEntityAt(upperPos)));
+        }
+
+        PlacementResult hangingResult = PlacementService.place(harness.world(), lowerPos, verticalConfig);
+        a.isTrue("vertical ladder can hang below the same facing ladder", hangingResult.success());
+        a.equal("hanging vertical ladder is NORMAL", PropLadderShape.NORMAL,
+                harness.stateAt(lowerPos).get(VerticalLadderBlock.SHAPE));
+    }
 
     private static void runCreativePlacements(PlacementHarness harness, Assertions a, List<String> log) {
         log.add("== 5. 创造模式放置（不要求库存、不消耗）");

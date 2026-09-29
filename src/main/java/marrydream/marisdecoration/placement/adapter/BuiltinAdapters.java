@@ -80,6 +80,7 @@ public final class BuiltinAdapters {
         List<CopycatPlacementAdapter> adapters = new ArrayList<>();
         adapters.add(new LayeredBoardCopycatAdapter());
         adapters.add(new GuardrailCopycatAdapter());
+        adapters.add(new CopycatLadderAdapter());
         if (COPYCATS_LOADED) {
             adapters.add(new CopycatsMultistateAdapter());
             adapters.add(new CopycatsOrdinaryAdapter());
