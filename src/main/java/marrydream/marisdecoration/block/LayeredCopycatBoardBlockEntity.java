@@ -13,6 +13,7 @@ import net.fabricmc.fabric.api.blockview.v2.RenderDataBlockEntity;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
@@ -99,7 +100,11 @@ public class LayeredCopycatBoardBlockEntity extends SmartBlockEntity implements 
     private int cachedShapeMask = -1;
 
     public LayeredCopycatBoardBlockEntity( BlockPos pos, BlockState state ) {
-        super( ModBlockEntity.LAYERED_COPYCAT_BOARD, pos, state );
+        this( ModBlockEntity.LAYERED_COPYCAT_BOARD, pos, state );
+    }
+
+    protected LayeredCopycatBoardBlockEntity( BlockEntityType<?> type, BlockPos pos, BlockState state ) {
+        super( type, pos, state );
         for ( String key : LayeredBoardSlots.allMaterialKeys() ) {
             materials.put( key, NO_MATERIAL );
         }
@@ -126,7 +131,7 @@ public class LayeredCopycatBoardBlockEntity extends SmartBlockEntity implements 
 
     /** 占用状态变了：形状缓存作废、快照作废、同步。 */
     public void setOccupancy( int value ) {
-        int masked = value & LayeredBoardSlots.FULL_OCCUPANCY;
+        int masked = sanitizeOccupancy( value & LayeredBoardSlots.FULL_OCCUPANCY );
         if ( masked == occupancy ) {
             return;
         }
@@ -138,6 +143,11 @@ public class LayeredCopycatBoardBlockEntity extends SmartBlockEntity implements 
             junctionOwners.remove( stale );
         }
         sync();
+    }
+
+    /** Lets embedded single-layer users constrain the shared occupancy model. */
+    protected int sanitizeOccupancy( int value ) {
+        return value;
     }
 
     public void addSlot( FaceDir face, BoardLayer layer ) {
@@ -443,7 +453,7 @@ public class LayeredCopycatBoardBlockEntity extends SmartBlockEntity implements 
         Map<String, BlockState> previousMaterials = Map.copyOf( materials );
 
         super.read( nbt, clientPacket );
-        occupancy = nbt.getInt( KEY_OCCUPANCY ) & LayeredBoardSlots.FULL_OCCUPANCY;
+        occupancy = sanitizeOccupancy( nbt.getInt( KEY_OCCUPANCY ) & LayeredBoardSlots.FULL_OCCUPANCY );
         windows = nbt.getInt( KEY_WINDOWS ) & ( ( 1 << FaceDir.values().length ) - 1 );
         junctionOwners.clear();
         NbtCompound junctions = nbt.getCompound( KEY_JUNCTION_OWNERS );

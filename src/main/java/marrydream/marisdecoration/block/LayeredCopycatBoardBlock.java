@@ -405,8 +405,8 @@ public class LayeredCopycatBoardBlock extends Block implements BlockEntityProvid
      * 同格追加（{@link #appendSlot}）与异格新建（{@link #onPlaced}）共用这一段，
      * 保证两条路径对「新加的那一层」的伪装行为完全一致。
      */
-    private static void autoCamoNewLayers( World world, BlockPos pos, LayeredCopycatBoardBlockEntity board,
-                                           PlayerEntity player, @Nullable Direction face ) {
+    public static void autoCamoNewLayers( World world, BlockPos pos, LayeredCopycatBoardBlockEntity board,
+                                          PlayerEntity player, @Nullable Direction face ) {
         ItemStack offhand = player.getOffHandStack();
         BlockState material = getAcceptedMaterial( world, pos, offhand, face );
         if ( material == null ) {
@@ -515,7 +515,7 @@ public class LayeredCopycatBoardBlock extends Block implements BlockEntityProvid
     }
 
     @Nullable
-    private static BoardHit hitAt( Vec3d local, LayeredCopycatBoardBlockEntity board ) {
+    public static BoardHit hitAt( Vec3d local, LayeredCopycatBoardBlockEntity board ) {
         // 命中走的是渲染同一份「最终生效的几何」：交汇点上显示哪条边，材质就写进哪条边。
         LayeredBoardParts.Slot slot = LayeredBoardParts.slotAt(
                 board.occupancy(), board.windows(), board.junctionOwners(), local );
@@ -527,9 +527,9 @@ public class LayeredCopycatBoardBlock extends Block implements BlockEntityProvid
      *
      * <p>{@code local} 为空表示没有可用的几何命中（例如副手自动伪装），此时落到 {@code BODY}。
      */
-    private ActionResult applyMaterial( World world, BlockPos pos, LayeredCopycatBoardBlockEntity board,
-                                        BlockState material, ItemStack stack, @Nullable PlayerEntity player,
-                                        @Nullable Vec3d local ) {
+    public static ActionResult applyMaterial( World world, BlockPos pos, LayeredCopycatBoardBlockEntity board,
+                                              BlockState material, ItemStack stack, @Nullable PlayerEntity player,
+                                              @Nullable Vec3d local ) {
         BoardHit hit = local == null ? null : hitAt( local, board );
         BoardLayer layer = hit == null ? BoardLayer.OUTER : hit.layer();
         BoardArea area = hit == null ? BoardArea.BODY : hit.area();
@@ -669,6 +669,12 @@ public class LayeredCopycatBoardBlock extends Block implements BlockEntityProvid
         if ( !( world.getBlockEntity( pos ) instanceof LayeredCopycatBoardBlockEntity board ) ) {
             return ActionResult.PASS;
         }
+        return onChisel( world, pos, player, board, localHit( hitPos, pos ) );
+    }
+
+    /** Shared single-layer chisel path used by the standalone board and embedded roofs. */
+    public static ActionResult onChisel( World world, BlockPos pos, @Nullable PlayerEntity player,
+                                         LayeredCopycatBoardBlockEntity board, Vec3d local ) {
         if ( player != null && player.isSneaking() ) {
             if ( !board.clearWindows() ) {
                 return ActionResult.PASS;
@@ -679,7 +685,6 @@ public class LayeredCopycatBoardBlock extends Block implements BlockEntityProvid
             return ActionResult.SUCCESS;
         }
 
-        Vec3d local = localHit( hitPos, pos );
         LayeredBoardParts.Cell cell = LayeredBoardParts.cellAt( board.occupancy(), local );
         if ( cell == null ) {
             return ActionResult.PASS;
@@ -727,7 +732,13 @@ public class LayeredCopycatBoardBlock extends Block implements BlockEntityProvid
         if ( !( world.getBlockEntity( pos ) instanceof LayeredCopycatBoardBlockEntity board ) ) {
             return ActionResult.PASS;
         }
-        BoardHit hit = hitAt( localHit( context.getHitPos(), pos ), board );
+        return removeMaterialAt( world, pos, player, board, localHit( context.getHitPos(), pos ) );
+    }
+
+    /** Shared single-slot wrench removal used by the standalone board and embedded roofs. */
+    public static ActionResult removeMaterialAt( World world, BlockPos pos, @Nullable PlayerEntity player,
+                                                  LayeredCopycatBoardBlockEntity board, Vec3d local ) {
+        BoardHit hit = hitAt( local, board );
         if ( hit == null ) {
             return ActionResult.PASS;
         }
@@ -750,6 +761,59 @@ public class LayeredCopycatBoardBlock extends Block implements BlockEntityProvid
             IWrenchable.playRemoveSound( world, pos );
         }
         return ActionResult.SUCCESS;
+    }
+
+    public record LayerRemovalResult( @Nullable BlockState feedbackMaterial ) {
+    }
+
+    /** Settles every material belonging to one layer without removing its containing block. */
+    public static LayerRemovalResult settleLayerForPlayer( World world, BlockPos pos,
+                                                            LayeredCopycatBoardBlockEntity board,
+                                                            FaceDir face, BoardLayer layer,
+                                                            @Nullable PlayerEntity player, Vec3d local ) {
+        BlockState feedbackMaterial = null;
+        BoardHit feedbackHit = hitAt( local, board );
+        if ( feedbackHit != null && feedbackHit.area() != BoardArea.WINDOW
+                && feedbackHit.face() == face && feedbackHit.layer() == layer ) {
+            String feedbackKey = LayeredBoardSlots.materialKey(
+                    feedbackHit.face(), feedbackHit.layer(), feedbackHit.area() );
+            BlockState candidate = board.material( feedbackKey );
+            if ( !candidate.isAir() ) {
+                feedbackMaterial = candidate;
+            }
+        }
+        if ( feedbackMaterial == null ) {
+            for ( BoardArea area : LayeredBoardSlots.MATERIAL_AREAS ) {
+                BlockState candidate = board.material( LayeredBoardSlots.materialKey( face, layer, area ) );
+                if ( !candidate.isAir() ) {
+                    feedbackMaterial = candidate;
+                    break;
+                }
+            }
+        }
+
+        for ( BoardArea area : LayeredBoardSlots.MATERIAL_AREAS ) {
+            String key = LayeredBoardSlots.materialKey( face, layer, area );
+            if ( !board.hasMaterial( key ) ) {
+                continue;
+            }
+            ItemStack returned = board.takeConsumedItemForRemoval( key );
+            if ( player != null && !player.isCreative() && !returned.isEmpty() ) {
+                player.getInventory().offerOrDrop( returned );
+            }
+        }
+
+        BoardLayer otherLayer = layer == BoardLayer.OUTER ? BoardLayer.INNER : BoardLayer.OUTER;
+        if ( !LayeredBoardSlots.hasSlot( board.occupancy(), face, otherLayer ) ) {
+            String windowKey = LayeredBoardSlots.windowKey( face );
+            if ( board.hasMaterial( windowKey ) ) {
+                ItemStack returned = board.takeConsumedItemForRemoval( windowKey );
+                if ( player != null && !player.isCreative() && !returned.isEmpty() ) {
+                    player.getInventory().offerOrDrop( returned );
+                }
+            }
+        }
+        return new LayerRemovalResult( feedbackMaterial );
     }
 
     /**

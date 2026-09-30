@@ -2,12 +2,16 @@ package marrydream.marisdecoration.placement.harness;
 
 import com.copycatsplus.copycats.foundation.copycat.multistate.IMultiStateCopycatBlock;
 import com.copycatsplus.copycats.foundation.copycat.multistate.IMultiStateCopycatBlockEntity;
+import com.simibubi.create.AllItems;
 import com.simibubi.create.content.decoration.copycat.CopycatSpecialCases;
 import marrydream.marisdecoration.MarisDecoration;
 import marrydream.marisdecoration.block.CopycatGuardrailBlock;
 import marrydream.marisdecoration.block.CopycatGuardrailBlockEntity;
 import marrydream.marisdecoration.block.CopycatLadderBlockEntity;
+import marrydream.marisdecoration.block.LayeredCopycatBoardBlock;
 import marrydream.marisdecoration.block.LayeredCopycatBoardBlockEntity;
+import marrydream.marisdecoration.block.LintelThresholdThinDoorBlock;
+import marrydream.marisdecoration.block.SteelPlugDoorBlockEntity;
 import marrydream.marisdecoration.block.VerticalLadderBlock;
 import marrydream.marisdecoration.block.enums.PropLadderShape;
 import marrydream.marisdecoration.block.utils.BoardFaceCulling;
@@ -18,6 +22,7 @@ import marrydream.marisdecoration.block.utils.LayeredBoardSlots;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots.BoardArea;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots.BoardLayer;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots.FaceDir;
+import marrydream.marisdecoration.block.utils.SteelPlugDoorRoof;
 import marrydream.marisdecoration.init.ModBlock;
 import marrydream.marisdecoration.init.ModItem;
 import marrydream.marisdecoration.item.CopycatPlacerItem;
@@ -49,9 +54,12 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.LadderBlock;
 import net.minecraft.block.ShapeContext;
+import net.minecraft.block.enums.DoubleBlockHalf;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemUsageContext;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKeys;
@@ -63,9 +71,13 @@ import net.minecraft.state.property.Properties;
 import net.minecraft.state.property.Property;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.BlockView;
 import org.jetbrains.annotations.Nullable;
@@ -120,6 +132,7 @@ public final class PlacementSelfTest {
         section(sections, "1. PlacementConfig / NBT", () -> runConfigNbt(assertions, sections));
         section(sections, "2. adapter resolver", () -> runAdapterResolution(assertions, sections));
         section(sections, "3. 分层薄板槽位", () -> runLayeredBoardSlots(assertions, sections));
+        section(sections, "3b. 钢内嵌门可插拔屋顶", () -> runSteelDoorRoof(harness, assertions, sections));
         section(sections, "4. 伪装护栏槽位", () -> runGuardrailSlots(assertions, sections));
         section(sections, "4b. 伪装梯子放置器", () -> runCopycatLadderAdapter(harness, assertions, sections));
         section(sections, "4c. 伪装垂直爬梯附着", () -> runCopycatVerticalAttachment(harness, assertions, sections));
@@ -335,6 +348,212 @@ public final class PlacementSelfTest {
     }
 
     // ================================================================ 4. 护栏槽位
+
+    private static void runSteelDoorRoof(PlacementHarness harness, Assertions a, List<String> log) {
+        log.add("== 3b. steel plug door removable Layered Board roof");
+        ServerWorld world = harness.world();
+        BlockPos lowerPos = harness.next();
+        BlockPos upperPos = lowerPos.up();
+        BlockState lower = ModBlock.STEEL_PLUG_DOOR.getDefaultState()
+                .with(net.minecraft.block.DoorBlock.FACING, Direction.EAST)
+                .with(net.minecraft.block.DoorBlock.HALF, DoubleBlockHalf.LOWER);
+        BlockState upper = lower.with(net.minecraft.block.DoorBlock.HALF, DoubleBlockHalf.UPPER);
+        world.setBlockState(lowerPos, lower, Block.NOTIFY_LISTENERS);
+        world.setBlockState(upperPos, upper, Block.NOTIFY_LISTENERS);
+
+        a.isFalse("lower door half does not own roof data",
+                world.getBlockEntity(lowerPos) instanceof SteelPlugDoorBlockEntity);
+        a.isTrue("upper door half owns roof data",
+                world.getBlockEntity(upperPos) instanceof SteelPlugDoorBlockEntity);
+        if (!(world.getBlockEntity(upperPos) instanceof SteelPlugDoorBlockEntity roof)) return;
+
+        ServerPlayerEntity player = harness.fakePlayer(lowerPos.getX() + 0.5, lowerPos.getY(), lowerPos.getZ() + 2.0);
+        creative(player, false);
+
+        BlockHitResult doorHit = new BlockHitResult(
+                Vec3d.of(lowerPos).add(0.5, 0.5, 0.5), Direction.NORTH, lowerPos, false);
+        ModBlock.STEEL_PLUG_DOOR.onUse(lower, world, lowerPos, player, Hand.MAIN_HAND, doorHit);
+        a.isTrue("door body toggles normally without a roof", world.getBlockState(lowerPos).get(
+                net.minecraft.block.DoorBlock.OPEN));
+        BlockState openLower = world.getBlockState(lowerPos);
+        ModBlock.STEEL_PLUG_DOOR.onUse(openLower, world, lowerPos, player, Hand.MAIN_HAND, doorHit);
+        a.isFalse("door can be returned to closed before roof insertion", world.getBlockState(lowerPos).get(
+                net.minecraft.block.DoorBlock.OPEN));
+        lower = world.getBlockState(lowerPos);
+        upper = world.getBlockState(upperPos);
+
+        a.isTrue("door lintel quad in y=15..16 is covered by roof",
+                SteelPlugDoorRoof.isCoveredDoorQuad(15.0 / 16.0, 1.0, 1.0, 15.0 / 16.0));
+        a.isTrue("door panel cap at y=15 is covered by roof",
+                SteelPlugDoorRoof.isCoveredDoorQuad(15.0 / 16.0, 15.0 / 16.0,
+                        15.0 / 16.0, 15.0 / 16.0));
+        a.isFalse("door geometry extending below roof remains visible",
+                SteelPlugDoorRoof.isCoveredDoorQuad(0.0, 0.0, 15.0 / 16.0, 15.0 / 16.0));
+
+        give(player, ModBlock.LAYERED_COPYCAT_BOARD.asItem(), 2);
+        BlockHitResult centerHit = new BlockHitResult(
+                Vec3d.of(upperPos).add(0.5, 31.0 / 32.0, 0.5), Direction.UP, upperPos, false);
+        ActionResult inserted = ModBlock.STEEL_PLUG_DOOR.onUse(upper, world, upperPos, player,
+                Hand.MAIN_HAND, centerHit);
+        a.isTrue("survival insert succeeds", inserted.isAccepted());
+        a.isTrue("insert creates exactly the roof occupancy", roof.hasRoof()
+                && roof.occupancy() == SteelPlugDoorBlockEntity.ROOF_OCCUPANCY);
+        a.equal("survival insert consumes one board", 1,
+                countOf(player, ModBlock.LAYERED_COPYCAT_BOARD.asItem()));
+
+        ModBlock.STEEL_PLUG_DOOR.onUse(upper, world, upperPos, player, Hand.MAIN_HAND, centerHit);
+        a.equal("existing roof refuses a second structure without consuming it", 1,
+                countOf(player, ModBlock.LAYERED_COPYCAT_BOARD.asItem()));
+
+        clearInventory(player);
+        BlockHitResult upperDoorHit = new BlockHitResult(
+                Vec3d.of(upperPos).add(0.5, 0.5, 0.5), Direction.NORTH, upperPos, false);
+        boolean openBeforeDoorBody = world.getBlockState(lowerPos).get(net.minecraft.block.DoorBlock.OPEN);
+        ModBlock.STEEL_PLUG_DOOR.onUse(upper, world, upperPos, player, Hand.MAIN_HAND, upperDoorHit);
+        a.equal("door body below an existing roof still toggles", !openBeforeDoorBody,
+                world.getBlockState(lowerPos).get(net.minecraft.block.DoorBlock.OPEN));
+        BlockState toggledUpper = world.getBlockState(upperPos);
+        ModBlock.STEEL_PLUG_DOOR.onUse(toggledUpper, world, upperPos, player, Hand.MAIN_HAND, upperDoorHit);
+        lower = world.getBlockState(lowerPos);
+        upper = world.getBlockState(upperPos);
+
+        give(player, Blocks.STONE.asItem(), 2);
+        BlockHitResult bodyHit = roofHit(upperPos, upper, roof, BoardArea.BODY);
+        BlockHitResult topEdgeHit = roofHit(upperPos, upper, roof, BoardArea.TOP_EDGE);
+        boolean openBeforeMaterial = world.getBlockState(lowerPos).get(net.minecraft.block.DoorBlock.OPEN);
+        ModBlock.STEEL_PLUG_DOOR.onUse(upper, world, upperPos, player, Hand.MAIN_HAND, bodyHit);
+        ModBlock.STEEL_PLUG_DOOR.onUse(upper, world, upperPos, player, Hand.MAIN_HAND, topEdgeHit);
+        a.equal("roof material interactions do not toggle door", openBeforeMaterial,
+                world.getBlockState(lowerPos).get(net.minecraft.block.DoorBlock.OPEN));
+        String bodyKey = LayeredBoardSlots.materialKey(FaceDir.UP, BoardLayer.OUTER, BoardArea.BODY);
+        String edgeKey = LayeredBoardSlots.materialKey(FaceDir.UP, BoardLayer.OUTER, BoardArea.TOP_EDGE);
+        a.equal("roof BODY stores its own material", Blocks.STONE, roof.material(bodyKey).getBlock());
+        a.equal("roof EDGE stores its own material", Blocks.STONE, roof.material(edgeKey).getBlock());
+        a.equal("same material is paid once across roof regions", 1, countOf(player, Blocks.STONE.asItem()));
+
+        give(player, AllItems.WRENCH.get(), 1);
+        boolean openBeforeWrench = world.getBlockState(lowerPos).get(net.minecraft.block.DoorBlock.OPEN);
+        ActionResult edgeRemoved = ModBlock.STEEL_PLUG_DOOR.onUse(upper, world, upperPos, player,
+                Hand.MAIN_HAND, topEdgeHit);
+        a.isTrue("ordinary wrench is handled through door onUse", edgeRemoved.isAccepted());
+        a.isTrue("ordinary wrench clears only the hit EDGE", roof.material(edgeKey).isAir());
+        a.equal("ordinary wrench keeps BODY material", Blocks.STONE, roof.material(bodyKey).getBlock());
+        a.equal("shared paid material is not refunded while BODY still uses it", 0,
+                countOf(player, Blocks.STONE.asItem()));
+        a.equal("ordinary wrench roof hit does not toggle door", openBeforeWrench,
+                world.getBlockState(lowerPos).get(net.minecraft.block.DoorBlock.OPEN));
+        give(player, Blocks.STONE.asItem(), 1);
+        ModBlock.STEEL_PLUG_DOOR.onUse(upper, world, upperPos, player, Hand.MAIN_HAND, topEdgeHit);
+        a.equal("reapplying shared material does not charge again", 1,
+                countOf(player, Blocks.STONE.asItem()));
+
+        List<LayeredBoardParts.Junction> corners = LayeredBoardParts.junctions(
+                roof.occupancy(), roof.windows(), roof.junctionOwners()).stream()
+                .filter(LayeredBoardParts.Junction::corner).toList();
+        a.equal("single roof layer keeps four Layered Board corner rules", 4, corners.size());
+        a.isTrue("each roof corner can choose between its two adjacent edges",
+                corners.stream().allMatch(junction -> junction.candidates().size() == 2));
+
+        give(player, ModItem.DETAIL_CHISEL, 1);
+        boolean openBeforeChisel = world.getBlockState(lowerPos).get(net.minecraft.block.DoorBlock.OPEN);
+        ActionResult chiseled = ModBlock.STEEL_PLUG_DOOR.onUse(upper, world, upperPos, player,
+                Hand.MAIN_HAND, bodyHit);
+        a.isTrue("detail chisel routes roof BODY to Layered Board window logic", chiseled.isAccepted());
+        a.isTrue("detail chisel opens the roof window", roof.hasWindow(FaceDir.UP));
+        a.equal("detail chisel roof hit does not toggle door", openBeforeChisel,
+                world.getBlockState(lowerPos).get(net.minecraft.block.DoorBlock.OPEN));
+
+        NbtCompound savedRoof = roof.createNbt();
+        SteelPlugDoorBlockEntity restoredRoof = new SteelPlugDoorBlockEntity(upperPos, upper);
+        restoredRoof.readNbt(savedRoof);
+        a.isTrue("roof occupancy survives NBT round-trip", restoredRoof.hasRoof());
+        a.isTrue("roof window survives NBT round-trip", restoredRoof.hasWindow(FaceDir.UP));
+        a.equal("roof BODY material survives NBT round-trip", Blocks.STONE,
+                restoredRoof.material(bodyKey).getBlock());
+        a.equal("roof EDGE material survives NBT round-trip", Blocks.STONE,
+                restoredRoof.material(edgeKey).getBlock());
+        a.isTrue("roof payment survives NBT round-trip", restoredRoof.hasPaidFor(Blocks.STONE.getDefaultState()));
+
+        Vec3d canonicalTopEdge = topEdgeHit.getPos().subtract(upperPos.getX(), upperPos.getY(), upperPos.getZ());
+        give(player, AllItems.WRENCH.get(), 1);
+        for (Direction facing : Direction.Type.HORIZONTAL) {
+            BlockState facingLower = lower.with(net.minecraft.block.DoorBlock.FACING, facing);
+            BlockState facingUpper = upper.with(net.minecraft.block.DoorBlock.FACING, facing);
+            world.setBlockState(lowerPos, facingLower, Block.NOTIFY_LISTENERS);
+            world.setBlockState(upperPos, facingUpper, Block.NOTIFY_LISTENERS);
+            roof.setMaterial(edgeKey, Blocks.STONE.getDefaultState(), null);
+            Vec3d worldLocal = SteelPlugDoorRoof.toWorld(canonicalTopEdge, facing);
+            Vec3d roundTrip = SteelPlugDoorRoof.toCanonical(worldLocal, facing);
+            a.isTrue("roof local hit round-trips for facing " + facing,
+                    roundTrip.squaredDistanceTo(canonicalTopEdge) < 1.0E-12);
+            LayeredCopycatBoardBlock.BoardHit facingHit = LayeredCopycatBoardBlock.hitAt(roundTrip, roof);
+            a.isTrue("TOP edge remains local TOP for facing " + facing,
+                    facingHit != null && facingHit.area() == BoardArea.TOP_EDGE);
+            BlockHitResult wrenchHit = new BlockHitResult(worldLocal.add(Vec3d.of(upperPos)),
+                    Direction.UP, upperPos, false);
+            boolean openBefore = world.getBlockState(lowerPos).get(net.minecraft.block.DoorBlock.OPEN);
+            ActionResult facingWrench = ModBlock.STEEL_PLUG_DOOR.onUse(facingUpper, world, upperPos,
+                    player, Hand.MAIN_HAND, wrenchHit);
+            a.isTrue("ordinary wrench reaches roof for facing " + facing, facingWrench.isAccepted());
+            a.isTrue("ordinary wrench clears TOP edge for facing " + facing, roof.material(edgeKey).isAir());
+            a.equal("roof wrench does not toggle door for facing " + facing, openBefore,
+                    world.getBlockState(lowerPos).get(net.minecraft.block.DoorBlock.OPEN));
+        }
+        world.setBlockState(lowerPos, lower, Block.NOTIFY_LISTENERS);
+        world.setBlockState(upperPos, upper, Block.NOTIFY_LISTENERS);
+
+        clearInventory(player);
+        // The harness player deliberately has no network handler, while offerOrDrop sends an
+        // inventory packet for survival players. Exercise the full component-removal route in
+        // creative here; survival payment/refund accounting is covered by the shared board tests.
+        creative(player, true);
+        ItemUsageContext removalContext = new ItemUsageContext(player, Hand.MAIN_HAND, bodyHit);
+        ActionResult removed = ((LintelThresholdThinDoorBlock) ModBlock.STEEL_PLUG_DOOR)
+                .onSneakWrenched(upper, removalContext);
+        a.isTrue("shift-wrench roof removal succeeds", removed.isAccepted());
+        a.isFalse("shift-wrench clears only the roof component", roof.hasRoof());
+        a.equal("creative shift-wrench does not duplicate a structure item", 0,
+                countOf(player, ModBlock.LAYERED_COPYCAT_BOARD.asItem()));
+        a.equal("creative shift-wrench does not duplicate paid material", 0, countOf(player, Blocks.STONE.asItem()));
+        a.isTrue("shift-wrench keeps lower door half", world.getBlockState(lowerPos).isOf(ModBlock.STEEL_PLUG_DOOR));
+        a.isTrue("shift-wrench keeps upper door half", world.getBlockState(upperPos).isOf(ModBlock.STEEL_PLUG_DOOR));
+
+        give(player, ModBlock.LAYERED_COPYCAT_BOARD.asItem(), 1);
+        ModBlock.STEEL_PLUG_DOOR.onUse(upper, world, upperPos, player, Hand.MAIN_HAND, centerHit);
+        a.isTrue("creative insert creates roof", roof.hasRoof());
+        a.isFalse("reinserted roof starts with its window closed", roof.hasWindow(FaceDir.UP));
+        a.equal("creative insert does not consume board", 1,
+                countOf(player, ModBlock.LAYERED_COPYCAT_BOARD.asItem()));
+
+        roof.setMaterial(bodyKey, Blocks.STONE.getDefaultState(), new ItemStack(Blocks.STONE));
+        harness.clearEntitiesAt(lowerPos);
+        world.breakBlock(lowerPos, false);
+        List<ItemEntity> drops = world.getEntitiesByClass(ItemEntity.class,
+                new Box(lowerPos).expand(2.0), entity -> true);
+        int roofItems = drops.stream().filter(entity -> entity.getStack().isOf(
+                ModBlock.LAYERED_COPYCAT_BOARD.asItem())).mapToInt(entity -> entity.getStack().getCount()).sum();
+        int materialItems = drops.stream().filter(entity -> entity.getStack().isOf(Blocks.STONE.asItem()))
+                .mapToInt(entity -> entity.getStack().getCount()).sum();
+        a.equal("breaking either door structure settles one roof item", 1, roofItems);
+        a.equal("breaking either door structure settles paid roof material once", 1, materialItems);
+    }
+
+    private static BlockHitResult roofHit(BlockPos upperPos, BlockState upper,
+                                          SteelPlugDoorBlockEntity roof, BoardArea wanted) {
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                Vec3d canonical = new Vec3d((x + 0.5) / 16.0, 31.0 / 32.0, (z + 0.5) / 16.0);
+                LayeredCopycatBoardBlock.BoardHit hit = LayeredCopycatBoardBlock.hitAt(canonical, roof);
+                if (hit != null && hit.face() == FaceDir.UP && hit.layer() == BoardLayer.OUTER
+                        && hit.area() == wanted) {
+                    Vec3d local = SteelPlugDoorRoof.toWorld(canonical,
+                            upper.get(net.minecraft.block.DoorBlock.FACING));
+                    return new BlockHitResult(local.add(Vec3d.of(upperPos)), Direction.UP, upperPos, false);
+                }
+            }
+        }
+        throw new IllegalStateException("No roof hit sample for " + wanted);
+    }
 
     private static void runGuardrailSlots(Assertions a, List<String> log) {
         log.add("== 4. 伪装护栏 adapter 暴露的槽位");

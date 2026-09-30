@@ -3,6 +3,7 @@ package marrydream.marisdecoration.item;
 import marrydream.marisdecoration.block.CopycatGuardrailBlock;
 import marrydream.marisdecoration.block.CopycatGuardrailBlockEntity;
 import marrydream.marisdecoration.block.LayeredCopycatBoardBlock;
+import marrydream.marisdecoration.block.LintelThresholdThinDoorBlock;
 import marrydream.marisdecoration.block.utils.GuardrailParts;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.item.TooltipContext;
@@ -66,6 +67,9 @@ public class DetailChisel extends Item {
             // 否则潜行时原版会跳过 BlockState#onUse，Shift + 右键收不到）。
             return LayeredCopycatBoardBlock.onChisel( world, pos, context.getPlayer(),
                     context.getHitPos(), context.getSide() );
+        }
+        if ( world.getBlockState( pos ).getBlock() instanceof LintelThresholdThinDoorBlock ) {
+            return LintelThresholdThinDoorBlock.onRoofChisel( context );
         }
         if ( !( world.getBlockState( pos ).getBlock() instanceof CopycatGuardrailBlock ) ) {
             return ActionResult.PASS;

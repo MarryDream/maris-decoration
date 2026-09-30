@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 /**
  * {@code layered_copycat_board} 的动态模型。
@@ -74,6 +75,13 @@ public class LayeredCopycatBoardModel extends ForwardingBakedModel implements Cu
     public void emitBlockQuads( BlockRenderView blockView, BlockState state, BlockPos pos,
                                 Supplier<Random> randomSupplier, RenderContext context ) {
         RenderData data = readRenderData( blockView, pos );
+        emitLayeredQuads( data, blockView, pos, randomSupplier, context, UnaryOperator.identity() );
+    }
+
+    /** Shared emitter for standalone boards and single-layer geometry embedded in another model. */
+    protected void emitLayeredQuads( RenderData data, BlockRenderView blockView, BlockPos pos,
+                                     Supplier<Random> randomSupplier, RenderContext context,
+                                     UnaryOperator<Box> boxTransform ) {
         Map<String, List<Box>> boxes = LayeredBoardParts.boxesByKey(
                 data.occupancy(), data.windows(), data.junctionOwners() );
         if ( boxes.isEmpty() ) {
@@ -110,12 +118,13 @@ public class LayeredCopycatBoardModel extends ForwardingBakedModel implements Cu
             FaceDir windowFace = slot == null ? null : slot.face();
             for ( Box box : list ) {
                 if ( windowFace == null ) {
-                    parts.add( new RenderPart( box, null ) );
+                    parts.add( new RenderPart( boxTransform.apply( box ), null ) );
                     continue;
                 }
                 for ( Box piece : DefaultMaterialCrop.splitWindowPanel( windowFace, box ) ) {
-                    parts.add( new RenderPart( piece,
-                            DefaultMaterialCrop.windowPanelSource( windowFace, piece ) ) );
+                    Box target = boxTransform.apply( piece );
+                    parts.add( new RenderPart( target,
+                            DefaultMaterialCrop.windowPanelSource( windowFace, target ) ) );
                 }
             }
         } );
@@ -257,7 +266,7 @@ public class LayeredCopycatBoardModel extends ForwardingBakedModel implements Cu
      *
      * <p>方块实体数据还没同步过来时给一份空板，避免渲染层因为 {@code null} 崩掉。
      */
-    private static RenderData readRenderData( BlockRenderView view, BlockPos pos ) {
+    protected static RenderData readRenderData( BlockRenderView view, BlockPos pos ) {
         Object data = view.getBlockEntityRenderData( pos );
         return data instanceof RenderData renderData ? renderData : EMPTY;
     }

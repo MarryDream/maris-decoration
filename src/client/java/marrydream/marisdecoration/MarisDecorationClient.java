@@ -3,6 +3,7 @@ package marrydream.marisdecoration;
 import marrydream.marisdecoration.client.CopycatGuardrailModel;
 import marrydream.marisdecoration.client.CopycatLadderModel;
 import marrydream.marisdecoration.client.LayeredCopycatBoardModel;
+import marrydream.marisdecoration.client.SteelPlugDoorModel;
 import marrydream.marisdecoration.client.TeakClientCheck;
 import marrydream.marisdecoration.client.tooltip.MarisTooltip;
 import marrydream.marisdecoration.client.tooltip.MarisTooltip.MarisCharacteristic;
@@ -140,6 +141,27 @@ public class MarisDecorationClient implements ClientModInitializer {
                 }
         ) );
 
+        // The base steel plug door keeps its existing baked model and appends the optional
+        // single-layer roof from the upper-half block entity.
+        ModelLoadingPlugin.register(context -> context.modifyModelAfterBake().register(
+                ModelModifier.WRAP_PHASE,
+                (model, ctx) -> {
+                    Identifier id = ctx.id();
+                    if (id == null || !ModInfo.MOD_ID.equals(id.getNamespace())
+                            || !"steel_plug_door".equals(id.getPath())) {
+                        return model;
+                    }
+                    if (id instanceof ModelIdentifier modelId && "inventory".equals(modelId.getVariant())) {
+                        return model;
+                    }
+                    if (!LOGGED_STEEL_DOOR_WRAP) {
+                        LOGGED_STEEL_DOOR_WRAP = true;
+                        MarisDecoration.LOGGER.info("[steel_plug_door] wrapped optional roof model, first id = {}", id);
+                    }
+                    return model instanceof SteelPlugDoorModel ? model : new SteelPlugDoorModel(model);
+                }
+        ));
+
         ModelLoadingPlugin.register(context -> context.modifyModelAfterBake().register(
                 ModelModifier.WRAP_PHASE, (model, ctx) -> {
                     Identifier id = ctx.id();
@@ -158,5 +180,6 @@ public class MarisDecorationClient implements ClientModInitializer {
 
     private static volatile boolean LOGGED_WRAP = false;
     private static volatile boolean LOGGED_BOARD_WRAP = false;
+    private static volatile boolean LOGGED_STEEL_DOOR_WRAP = false;
     private static volatile boolean LOGGED_LADDER_WRAP = false;
 }

@@ -1,6 +1,7 @@
 package marrydream.marisdecoration.item;
 
 import marrydream.marisdecoration.block.LayeredCopycatBoardBlock;
+import marrydream.marisdecoration.block.LintelThresholdThinDoorBlock;
 import net.minecraft.block.Block;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemUsageContext;
@@ -26,6 +27,10 @@ public class LayeredCopycatBoardItem extends BlockItem {
 
     @Override
     public ActionResult useOnBlock( ItemUsageContext context ) {
+        ActionResult insertedRoof = LintelThresholdThinDoorBlock.tryInsertRoof( context );
+        if ( insertedRoof != null ) {
+            return insertedRoof;
+        }
         // 目标格已经是薄板 → 直接改那个方块实体的 occupancy。
         // 绝不能落到 super：方块状态只有 WATERLOGGED，setBlockState 会返回 false，整次放置会失败。
         ActionResult appended = LayeredCopycatBoardBlock.tryAppendExisting(

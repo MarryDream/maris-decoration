@@ -2,8 +2,8 @@ package marrydream.marisdecoration.init;
 
 import marrydream.marisdecoration.block.CopycatGuardrailBlockEntity;
 import marrydream.marisdecoration.block.CopycatLadderBlockEntity;
-import marrydream.marisdecoration.block.CopycatLadderBlockEntity;
 import marrydream.marisdecoration.block.LayeredCopycatBoardBlockEntity;
+import marrydream.marisdecoration.block.SteelPlugDoorBlockEntity;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.registry.Registries;
@@ -26,6 +26,12 @@ public final class ModBlockEntity {
             Registries.BLOCK_ENTITY_TYPE,
             ModInfo.id("layered_copycat_board"),
             FabricBlockEntityTypeBuilder.create(LayeredCopycatBoardBlockEntity::new, ModBlock.LAYERED_COPYCAT_BOARD).build()
+    );
+
+    public static final BlockEntityType<SteelPlugDoorBlockEntity> STEEL_PLUG_DOOR = Registry.register(
+            Registries.BLOCK_ENTITY_TYPE,
+            ModInfo.id("steel_plug_door"),
+            FabricBlockEntityTypeBuilder.create(SteelPlugDoorBlockEntity::new, ModBlock.STEEL_PLUG_DOOR).build()
     );
 
     public static final BlockEntityType<CopycatLadderBlockEntity> COPYCAT_STEEL_FIXED_LADDER = Registry.register(
