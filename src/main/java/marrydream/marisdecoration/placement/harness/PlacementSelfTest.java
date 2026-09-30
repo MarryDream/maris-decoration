@@ -122,6 +122,7 @@ public final class PlacementSelfTest {
         section(sections, "3. 分层薄板槽位", () -> runLayeredBoardSlots(assertions, sections));
         section(sections, "4. 伪装护栏槽位", () -> runGuardrailSlots(assertions, sections));
         section(sections, "4b. 伪装梯子放置器", () -> runCopycatLadderAdapter(harness, assertions, sections));
+        section(sections, "4c. 伪装垂直爬梯附着", () -> runCopycatVerticalAttachment(harness, assertions, sections));
         section(sections, "5. 创造模式放置", () -> runCreativePlacements(harness, assertions, sections));
         section(sections, "6. 生存模式放置", () -> runSurvivalPlacements(harness, assertions, sections));
         section(sections, "7. 含水", () -> runWaterlogged(harness, assertions, sections));
@@ -426,6 +427,7 @@ public final class PlacementSelfTest {
 
         BlockPos lowerPos = harness.next();
         BlockPos upperPos = lowerPos.up();
+        harness.clearEntitiesAt(upperPos);
         harness.world().setBlockState(upperPos.south(), Blocks.STONE.getDefaultState(), Block.NOTIFY_ALL);
         PlacementResult upperResult = PlacementService.place(harness.world(), upperPos, verticalConfig);
         a.isTrue("supported vertical ladder placement succeeds", upperResult.success());
@@ -444,6 +446,71 @@ public final class PlacementSelfTest {
         a.isTrue("vertical ladder can hang below the same facing ladder", hangingResult.success());
         a.equal("hanging vertical ladder is NORMAL", PropLadderShape.NORMAL,
                 harness.stateAt(lowerPos).get(VerticalLadderBlock.SHAPE));
+    }
+
+    private static void runCopycatVerticalAttachment(PlacementHarness harness, Assertions a, List<String> log) {
+        log.add("== 4c. Copycat vertical ladder relaxed attachment");
+
+        ServerWorld world = harness.world();
+        CopycatPlacementAdapter adapter = PlacementAdapters.resolve(ModBlock.COPYCAT_STEEL_VERTICAL_LADDER)
+                .orElseThrow();
+        List<Direction> facings = List.of(Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST);
+
+        for (int i = 0; i < facings.size(); i++) {
+            Direction facing = facings.get(i);
+            BlockPos supportPos = harness.nextBare().add(0, 0, 8 + i * 3);
+            BlockPos ladderPos = supportPos.offset(facing);
+            world.setBlockState(supportPos, Blocks.GLASS_PANE.getDefaultState(), Block.NOTIFY_ALL);
+            world.setBlockState(ladderPos, Blocks.AIR.getDefaultState(), Block.NOTIFY_ALL);
+
+            BlockState ladder = ModBlock.COPYCAT_STEEL_VERTICAL_LADDER.getDefaultState()
+                    .with(LadderBlock.FACING, facing)
+                    .with(VerticalLadderBlock.SHAPE, PropLadderShape.START);
+            a.isTrue("copycat vertical ladder accepts a narrow support facing " + facing,
+                    ladder.canPlaceAt(world, ladderPos));
+
+            PlacementConfig config = adapter.defaultConfig(ModBlock.COPYCAT_STEEL_VERTICAL_LADDER)
+                    .withState(ladder);
+            PlacementResult result = PlacementService.place(world, ladderPos, config);
+            a.isTrue("placer uses relaxed copycat ladder attachment facing " + facing, result.success());
+            a.isTrue("placed copycat vertical ladder keeps facing " + facing,
+                    world.getBlockState(ladderPos).isOf(ModBlock.COPYCAT_STEEL_VERTICAL_LADDER)
+                            && world.getBlockState(ladderPos).get(LadderBlock.FACING) == facing);
+
+            world.setBlockState(supportPos, Blocks.AIR.getDefaultState(), Block.NOTIFY_ALL);
+            a.isTrue("copycat vertical ladder breaks after support is removed facing " + facing,
+                    world.getBlockState(ladderPos).isAir());
+        }
+
+        BlockPos supportPos = harness.nextBare().add(0, 0, 24);
+        BlockPos ladderPos = supportPos.offset(Direction.NORTH);
+        BlockState northLadder = ModBlock.COPYCAT_STEEL_VERTICAL_LADDER.getDefaultState()
+                .with(LadderBlock.FACING, Direction.NORTH)
+                .with(VerticalLadderBlock.SHAPE, PropLadderShape.START);
+
+        world.setBlockState(supportPos,
+                Blocks.OAK_FENCE.getDefaultState().with(Properties.WATERLOGGED, true), Block.NOTIFY_ALL);
+        a.isTrue("copycat vertical ladder accepts a waterlogged solid block",
+                northLadder.canPlaceAt(world, ladderPos));
+
+        world.setBlockState(supportPos, Blocks.AIR.getDefaultState(), Block.NOTIFY_ALL);
+        a.isFalse("copycat vertical ladder rejects air", northLadder.canPlaceAt(world, ladderPos));
+        world.setBlockState(supportPos, Blocks.WATER.getDefaultState(), Block.NOTIFY_ALL);
+        a.isFalse("copycat vertical ladder rejects water", northLadder.canPlaceAt(world, ladderPos));
+        world.setBlockState(supportPos, Blocks.LAVA.getDefaultState(), Block.NOTIFY_ALL);
+        a.isFalse("copycat vertical ladder rejects lava", northLadder.canPlaceAt(world, ladderPos));
+
+        BlockPos lowerPos = harness.nextBare().add(0, 0, 28);
+        BlockPos upperPos = lowerPos.up();
+        BlockState eastLadder = ModBlock.COPYCAT_STEEL_VERTICAL_LADDER.getDefaultState()
+                .with(LadderBlock.FACING, Direction.EAST)
+                .with(VerticalLadderBlock.SHAPE, PropLadderShape.START);
+        world.setBlockState(upperPos.offset(Direction.WEST), Blocks.STONE.getDefaultState(), Block.NOTIFY_ALL);
+        world.setBlockState(upperPos, eastLadder, Block.NOTIFY_ALL);
+        a.isTrue("copycat vertical ladder still hangs below the same facing ladder",
+                eastLadder.canPlaceAt(world, lowerPos));
+        a.isFalse("a differently facing ladder above does not support the chain",
+                northLadder.canPlaceAt(world, lowerPos));
     }
 
     private static void runCreativePlacements(PlacementHarness harness, Assertions a, List<String> log) {

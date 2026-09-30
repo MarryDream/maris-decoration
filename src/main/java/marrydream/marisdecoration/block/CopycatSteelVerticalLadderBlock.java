@@ -6,6 +6,7 @@ import marrydream.marisdecoration.block.utils.CopycatLadderParts;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.BlockEntityProvider;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.FluidBlock;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
@@ -18,6 +19,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldView;
 import org.jetbrains.annotations.Nullable;
 
 public class CopycatSteelVerticalLadderBlock extends VerticalLadderBlock implements BlockEntityProvider, IWrenchable {
@@ -25,6 +27,15 @@ public class CopycatSteelVerticalLadderBlock extends VerticalLadderBlock impleme
 
     public CopycatSteelVerticalLadderBlock(AbstractBlock.Settings settings) {
         super(settings);
+    }
+
+    @Override
+    public boolean canPlaceAt(BlockState state, WorldView world, BlockPos pos) {
+        if (super.canPlaceAt(state, world, pos)) return true;
+
+        BlockPos supportPos = pos.offset(state.get(FACING).getOpposite());
+        BlockState support = world.getBlockState(supportPos);
+        return !support.isAir() && !(support.getBlock() instanceof FluidBlock);
     }
 
     @Override
