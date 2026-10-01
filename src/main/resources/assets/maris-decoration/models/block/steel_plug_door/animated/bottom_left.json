@@ -1,0 +1,20 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "maris-decoration:block/steel_plug_door_bottom",
+    "leaf": "maris-decoration:block/steel_plug_door_bottom"
+  },
+  "elements": [
+    {
+      "from": [0, 1, 0],
+      "to": [2, 16, 16],
+      "faces": {
+        "down":  { "uv": [0, 16, 16, 14], "texture": "#leaf", "rotation": 90 },
+        "north": { "uv": [2, 0, 0, 15], "texture": "#leaf" },
+        "south": { "uv": [0, 0, 2, 15], "texture": "#leaf" },
+        "west":  { "uv": [0, 0, 16, 15], "texture": "#leaf" },
+        "east":  { "uv": [16, 0, 0, 15], "texture": "#leaf" }
+      }
+    }
+  ]
+}

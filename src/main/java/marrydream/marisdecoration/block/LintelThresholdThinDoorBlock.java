@@ -7,6 +7,7 @@ import marrydream.marisdecoration.block.utils.LayeredBoardSlots.FaceDir;
 import marrydream.marisdecoration.block.utils.SteelPlugDoorRoof;
 import marrydream.marisdecoration.block.utils.ThinDoor.LintelThresholdDoorShape;
 import marrydream.marisdecoration.init.ModBlock;
+import marrydream.marisdecoration.init.ModBlockEntity;
 import marrydream.marisdecoration.item.DetailChisel;
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
@@ -16,6 +17,8 @@ import net.minecraft.block.BlockState;
 import net.minecraft.block.DoorBlock;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.BlockEntityTicker;
+import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.enums.DoorHinge;
 import net.minecraft.block.enums.DoubleBlockHalf;
 import net.minecraft.entity.player.PlayerEntity;
@@ -58,6 +61,14 @@ public class LintelThresholdThinDoorBlock extends DoorBlock implements BlockEnti
     @Override
     public @Nullable BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
         return state.get(HALF) == DoubleBlockHalf.UPPER ? new SteelPlugDoorBlockEntity(pos, state) : null;
+    }
+
+    @Override
+    public <T extends BlockEntity> @Nullable BlockEntityTicker<T> getTicker(
+            World world, BlockState state, BlockEntityType<T> type) {
+        if (!world.isClient || type != ModBlockEntity.STEEL_PLUG_DOOR) return null;
+        return (tickerWorld, tickerPos, tickerState, blockEntity) ->
+                ((SteelPlugDoorBlockEntity) blockEntity).tickDoorAnimation();
     }
 
     protected VoxelShape getShape(LintelThresholdDoorShape shape, boolean isOpen, boolean isLower, boolean isRight) {

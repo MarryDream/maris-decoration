@@ -23,6 +23,7 @@ import marrydream.marisdecoration.block.utils.LayeredBoardSlots.BoardArea;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots.BoardLayer;
 import marrydream.marisdecoration.block.utils.LayeredBoardSlots.FaceDir;
 import marrydream.marisdecoration.block.utils.SteelPlugDoorRoof;
+import marrydream.marisdecoration.block.utils.SteelPlugDoorAnimation;
 import marrydream.marisdecoration.init.ModBlock;
 import marrydream.marisdecoration.init.ModItem;
 import marrydream.marisdecoration.item.CopycatPlacerItem;
@@ -55,6 +56,9 @@ import net.minecraft.block.Blocks;
 import net.minecraft.block.LadderBlock;
 import net.minecraft.block.ShapeContext;
 import net.minecraft.block.enums.DoubleBlockHalf;
+import net.minecraft.block.enums.DoorHinge;
+import net.createmod.catnip.animation.LerpedFloat;
+import net.createmod.catnip.animation.LerpedFloat.Chaser;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.BlockItem;
@@ -133,6 +137,7 @@ public final class PlacementSelfTest {
         section(sections, "2. adapter resolver", () -> runAdapterResolution(assertions, sections));
         section(sections, "3. 分层薄板槽位", () -> runLayeredBoardSlots(assertions, sections));
         section(sections, "3b. 钢内嵌门可插拔屋顶", () -> runSteelDoorRoof(harness, assertions, sections));
+        section(sections, "3c. 钢内嵌门铰链动画", () -> runSteelDoorAnimation(assertions, sections));
         section(sections, "4. 伪装护栏槽位", () -> runGuardrailSlots(assertions, sections));
         section(sections, "4b. 伪装梯子放置器", () -> runCopycatLadderAdapter(harness, assertions, sections));
         section(sections, "4c. 伪装垂直爬梯附着", () -> runCopycatVerticalAttachment(harness, assertions, sections));
@@ -553,6 +558,125 @@ public final class PlacementSelfTest {
             }
         }
         throw new IllegalStateException("No roof hit sample for " + wanted);
+    }
+
+    private static void runSteelDoorAnimation(Assertions a, List<String> log) {
+        log.add("== 3c. steel plug door hinge animation");
+        double thickness = SteelPlugDoorAnimation.THICKNESS;
+
+        for (Direction facing : Direction.Type.HORIZONTAL) {
+            for (DoorHinge hinge : DoorHinge.values()) {
+                Box closed = transformedLeafBox(facing, hinge, 0.0F);
+                Box expectedClosed = SteelPlugDoorRoof.toWorld(
+                        new Box(0.0, 0.0, 0.0, thickness, 1.0, 1.0), facing);
+                a.isTrue("closed leaf matches static pose for " + facing + "/" + hinge,
+                        boxesClose(closed, expectedClosed));
+
+                Box canonicalOpen = hinge == DoorHinge.LEFT
+                        ? new Box(0.0, 0.0, 0.0, 1.0, 1.0, thickness)
+                        : new Box(0.0, 0.0, 1.0 - thickness, 1.0, 1.0, 1.0);
+                Box expectedOpen = SteelPlugDoorRoof.toWorld(canonicalOpen, facing);
+                Box open = transformedLeafBox(facing, hinge, 1.0F);
+                a.isTrue("open leaf matches DoorBlock direction for " + facing + "/" + hinge,
+                        boxesClose(open, expectedOpen));
+
+                Vec3d pivot = SteelPlugDoorAnimation.hingePivot(hinge);
+                Vec3d worldPivot = SteelPlugDoorRoof.toWorld(pivot, facing);
+                for (float progress : new float[]{0.25F, 0.5F, 0.75F, 1.0F}) {
+                    Vec3d transformedPivot = SteelPlugDoorAnimation.transform(pivot, facing, hinge, progress);
+                    a.isTrue("hinge axis remains fixed for " + facing + "/" + hinge + " at " + progress,
+                            transformedPivot.squaredDistanceTo(worldPivot) < 1.0E-12);
+                }
+
+                Vec3d lowerPoint = new Vec3d(0.0, 0.5, 0.5);
+                Vec3d upperPoint = new Vec3d(0.0, 1.5, 0.5);
+                Vec3d movedLower = SteelPlugDoorAnimation.transform(lowerPoint, facing, hinge, 0.5F);
+                Vec3d movedUpper = SteelPlugDoorAnimation.transform(upperPoint, facing, hinge, 0.5F);
+                a.isTrue("upper and lower leaf share one horizontal transform for " + facing + "/" + hinge,
+                        Math.abs(movedLower.x - movedUpper.x) < 1.0E-12
+                                && Math.abs(movedLower.z - movedUpper.z) < 1.0E-12
+                                && Math.abs((movedUpper.y - movedLower.y) - 1.0) < 1.0E-12);
+            }
+        }
+
+        a.isTrue("left and right hinges swing in opposite directions",
+                SteelPlugDoorAnimation.swingAngle(DoorHinge.LEFT, 0.5F)
+                        == -SteelPlugDoorAnimation.swingAngle(DoorHinge.RIGHT, 0.5F));
+        a.equal("closed smoothing endpoint", 0.0F, SteelPlugDoorAnimation.smoothProgress(0.0F));
+        a.equal("open smoothing endpoint", 1.0F, SteelPlugDoorAnimation.smoothProgress(1.0F));
+        a.isFalse("settled closed door does not duplicate fixed frame caps",
+                SteelPlugDoorAnimation.shouldRenderFrameCaps(0.0F));
+        a.isTrue("moving door renders fixed frame caps",
+                SteelPlugDoorAnimation.shouldRenderFrameCaps(0.5F));
+        a.isTrue("settled open door keeps fixed frame caps",
+                SteelPlugDoorAnimation.shouldRenderFrameCaps(1.0F));
+        a.isTrue("upper lintel underside renders without roof while moving",
+                SteelPlugDoorAnimation.shouldRenderUpperFrameCap(0.5F, false));
+        a.isFalse("roof suppresses the upper lintel underside cap",
+                SteelPlugDoorAnimation.shouldRenderUpperFrameCap(0.5F, true));
+        a.isTrue("lower threshold top is recognised as the inner frame cap",
+                SteelPlugDoorAnimation.isInnerFrameCap(DoubleBlockHalf.LOWER,
+                        1.0 / 16.0, 1.0 / 16.0, 1.0 / 16.0, 1.0 / 16.0));
+        a.isTrue("upper lintel underside is recognised as the inner frame cap",
+                SteelPlugDoorAnimation.isInnerFrameCap(DoubleBlockHalf.UPPER,
+                        15.0 / 16.0, 15.0 / 16.0, 15.0 / 16.0, 15.0 / 16.0));
+        a.isFalse("vertical frame quad is not mistaken for an inner cap",
+                SteelPlugDoorAnimation.isInnerFrameCap(DoubleBlockHalf.LOWER,
+                        0.0, 0.0, 1.0 / 16.0, 1.0 / 16.0));
+
+        LerpedFloat animation = LerpedFloat.linear().startWithValue(0.0F);
+        animation.chase(1.0F, 0.15F, Chaser.LINEAR);
+        animation.tickChaser();
+        animation.tickChaser();
+        float beforeReverse = animation.getValue(1.0F);
+        animation.chase(0.0F, 0.15F, Chaser.LINEAR);
+        float atReverse = animation.getValue(1.0F);
+        animation.tickChaser();
+        float afterReverse = animation.getValue(1.0F);
+        a.equal("changing chase target does not jump animation progress", beforeReverse, atReverse);
+        a.isTrue("animation continues smoothly back from its current progress",
+                afterReverse < beforeReverse && afterReverse > 0.0F);
+
+        BlockState closedState = ModBlock.STEEL_PLUG_DOOR.getDefaultState()
+                .with(net.minecraft.block.DoorBlock.HALF, DoubleBlockHalf.UPPER)
+                .with(net.minecraft.block.DoorBlock.OPEN, false);
+        BlockState openState = closedState.with(net.minecraft.block.DoorBlock.OPEN, true);
+        a.equal("closed door BE initializes settled closed", 0.0F,
+                new SteelPlugDoorBlockEntity(BlockPos.ORIGIN, closedState).doorAnimation(1.0F));
+        a.equal("open door BE initializes settled open", 1.0F,
+                new SteelPlugDoorBlockEntity(BlockPos.ORIGIN, openState).doorAnimation(1.0F));
+    }
+
+    private static Box transformedLeafBox(Direction facing, DoorHinge hinge, float progress) {
+        double minX = Double.POSITIVE_INFINITY;
+        double minY = Double.POSITIVE_INFINITY;
+        double minZ = Double.POSITIVE_INFINITY;
+        double maxX = Double.NEGATIVE_INFINITY;
+        double maxY = Double.NEGATIVE_INFINITY;
+        double maxZ = Double.NEGATIVE_INFINITY;
+        for (double x : new double[]{0.0, SteelPlugDoorAnimation.THICKNESS}) {
+            for (double y : new double[]{0.0, 1.0}) {
+                for (double z : new double[]{0.0, 1.0}) {
+                    Vec3d point = SteelPlugDoorAnimation.transform(new Vec3d(x, y, z), facing, hinge, progress);
+                    minX = Math.min(minX, point.x);
+                    minY = Math.min(minY, point.y);
+                    minZ = Math.min(minZ, point.z);
+                    maxX = Math.max(maxX, point.x);
+                    maxY = Math.max(maxY, point.y);
+                    maxZ = Math.max(maxZ, point.z);
+                }
+            }
+        }
+        return new Box(minX, minY, minZ, maxX, maxY, maxZ);
+    }
+
+    private static boolean boxesClose(Box first, Box second) {
+        return Math.abs(first.minX - second.minX) < 1.0E-12
+                && Math.abs(first.minY - second.minY) < 1.0E-12
+                && Math.abs(first.minZ - second.minZ) < 1.0E-12
+                && Math.abs(first.maxX - second.maxX) < 1.0E-12
+                && Math.abs(first.maxY - second.maxY) < 1.0E-12
+                && Math.abs(first.maxZ - second.maxZ) < 1.0E-12;
     }
 
     private static void runGuardrailSlots(Assertions a, List<String> log) {

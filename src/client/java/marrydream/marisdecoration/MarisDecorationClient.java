@@ -4,6 +4,8 @@ import marrydream.marisdecoration.client.CopycatGuardrailModel;
 import marrydream.marisdecoration.client.CopycatLadderModel;
 import marrydream.marisdecoration.client.LayeredCopycatBoardModel;
 import marrydream.marisdecoration.client.SteelPlugDoorModel;
+import marrydream.marisdecoration.client.SteelPlugDoorPartialModels;
+import marrydream.marisdecoration.client.SteelPlugDoorRenderer;
 import marrydream.marisdecoration.client.TeakClientCheck;
 import marrydream.marisdecoration.client.tooltip.MarisTooltip;
 import marrydream.marisdecoration.client.tooltip.MarisTooltip.MarisCharacteristic;
@@ -13,9 +15,11 @@ import marrydream.marisdecoration.block.CopycatSteelVerticalLadderBlock;
 import marrydream.marisdecoration.block.LayeredCopycatBoardBlock;
 import marrydream.marisdecoration.init.ModBlock;
 import marrydream.marisdecoration.init.ModInfo;
+import marrydream.marisdecoration.init.ModBlockEntity;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.client.rendering.v1.ColorProviderRegistry;
+import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
 import net.minecraft.client.color.world.BiomeColors;
 import net.minecraft.client.color.world.FoliageColors;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
@@ -28,6 +32,8 @@ import net.minecraft.util.Identifier;
 public class MarisDecorationClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
+        SteelPlugDoorPartialModels.init();
+        BlockEntityRendererFactories.register(ModBlockEntity.STEEL_PLUG_DOOR, SteelPlugDoorRenderer::new);
         if (Boolean.getBoolean("maris.teak.clientcheck")
                 && FabricLoader.getInstance().isDevelopmentEnvironment()) {
             TeakClientCheck.register();

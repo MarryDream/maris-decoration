@@ -1,0 +1,16 @@
+{
+  "ambientocclusion": false,
+  "textures": {
+    "particle": "maris-decoration:block/steel_block",
+    "frame": "maris-decoration:block/steel_block"
+  },
+  "elements": [
+    {
+      "from": [0, 1, 0],
+      "to": [2, 1, 16],
+      "faces": {
+        "up": { "uv": [0, 16, 16, 14], "texture": "#frame" }
+      }
+    }
+  ]
+}
