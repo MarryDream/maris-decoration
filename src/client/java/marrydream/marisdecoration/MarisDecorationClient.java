@@ -52,11 +52,6 @@ public class MarisDecorationClient implements ClientModInitializer {
 
         // 如果方块一些部分是透明的（例如玻璃、树苗、门），避免贴图上的透明部分变成黑色
         BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.TEAK_TRAPDOOR, RenderLayer.getCutout() );
-        // 如果方块一些部分的材质是半透明的，例如玻璃
-        BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL, RenderLayer.getTranslucent() );
-        BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_GLASS_ROOF_STEEL_TEAK_COMPONENT_WALL, RenderLayer.getTranslucent() );
-        BlockRenderLayerMap.INSTANCE.putBlock( ModBlock.CYAN_ROOF_STEEL_TRIM_CYAN_WINDOW_WALL, RenderLayer.getTranslucent() );
-
         // 说明文案走 Create 的 TooltipModifier 注册表：Create 的客户端事件会统一把它应用到物品上，
         // 所以我们不用自己挂 tooltip 回调。这里只声明「这个方块有哪几条特性」——
         // 标题取自共用的特性枚举，说明文字按特性名从语言文件里取，顺序就是这里的书写顺序。

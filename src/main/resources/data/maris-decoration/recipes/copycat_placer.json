@@ -7,15 +7,18 @@
         },
         "X": {
             "item": "maris-decoration:steel_block"
+        },
+        "Z": {
+            "tag": "c:zinc_ingots"
         }
     },
     "pattern": [
         "XXX",
-        " # ",
+        "Z#Z",
         " # "
     ],
     "result": {
-        "item": "maris-decoration:detail_chisel"
+        "item": "maris-decoration:copycat_placer"
     },
     "show_notification": true
 }

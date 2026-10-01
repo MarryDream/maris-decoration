@@ -1,0 +1,20 @@
+{
+    "type": "minecraft:crafting_shapeless",
+    "category": "building",
+    "ingredients": [
+        { "item": "maris-decoration:steel_block" },
+        { "item": "maris-decoration:steel_block" },
+        { "item": "maris-decoration:steel_block" },
+        { "item": "maris-decoration:steel_block" },
+        { "item": "maris-decoration:steel_block" },
+        { "item": "maris-decoration:steel_block" },
+        { "item": "maris-decoration:steel_block" },
+        { "item": "maris-decoration:steel_block" },
+        { "item": "minecraft:cyan_dye" }
+    ],
+    "result": {
+        "count": 8,
+        "item": "maris-decoration:cyan_steel_block"
+    },
+    "show_notification": true
+}

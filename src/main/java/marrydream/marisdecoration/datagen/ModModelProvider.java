@@ -35,25 +35,15 @@ public final class ModModelProvider extends FabricModelProvider {
         // 风化柚木木板只换贴图，模型和柚木木板一样是立方体全贴图
         generator.registerCubeAllModelTexturePool(ModBlock.WEATHERED_TEAK_PLANKS);
 
-        BlockStateModelGenerator.BlockTexturePool steel = generator.registerCubeAllModelTexturePool(ModBlock.STEEL_BLOCK);
-        steel.stairs(ModBlock.STEEL_STAIRS);
-        steel.slab(ModBlock.STEEL_SLABS);
-
-        BlockStateModelGenerator.BlockTexturePool cyanSteel = generator.registerCubeAllModelTexturePool(ModBlock.CYAN_STEEL_BLOCK);
-        cyanSteel.stairs(ModBlock.CYAN_STEEL_STAIRS);
-        cyanSteel.slab(ModBlock.CYAN_STEEL_SLABS);
-
-        BlockStateModelGenerator.BlockTexturePool blackSteel = generator.registerCubeAllModelTexturePool(ModBlock.BLACK_STEEL_BLOCK);
-        blackSteel.stairs(ModBlock.BLACK_STEEL_STAIRS);
-        blackSteel.slab(ModBlock.BLACK_STEEL_SLABS);
+        generator.registerCubeAllModelTexturePool(ModBlock.STEEL_BLOCK);
+        generator.registerCubeAllModelTexturePool(ModBlock.CYAN_STEEL_BLOCK);
+        generator.registerCubeAllModelTexturePool(ModBlock.BLACK_STEEL_BLOCK);
     }
 
     @Override
     public void generateItemModels(ItemModelGenerator generator) {
         generator.register(ModItem.BUBBLE_TEA, Models.GENERATED);
         generator.register(ModItem.DETAIL_CHISEL, Models.GENERATED);
-        generator.register(ModItem.STEEL_HAMMER, Models.GENERATED);
-        generator.register(ModItem.REBAR, Models.GENERATED);
         // 伪装放置器：这一阶段临时复用细工凿的贴图（纹理文件是 copycat_placer.png 的副本，
         // 见 assets/maris-decoration/textures/item/）。等正式贴图出来只需要换那个 png。
         generator.register(ModItem.COPYCAT_PLACER, Models.GENERATED);

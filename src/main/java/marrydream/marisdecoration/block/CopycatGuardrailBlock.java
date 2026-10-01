@@ -61,7 +61,7 @@ import java.util.Set;
  * 扳手交互实现 Create 的 {@link IWrenchable}：直接右键还原伪装并返还材质，
  * 潜行右键拆掉命中的那一面。
  *
- * <p>与 {@code black_steel_guardrail} 的关系仅限于借用其单面模型；
+ * <p>几何和材质槽完全由伪装护栏自身维护；
  * <b>不使用</b>它的自动连接逻辑与拐角模型。
  */
 public class CopycatGuardrailBlock extends Block implements BlockEntityProvider, Waterloggable, IWrenchable {

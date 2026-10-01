@@ -10,8 +10,6 @@
     "maris-decoration:teak_fence",
     "maris-decoration:teak_fence_gate",
     "maris-decoration:teak_pressure_plate",
-    "maris-decoration:teak_button",
-    "maris-decoration:teak_wall",
-    "maris-decoration:teak_roof"
+    "maris-decoration:teak_button"
   ]
 }

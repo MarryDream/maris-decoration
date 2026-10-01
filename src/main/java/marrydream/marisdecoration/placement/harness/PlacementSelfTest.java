@@ -133,6 +133,7 @@ public final class PlacementSelfTest {
 
         // 每一段单独兜异常：某一段炸了也要把「炸在哪一段」写进报告文件，
         // 否则无头服务端上只能看到原版那句「An unexpected error occurred」。
+        section(sections, "0. 过时注册已清除", () -> runRemovedRegistrations(assertions, sections));
         section(sections, "1. PlacementConfig / NBT", () -> runConfigNbt(assertions, sections));
         section(sections, "2. adapter resolver", () -> runAdapterResolution(assertions, sections));
         section(sections, "3. 分层薄板槽位", () -> runLayeredBoardSlots(assertions, sections));
@@ -162,6 +163,34 @@ public final class PlacementSelfTest {
         section(sections, "20d. 护栏渲染 cullFace", () -> runGuardrailCullFaceModel(assertions, sections));
 
         return report(assertions, sections);
+    }
+
+    private static void runRemovedRegistrations(Assertions a, List<String> log) {
+        String[] removedBlocks = {
+                "steel_slab", "cyan_steel_slab", "black_steel_slab",
+                "steel_stairs", "cyan_steel_stairs", "black_steel_stairs",
+                "teak_wall", "steel_wall", "steel_roof_teak_wall", "cyan_steel_roof_teak_wall",
+                "black_steel_roof_teak_wall", "cyan_roof_steel_wall", "black_roof_steel_wall",
+                "cyan_roof_steel_trim_cyan_window_wall", "steel_teak_component_wall",
+                "cyan_roof_steel_teak_component_wall", "cyan_glass_steel_teak_component_wall",
+                "cyan_glass_cyan_roof_steel_teak_component_wall",
+                "teak_roof", "steel_roof", "cyan_steel_roof", "black_steel_roof",
+                "steel_teak_trim_roof", "steel_trim_cyan_steel_roof",
+                "steel_fixed_ladder", "steel_vertical_ladder",
+                "steel_guardrail", "black_steel_guardrail",
+                "steel_plug_door_with_roof", "teak_steel_plug_door_with_roof",
+                "cyan_steel_plug_door_with_roof", "black_steel_plug_door_with_roof"
+        };
+        for (String path : removedBlocks) {
+            Identifier id = new Identifier("maris-decoration", path);
+            a.isFalse("旧方块 ID 已移除：" + path, Registries.BLOCK.containsId(id));
+            a.isFalse("旧方块物品 ID 已移除：" + path, Registries.ITEM.containsId(id));
+        }
+        for (String path : List.of("steel_hammer", "rebar")) {
+            a.isFalse("旧物品 ID 已移除：" + path,
+                    Registries.ITEM.containsId(new Identifier("maris-decoration", path)));
+        }
+        log.add("   32 个旧方块 ID 与 2 个旧物品 ID 均未注册");
     }
 
     /** 跑一个测试段；它抛异常时记成一条失败，并继续跑后面的段。 */
@@ -1909,7 +1938,7 @@ public final class PlacementSelfTest {
     }
 
     /**
-     * 本 mod 的两个钢梯与 {@code minecraft:ladder} 的附着对比。
+     * 本 mod 的两个伪装梯与 {@code minecraft:ladder} 的附着对比。
      *
      * <p>三种梯子问<b>同一组支撑面</b>，而且位置逐字节相同：梯子格 = 支撑格 + NORTH、
      * 梯子 FACING = NORTH、要贴的那一面 = 支撑格的 SOUTH 面。所以三者结果不同只可能来自
@@ -1923,16 +1952,16 @@ public final class PlacementSelfTest {
      * </ul>
      *
      * <p>判据用<b>原版梯子自己的那条</b>（{@code isSideSolidFullSquare}）当基准：
-     * 两个钢梯的 {@code canPlaceAt} 必须与 {@code minecraft:ladder} 逐格相同。
-     * 垂直钢梯历史上用的是 {@code BlockState#isSolid()}——那是注册期烤好的 boolean，
+     * 两个伪装梯的 {@code canPlaceAt} 必须与 {@code minecraft:ladder} 逐格相同。
+     * 垂直梯历史上用的是 {@code BlockState#isSolid()}——那是注册期烤好的 boolean，
      * 看不到动态几何，所以薄板那一格只有它会是 false。
      */
     private static void runLadderComparison(PlacementHarness harness, Assertions a, List<String> log) {
-        log.add("== 20c. 梯子放置对比（minecraft:ladder / steel_fixed / steel_vertical）");
+        log.add("== 20c. 梯子放置对比（minecraft:ladder / copycat_fixed / copycat_vertical）");
 
         ServerWorld world = harness.world();
-        List<Block> ladders = List.of(Blocks.LADDER, ModBlock.STEEL_FIXED_LADDER,
-                ModBlock.STEEL_VERTICAL_LADDER);
+        List<Block> ladders = List.of(Blocks.LADDER, ModBlock.COPYCAT_STEEL_FIXED_LADDER,
+                ModBlock.COPYCAT_STEEL_VERTICAL_LADDER);
 
         // --- 支撑面一：原版完整方块
         BlockPos stone = harness.nextBare();
@@ -2025,12 +2054,9 @@ public final class PlacementSelfTest {
             for (Block ladderBlock : ladders) {
                 String name = nameOf(ladderBlock);
                 a.equal(name + " 的方块类", true, ladderBlock instanceof LadderBlock);
-                if (ladderBlock == ModBlock.STEEL_VERTICAL_LADDER) {
-                    a.isTrue("steel_vertical_ladder 确实是 VerticalLadderBlock",
-                            ladderBlock.getClass() == VerticalLadderBlock.class);
-                    a.equal("VerticalLadderBlock 的 canPlaceAt 就是本类重写的那一个",
-                            VerticalLadderBlock.class,
-                            ladderBlock.getClass());
+                if (ladderBlock == ModBlock.COPYCAT_STEEL_VERTICAL_LADDER) {
+                    a.isTrue("copycat vertical ladder 继承 VerticalLadderBlock",
+                            ladderBlock instanceof VerticalLadderBlock);
                 }
                 world.setBlockState(ladderPos, Blocks.AIR.getDefaultState());
                 harness.clearEntitiesAt(ladderPos);
@@ -2045,7 +2071,7 @@ public final class PlacementSelfTest {
                 }
                 a.isTrue(name + " 的 canPlaceAt 为真（" + testCase.name() + "）", canPlace);
                 // 直接对照「原版判据本身」：梯子的结论必须等于 isSideSolidFullSquare 的结果。
-                // 垂直钢梯历史上用的是 isSolid()，在薄板 / 伪装板这种动态方块上会给出 false。
+                // 垂直梯历史上用的是 isSolid()，在薄板 / 伪装板这种动态方块上会给出 false。
                 a.equal(name + " 的 canPlaceAt == isSideSolidFullSquare（" + testCase.name() + "）",
                         canAttachTo(world, supportPos, face), canPlace);
 
@@ -2063,11 +2089,11 @@ public final class PlacementSelfTest {
                 world.setBlockState(ladderPos, Blocks.AIR.getDefaultState());
             }
         }
-        log.add("   梯子对比：三种梯子对同一组支撑面的 canPlaceAt 与落世界结果完全一致");
+        log.add("   梯子对比：原版与两种伪装梯对同一组支撑面的 canPlaceAt 与落世界结果完全一致");
     }
 
     /**
-     * /** 造一个朝向给定的梯子状态；垂直钢梯需要补上它自己的 SHAPE 属性。 */
+     * /** 造一个朝向给定的梯子状态；垂直梯需要补上它自己的 SHAPE 属性。 */
     private static BlockState buildLadder(Block block, Direction facing) {
         BlockState state = block.getDefaultState().with(LadderBlock.FACING, facing);
         if (block instanceof VerticalLadderBlock) {

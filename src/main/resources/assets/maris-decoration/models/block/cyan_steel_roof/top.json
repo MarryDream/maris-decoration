@@ -1,8 +1,0 @@
-{
-    "parent": "maris-decoration:block/roof/top",
-    "textures": {
-        "bottom": "maris-decoration:block/cyan_steel_block",
-        "side": "maris-decoration:block/cyan_steel_block",
-        "top": "maris-decoration:block/cyan_steel_block"
-    }
-}

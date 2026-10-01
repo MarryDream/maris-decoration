@@ -39,13 +39,7 @@ public final class ModRecipeProvider extends FabricRecipeProvider {
         offerBarkBlockRecipe(exporter, ModBlock.TEAK_WOOD, ModBlock.TEAK_LOG);
         offerBarkBlockRecipe(exporter, ModBlock.STRIPPED_TEAK_WOOD, ModBlock.STRIPPED_TEAK_LOG);
         offerStairs(exporter, ModBlock.TEAK_STAIRS, ModBlock.TEAK_PLANKS);
-        offerStairs(exporter, ModBlock.STEEL_STAIRS, ModBlock.STEEL_BLOCK);
-        offerStairs(exporter, ModBlock.CYAN_STEEL_STAIRS, ModBlock.CYAN_STEEL_BLOCK);
-        offerStairs(exporter, ModBlock.BLACK_STEEL_STAIRS, ModBlock.BLACK_STEEL_BLOCK);
         offerSlab(exporter, ModBlock.TEAK_SLABS, ModBlock.TEAK_PLANKS);
-        offerSlab(exporter, ModBlock.STEEL_SLABS, ModBlock.STEEL_BLOCK);
-        offerSlab(exporter, ModBlock.CYAN_STEEL_SLABS, ModBlock.CYAN_STEEL_BLOCK);
-        offerSlab(exporter, ModBlock.BLACK_STEEL_SLABS, ModBlock.BLACK_STEEL_BLOCK);
 
         // 其余木板衍生品：形状、数量、分类与分组都照抄原版（见 data/minecraft/recipes/oak_*）。
         // 原版的这几个配方由 BlockFamily 生成，自带 group，所以这里手写而不用

@@ -19,7 +19,7 @@ import java.util.Set;
 /**
  * {@code copycat_guardrail} 的几何数据。
  *
- * <p>几何全部取自 black_steel_guardrail 的单面模型 {@code block/guardrail/straight.json}：
+ * <p>几何固定为一根贴边立柱和三根横梁：
  * 一根贴边立柱 + 三根横梁。<b>不使用</b> inner/outer 拐角模型，也不涉及自动连接。
  *
  * <p>角柱归属规则：单面模型自带两根端柱，一根在它「拥有」的角落，一根与相邻方向

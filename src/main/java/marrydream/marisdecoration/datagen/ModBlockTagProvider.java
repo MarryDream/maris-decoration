@@ -13,26 +13,13 @@ public final class ModBlockTagProvider extends FabricTagProvider.BlockTagProvide
     private static final Block[] WOODEN = {
             ModBlock.TEAK_PLANKS, ModBlock.WEATHERED_TEAK_PLANKS, ModBlock.TEAK_STAIRS, ModBlock.TEAK_SLABS,
             ModBlock.TEAK_TRAPDOOR, ModBlock.TEAK_FENCE, ModBlock.TEAK_FENCE_GATE,
-            ModBlock.TEAK_PRESSURE_PLATE, ModBlock.TEAK_BUTTON,
-            ModBlock.TEAK_WALL, ModBlock.TEAK_ROOF
+            ModBlock.TEAK_PRESSURE_PLATE, ModBlock.TEAK_BUTTON
     };
     private static final Block[] METAL = {
             ModBlock.STEEL_BLOCK, ModBlock.CYAN_STEEL_BLOCK, ModBlock.BLACK_STEEL_BLOCK,
-            ModBlock.STEEL_STAIRS, ModBlock.CYAN_STEEL_STAIRS, ModBlock.BLACK_STEEL_STAIRS,
-            ModBlock.STEEL_SLABS, ModBlock.CYAN_STEEL_SLABS, ModBlock.BLACK_STEEL_SLABS,
-            ModBlock.STEEL_WALL, ModBlock.STEEL_ROOF_TEAK_WALL, ModBlock.CYAN_STEEL_ROOF_TEAK_WALL,
-            ModBlock.BLACK_STEEL_ROOF_TEAK_WALL, ModBlock.CYAN_ROOF_STEEL_WALL,
-            ModBlock.BLACK_ROOF_STEEL_WALL, ModBlock.CYAN_ROOF_STEEL_TRIM_CYAN_WINDOW_WALL,
-            ModBlock.STEEL_TEAK_COMPONENT_WALL, ModBlock.CYAN_ROOF_STEEL_TEAK_COMPONENT_WALL,
-            ModBlock.CYAN_GLASS_STEEL_TEAK_COMPONENT_WALL, ModBlock.CYAN_GLASS_ROOF_STEEL_TEAK_COMPONENT_WALL,
-            ModBlock.STEEL_ROOF, ModBlock.CYAN_STEEL_ROOF, ModBlock.BLACK_STEEL_ROOF,
-            ModBlock.STEEL_TEAK_TRIM_ROOF, ModBlock.STEEL_TRIM_CYAN_STEEL_ROOF,
-            ModBlock.STEEL_GUARDRAIL, ModBlock.BLACK_STEEL_GUARDRAIL, ModBlock.COPYCAT_GUARDRAIL,
-            ModBlock.STEEL_FIXED_LADDER, ModBlock.STEEL_VERTICAL_LADDER,
+            ModBlock.COPYCAT_GUARDRAIL,
             ModBlock.COPYCAT_STEEL_FIXED_LADDER, ModBlock.COPYCAT_STEEL_VERTICAL_LADDER,
-            ModBlock.STEEL_PLUG_DOOR, ModBlock.STEEL_PLUG_DOOR_WITH_ROOF,
-            ModBlock.TEAK_STEEL_PLUG_DOOR_WITH_ROOF, ModBlock.CYAN_STEEL_PLUG_DOOR_WITH_ROOF,
-            ModBlock.BLACK_STEEL_PLUG_DOOR_WITH_ROOF
+            ModBlock.STEEL_PLUG_DOOR
     };
 
     public ModBlockTagProvider(FabricDataOutput output, CompletableFuture<RegistryWrapper.WrapperLookup> registries) {
@@ -59,7 +46,7 @@ public final class ModBlockTagProvider extends FabricTagProvider.BlockTagProvide
         getOrCreateTagBuilder(BlockTags.FENCE_GATES).add(ModBlock.TEAK_FENCE_GATE);
         getOrCreateTagBuilder(BlockTags.WOODEN_PRESSURE_PLATES).add(ModBlock.TEAK_PRESSURE_PLATE);
         getOrCreateTagBuilder(BlockTags.WOODEN_BUTTONS).add(ModBlock.TEAK_BUTTON);
-        getOrCreateTagBuilder(BlockTags.CLIMBABLE).add(ModBlock.STEEL_FIXED_LADDER, ModBlock.STEEL_VERTICAL_LADDER,
+        getOrCreateTagBuilder(BlockTags.CLIMBABLE).add(
                 ModBlock.COPYCAT_STEEL_FIXED_LADDER, ModBlock.COPYCAT_STEEL_VERTICAL_LADDER);
     }
 }
