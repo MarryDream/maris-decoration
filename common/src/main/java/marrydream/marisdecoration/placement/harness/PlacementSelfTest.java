@@ -134,35 +134,37 @@ public final class PlacementSelfTest {
 
         // 每一段单独兜异常：某一段炸了也要把「炸在哪一段」写进报告文件，
         // 否则无头服务端上只能看到原版那句「An unexpected error occurred」。
-        section(sections, "0. 过时注册已清除", () -> runRemovedRegistrations(assertions, sections));
-        section(sections, "1. PlacementConfig / NBT", () -> runConfigNbt(assertions, sections));
-        section(sections, "2. adapter resolver", () -> runAdapterResolution(assertions, sections));
-        section(sections, "3. 分层薄板槽位", () -> runLayeredBoardSlots(assertions, sections));
-        section(sections, "3b. 钢内嵌门可插拔屋顶", () -> runSteelDoorRoof(harness, assertions, sections));
-        section(sections, "3c. 钢内嵌门铰链动画", () -> runSteelDoorAnimation(assertions, sections));
-        section(sections, "4. 伪装护栏槽位", () -> runGuardrailSlots(assertions, sections));
-        section(sections, "4b. 伪装梯子放置器", () -> runCopycatLadderAdapter(harness, assertions, sections));
-        section(sections, "4c. 伪装垂直爬梯附着", () -> runCopycatVerticalAttachment(harness, assertions, sections));
-        section(sections, "5. 创造模式放置", () -> runCreativePlacements(harness, assertions, sections));
-        section(sections, "6. 生存模式放置", () -> runSurvivalPlacements(harness, assertions, sections));
-        section(sections, "7. 含水", () -> runWaterlogged(harness, assertions, sections));
-        section(sections, "8. 付账语义", () -> runPaymentSemantics(harness, assertions, sections));
-        section(sections, "9. 第三方 adapter", () -> runThirdPartyAdapters(harness, assertions, sections));
-        section(sections, "10. 工具物品 / 配置 NBT", () -> runItemAndConfigNbt(assertions, sections));
-        section(sections, "11. GUI 逻辑（广告位/属性/材质）", () -> runGuiLogic(assertions, sections));
-        section(sections, "12. 服务端校验 + 右键放置", () -> runToolPlacement(harness, assertions, sections));
-        section(sections, "12b. 竖直面附着（原版梯子）", () -> runFaceAttachments(harness, assertions, sections));
-        section(sections, "12c. 梯子放置对比", () -> runLadderComparison(harness, assertions, sections));
-        section(sections, "13. 落点解析（点击面只决定格子）", () -> runTargetPos(harness, assertions, sections));
-        section(sections, "14. GUI/config 一致性（唯一事实来源）", () -> runConfigConsistency(assertions, sections));
-        section(sections, "15. 零结构校验（幽灵方块）", () -> runStructureValidation(harness, assertions, sections));
-        section(sections, "16. 搜索（名称 / id / path）", () -> runSearch(assertions, sections));
-        section(sections, "17. 材质准入过滤", () -> runMaterialFilter(harness, assertions, sections));
-        section(sections, "18. 翻译资源", () -> runTranslations(world, assertions, sections));
-        section(sections, "19. 界面几何", () -> runLayoutGeometry(assertions, sections));
-        section(sections, "20. 结构配置模型", () -> runStructureModel(assertions, sections));
-        section(sections, "20d. 护栏渲染 cullFace", () -> runGuardrailCullFaceModel(assertions, sections));
+        section(assertions, sections, "0. 过时注册已清除", () -> runRemovedRegistrations(assertions, sections));
+        section(assertions, sections, "1. PlacementConfig / NBT", () -> runConfigNbt(assertions, sections));
+        section(assertions, sections, "2. adapter resolver", () -> runAdapterResolution(assertions, sections));
+        section(assertions, sections, "3. 分层薄板槽位", () -> runLayeredBoardSlots(assertions, sections));
+        section(assertions, sections, "3b. 钢内嵌门可插拔屋顶", () -> runSteelDoorRoof(harness, assertions, sections));
+        section(assertions, sections, "3c. 钢内嵌门铰链动画", () -> runSteelDoorAnimation(assertions, sections));
+        section(assertions, sections, "4. 伪装护栏槽位", () -> runGuardrailSlots(assertions, sections));
+        section(assertions, sections, "4b. 伪装梯子放置器", () -> runCopycatLadderAdapter(harness, assertions, sections));
+        section(assertions, sections, "4c. 伪装垂直爬梯附着", () -> runCopycatVerticalAttachment(harness, assertions, sections));
+        section(assertions, sections, "5. 创造模式放置", () -> runCreativePlacements(harness, assertions, sections));
+        section(assertions, sections, "6. 生存模式放置", () -> runSurvivalPlacements(harness, assertions, sections));
+        section(assertions, sections, "7. 含水", () -> runWaterlogged(harness, assertions, sections));
+        section(assertions, sections, "8. 付账语义", () -> runPaymentSemantics(harness, assertions, sections));
+        section(assertions, sections, "9. 第三方 adapter", () -> runThirdPartyAdapters(harness, assertions, sections));
+        section(assertions, sections, "10. 工具物品 / 配置 NBT", () -> runItemAndConfigNbt(assertions, sections));
+        section(assertions, sections, "11. GUI 逻辑（广告位/属性/材质）", () -> runGuiLogic(assertions, sections));
+        section(assertions, sections, "12. 服务端校验 + 右键放置", () -> runToolPlacement(harness, assertions, sections));
+        section(assertions, sections, "12b. 竖直面附着（原版梯子）", () -> runFaceAttachments(harness, assertions, sections));
+        section(assertions, sections, "12c. 梯子放置对比", () -> runLadderComparison(harness, assertions, sections));
+        section(assertions, sections, "13. 落点解析（点击面只决定格子）", () -> runTargetPos(harness, assertions, sections));
+        section(assertions, sections, "14. GUI/config 一致性（唯一事实来源）", () -> runConfigConsistency(assertions, sections));
+        section(assertions, sections, "15. 零结构校验（幽灵方块）", () -> runStructureValidation(harness, assertions, sections));
+        section(assertions, sections, "16. 搜索（名称 / id / path）", () -> runSearch(assertions, sections));
+        section(assertions, sections, "17. 材质准入过滤", () -> runMaterialFilter(harness, assertions, sections));
+        section(assertions, sections, "18. 翻译资源", () -> runTranslations(world, assertions, sections));
+        section(assertions, sections, "19. 界面几何", () -> runLayoutGeometry(assertions, sections));
+        section(assertions, sections, "20. 结构配置模型", () -> runStructureModel(assertions, sections));
+        section(assertions, sections, "20d. 护栏渲染 cullFace", () -> runGuardrailCullFaceModel(assertions, sections));
 
+        section(assertions, sections, "21. ItemStack format migration", () -> runStackMigration(world, assertions));
+        section(assertions, sections, "22. BlockEntity persistence and legacy stacks", () -> BlockEntityPersistenceTest.run(world, assertions));
         return report(assertions, sections);
     }
 
@@ -183,22 +185,23 @@ public final class PlacementSelfTest {
                 "cyan_steel_plug_door_with_roof", "black_steel_plug_door_with_roof"
         };
         for (String path : removedBlocks) {
-            ResourceLocation id = new ResourceLocation("maris-decoration", path);
+            ResourceLocation id = marrydream.marisdecoration.init.ModInfo.location("maris-decoration", path);
             a.isFalse("旧方块 ID 已移除：" + path, BuiltInRegistries.BLOCK.containsKey(id));
             a.isFalse("旧方块物品 ID 已移除：" + path, BuiltInRegistries.ITEM.containsKey(id));
         }
         for (String path : List.of("steel_hammer", "rebar")) {
             a.isFalse("旧物品 ID 已移除：" + path,
-                    BuiltInRegistries.ITEM.containsKey(new ResourceLocation("maris-decoration", path)));
+                    BuiltInRegistries.ITEM.containsKey(marrydream.marisdecoration.init.ModInfo.location("maris-decoration", path)));
         }
         log.add("   32 个旧方块 ID 与 2 个旧物品 ID 均未注册");
     }
 
     /** 跑一个测试段；它抛异常时记成一条失败，并继续跑后面的段。 */
-    private static void section(List<String> sections, String name, Runnable body) {
+    private static void section(Assertions assertions, List<String> sections, String name, Runnable body) {
         try {
             body.run();
         } catch (Throwable throwable) {
+            assertions.check("Section completed: " + name, false, throwable.toString());
             sections.add("!! 段 [" + name + "] 抛出异常：" + throwable);
             java.io.StringWriter writer = new java.io.StringWriter();
             throwable.printStackTrace(new java.io.PrintWriter(writer));
@@ -407,11 +410,11 @@ public final class PlacementSelfTest {
 
         BlockHitResult doorHit = new BlockHitResult(
                 Vec3.atLowerCornerOf(lowerPos).add(0.5, 0.5, 0.5), Direction.NORTH, lowerPos, false);
-        ModBlock.STEEL_PLUG_DOOR.use(lower, world, lowerPos, player, InteractionHand.MAIN_HAND, doorHit);
+        marrydream.marisdecoration.platform.TestApi.use(lower, world, lowerPos, player, InteractionHand.MAIN_HAND, doorHit);
         a.isTrue("door body toggles normally without a roof", world.getBlockState(lowerPos).getValue(
                 net.minecraft.world.level.block.DoorBlock.OPEN));
         BlockState openLower = world.getBlockState(lowerPos);
-        ModBlock.STEEL_PLUG_DOOR.use(openLower, world, lowerPos, player, InteractionHand.MAIN_HAND, doorHit);
+        marrydream.marisdecoration.platform.TestApi.use(openLower, world, lowerPos, player, InteractionHand.MAIN_HAND, doorHit);
         a.isFalse("door can be returned to closed before roof insertion", world.getBlockState(lowerPos).getValue(
                 net.minecraft.world.level.block.DoorBlock.OPEN));
         lower = world.getBlockState(lowerPos);
@@ -428,7 +431,7 @@ public final class PlacementSelfTest {
         give(player, ModBlock.LAYERED_COPYCAT_BOARD.asItem(), 2);
         BlockHitResult centerHit = new BlockHitResult(
                 Vec3.atLowerCornerOf(upperPos).add(0.5, 31.0 / 32.0, 0.5), Direction.UP, upperPos, false);
-        InteractionResult inserted = ModBlock.STEEL_PLUG_DOOR.use(upper, world, upperPos, player,
+        InteractionResult inserted = marrydream.marisdecoration.platform.TestApi.use(upper, world, upperPos, player,
                 InteractionHand.MAIN_HAND, centerHit);
         a.isTrue("survival insert succeeds", inserted.consumesAction());
         a.isTrue("insert creates exactly the roof occupancy", roof.hasRoof()
@@ -436,7 +439,7 @@ public final class PlacementSelfTest {
         a.equal("survival insert consumes one board", 1,
                 countOf(player, ModBlock.LAYERED_COPYCAT_BOARD.asItem()));
 
-        ModBlock.STEEL_PLUG_DOOR.use(upper, world, upperPos, player, InteractionHand.MAIN_HAND, centerHit);
+        marrydream.marisdecoration.platform.TestApi.use(upper, world, upperPos, player, InteractionHand.MAIN_HAND, centerHit);
         a.equal("existing roof refuses a second structure without consuming it", 1,
                 countOf(player, ModBlock.LAYERED_COPYCAT_BOARD.asItem()));
 
@@ -444,11 +447,11 @@ public final class PlacementSelfTest {
         BlockHitResult upperDoorHit = new BlockHitResult(
                 Vec3.atLowerCornerOf(upperPos).add(0.5, 0.5, 0.5), Direction.NORTH, upperPos, false);
         boolean openBeforeDoorBody = world.getBlockState(lowerPos).getValue(net.minecraft.world.level.block.DoorBlock.OPEN);
-        ModBlock.STEEL_PLUG_DOOR.use(upper, world, upperPos, player, InteractionHand.MAIN_HAND, upperDoorHit);
+        marrydream.marisdecoration.platform.TestApi.use(upper, world, upperPos, player, InteractionHand.MAIN_HAND, upperDoorHit);
         a.equal("door body below an existing roof still toggles", !openBeforeDoorBody,
                 world.getBlockState(lowerPos).getValue(net.minecraft.world.level.block.DoorBlock.OPEN));
         BlockState toggledUpper = world.getBlockState(upperPos);
-        ModBlock.STEEL_PLUG_DOOR.use(toggledUpper, world, upperPos, player, InteractionHand.MAIN_HAND, upperDoorHit);
+        marrydream.marisdecoration.platform.TestApi.use(toggledUpper, world, upperPos, player, InteractionHand.MAIN_HAND, upperDoorHit);
         lower = world.getBlockState(lowerPos);
         upper = world.getBlockState(upperPos);
 
@@ -456,8 +459,8 @@ public final class PlacementSelfTest {
         BlockHitResult bodyHit = roofHit(upperPos, upper, roof, BoardArea.BODY);
         BlockHitResult topEdgeHit = roofHit(upperPos, upper, roof, BoardArea.TOP_EDGE);
         boolean openBeforeMaterial = world.getBlockState(lowerPos).getValue(net.minecraft.world.level.block.DoorBlock.OPEN);
-        ModBlock.STEEL_PLUG_DOOR.use(upper, world, upperPos, player, InteractionHand.MAIN_HAND, bodyHit);
-        ModBlock.STEEL_PLUG_DOOR.use(upper, world, upperPos, player, InteractionHand.MAIN_HAND, topEdgeHit);
+        marrydream.marisdecoration.platform.TestApi.use(upper, world, upperPos, player, InteractionHand.MAIN_HAND, bodyHit);
+        marrydream.marisdecoration.platform.TestApi.use(upper, world, upperPos, player, InteractionHand.MAIN_HAND, topEdgeHit);
         a.equal("roof material interactions do not toggle door", openBeforeMaterial,
                 world.getBlockState(lowerPos).getValue(net.minecraft.world.level.block.DoorBlock.OPEN));
         String bodyKey = LayeredBoardSlots.materialKey(FaceDir.UP, BoardLayer.OUTER, BoardArea.BODY);
@@ -468,7 +471,7 @@ public final class PlacementSelfTest {
 
         give(player, AllItems.WRENCH.get(), 1);
         boolean openBeforeWrench = world.getBlockState(lowerPos).getValue(net.minecraft.world.level.block.DoorBlock.OPEN);
-        InteractionResult edgeRemoved = ModBlock.STEEL_PLUG_DOOR.use(upper, world, upperPos, player,
+        InteractionResult edgeRemoved = marrydream.marisdecoration.platform.TestApi.use(upper, world, upperPos, player,
                 InteractionHand.MAIN_HAND, topEdgeHit);
         a.isTrue("ordinary wrench is handled through door onUse", edgeRemoved.consumesAction());
         a.isTrue("ordinary wrench clears only the hit EDGE", roof.material(edgeKey).isAir());
@@ -478,7 +481,7 @@ public final class PlacementSelfTest {
         a.equal("ordinary wrench roof hit does not toggle door", openBeforeWrench,
                 world.getBlockState(lowerPos).getValue(net.minecraft.world.level.block.DoorBlock.OPEN));
         give(player, Blocks.STONE.asItem(), 1);
-        ModBlock.STEEL_PLUG_DOOR.use(upper, world, upperPos, player, InteractionHand.MAIN_HAND, topEdgeHit);
+        marrydream.marisdecoration.platform.TestApi.use(upper, world, upperPos, player, InteractionHand.MAIN_HAND, topEdgeHit);
         a.equal("reapplying shared material does not charge again", 1,
                 countOf(player, Blocks.STONE.asItem()));
 
@@ -491,16 +494,25 @@ public final class PlacementSelfTest {
 
         give(player, ModItem.DETAIL_CHISEL, 1);
         boolean openBeforeChisel = world.getBlockState(lowerPos).getValue(net.minecraft.world.level.block.DoorBlock.OPEN);
-        InteractionResult chiseled = ModBlock.STEEL_PLUG_DOOR.use(upper, world, upperPos, player,
+        InteractionResult chiseled = marrydream.marisdecoration.platform.TestApi.use(upper, world, upperPos, player,
                 InteractionHand.MAIN_HAND, bodyHit);
         a.isTrue("detail chisel routes roof BODY to Layered Board window logic", chiseled.consumesAction());
         a.isTrue("detail chisel opens the roof window", roof.hasWindow(FaceDir.UP));
         a.equal("detail chisel roof hit does not toggle door", openBeforeChisel,
                 world.getBlockState(lowerPos).getValue(net.minecraft.world.level.block.DoorBlock.OPEN));
 
-        CompoundTag savedRoof = roof.saveWithoutMetadata();
+        CompoundTag savedRoof = //? if >=1.21 {
+/*roof.saveWithoutMetadata(world.registryAccess())
+*///?} else {
+roof.saveWithoutMetadata()
+//?}
+;
         SteelPlugDoorBlockEntity restoredRoof = new SteelPlugDoorBlockEntity(upperPos, upper);
-        restoredRoof.load(savedRoof);
+        //? if >=1.21 {
+/*restoredRoof.loadWithComponents(savedRoof, world.registryAccess());
+*///?} else {
+restoredRoof.load(savedRoof);
+//?}
         a.isTrue("roof occupancy survives NBT round-trip", restoredRoof.hasRoof());
         a.isTrue("roof window survives NBT round-trip", restoredRoof.hasWindow(FaceDir.UP));
         a.equal("roof BODY material survives NBT round-trip", Blocks.STONE,
@@ -527,7 +539,7 @@ public final class PlacementSelfTest {
             BlockHitResult wrenchHit = new BlockHitResult(worldLocal.add(Vec3.atLowerCornerOf(upperPos)),
                     Direction.UP, upperPos, false);
             boolean openBefore = world.getBlockState(lowerPos).getValue(net.minecraft.world.level.block.DoorBlock.OPEN);
-            InteractionResult facingWrench = ModBlock.STEEL_PLUG_DOOR.use(facingUpper, world, upperPos,
+            InteractionResult facingWrench = marrydream.marisdecoration.platform.TestApi.use(facingUpper, world, upperPos,
                     player, InteractionHand.MAIN_HAND, wrenchHit);
             a.isTrue("ordinary wrench reaches roof for facing " + facing, facingWrench.consumesAction());
             a.isTrue("ordinary wrench clears TOP edge for facing " + facing, roof.material(edgeKey).isAir());
@@ -554,7 +566,7 @@ public final class PlacementSelfTest {
         a.isTrue("shift-wrench keeps upper door half", world.getBlockState(upperPos).is(ModBlock.STEEL_PLUG_DOOR));
 
         give(player, ModBlock.LAYERED_COPYCAT_BOARD.asItem(), 1);
-        ModBlock.STEEL_PLUG_DOOR.use(upper, world, upperPos, player, InteractionHand.MAIN_HAND, centerHit);
+        marrydream.marisdecoration.platform.TestApi.use(upper, world, upperPos, player, InteractionHand.MAIN_HAND, centerHit);
         a.isTrue("creative insert creates roof", roof.hasRoof());
         a.isFalse("reinserted roof starts with its window closed", roof.hasWindow(FaceDir.UP));
         a.equal("creative insert does not consume board", 1,
@@ -1394,7 +1406,7 @@ public final class PlacementSelfTest {
         log.add("== 10. 工具物品 / 配置 NBT");
 
         a.isTrue("伪装放置器已注册",
-                BuiltInRegistries.ITEM.get(new ResourceLocation("maris-decoration", CopycatPlacerItem.ID))
+                BuiltInRegistries.ITEM.get(marrydream.marisdecoration.init.ModInfo.location("maris-decoration", CopycatPlacerItem.ID))
                         instanceof CopycatPlacerItem);
 
         ItemStack tool = new ItemStack(ModItem.COPYCAT_PLACER);
@@ -1424,7 +1436,7 @@ public final class PlacementSelfTest {
         // 清空
         PlacementConfigs.clear(tool);
         a.isTrue("清空后没有配置", !PlacementConfigs.hasConfig(tool));
-        a.equal("清空后子标签被移除", null, tool.getTagElement(PlacementConfigs.NBT_KEY));
+        a.equal("清空后子标签被移除", null, marrydream.marisdecoration.platform.TestApi.placerTag(tool));
 
         // 坏数据：手写一份属性名不存在的方块状态。
         // 原版 NbtHelper 对这种配置是「静默忽略未知属性」，所以挡它必须靠我们自己在读的时候校验。
@@ -1436,7 +1448,7 @@ public final class PlacementSelfTest {
         properties.putString("definitely_not_a_property", "true");
         block.put("Properties", properties);
         bad.put("block", block);
-        broken.addTagElement(PlacementConfigs.NBT_KEY, bad);
+        marrydream.marisdecoration.platform.TestApi.setPlacerTag(broken, bad);
         PlacementConfig brokenConfig = PlacementConfigs.read(broken);
         a.isTrue("属性名不存在的配置退化成「没有方块」而不是抛异常",
                 brokenConfig.state() == null);
@@ -1451,7 +1463,7 @@ public final class PlacementSelfTest {
         goodProps.putString("north", "true");
         goodBlock.put("Properties", goodProps);
         goodNbt.put("block", goodBlock);
-        good.addTagElement(PlacementConfigs.NBT_KEY, goodNbt);
+        marrydream.marisdecoration.platform.TestApi.setPlacerTag(good, goodNbt);
         BlockState goodState = PlacementConfigs.read(good).state();
         a.notNull("合法属性名正常读出来", goodState);
         a.isTrue("读回来的 north 是 true",
@@ -1982,7 +1994,7 @@ public final class PlacementSelfTest {
         BlockPos copycatSupport = null;
         Direction copycatFace = null;
         if (BuiltinAdapters.copycatsLoaded()) {
-            Block copycatBoard = BuiltInRegistries.BLOCK.get(new ResourceLocation("copycats:copycat_board"));
+            Block copycatBoard = BuiltInRegistries.BLOCK.get(marrydream.marisdecoration.init.ModInfo.location("copycats:copycat_board"));
             if (copycatBoard != Blocks.AIR
                     && copycatBoard instanceof IMultiStateCopycatBlock multistate) {
                 outer:
@@ -2151,7 +2163,7 @@ public final class PlacementSelfTest {
 
         BlockPos grass = harness.next();
         // 1.20.1 里草方块物品是 GRASS（1.20.3+ 才改名成 SHORT_GRASS）
-        world.setBlockAndUpdate(grass, Blocks.GRASS.defaultBlockState());
+        world.setBlockAndUpdate(grass, /*? if >=1.21 {*/ /*Blocks.SHORT_GRASS.defaultBlockState() *//*?} else {*/ Blocks.GRASS.defaultBlockState() /*?}*/);
         a.equal("点草 → 落点还是那一格（草可替换）",
                 grass, PlacementService.resolveTargetPos(world, grass, Direction.UP));
 
@@ -2594,11 +2606,11 @@ public final class PlacementSelfTest {
 
     /** Create 的材质白名单标签（唯一的「绕过形状检查」入口）。 */
     private static final TagKey<Block> COPYCAT_ALLOW =
-            TagKey.create(Registries.BLOCK, new ResourceLocation("create", "copycat_allow"));
+            TagKey.create(Registries.BLOCK, marrydream.marisdecoration.init.ModInfo.location("create", "copycat_allow"));
 
     /** Create 的材质黑名单标签。 */
     private static final TagKey<Block> COPYCAT_DENY =
-            TagKey.create(Registries.BLOCK, new ResourceLocation("create", "copycat_deny"));
+            TagKey.create(Registries.BLOCK, marrydream.marisdecoration.init.ModInfo.location("create", "copycat_deny"));
 
     /**
      * 材质准入的探针方块。
@@ -2702,11 +2714,11 @@ public final class PlacementSelfTest {
 
         List<MaterialProbe> probes = new ArrayList<>();
         for (String id : MATERIAL_PROBES) {
-            if (!BuiltInRegistries.BLOCK.containsKey(new ResourceLocation(id))) {
+            if (!BuiltInRegistries.BLOCK.containsKey(marrydream.marisdecoration.init.ModInfo.location(id))) {
                 log.add("   （注册表里没有 " + id + "，跳过该探针）");
                 continue;
             }
-            probes.add(new MaterialProbe(id, BuiltInRegistries.BLOCK.get(new ResourceLocation(id)).defaultBlockState()));
+            probes.add(new MaterialProbe(id, BuiltInRegistries.BLOCK.get(marrydream.marisdecoration.init.ModInfo.location(id)).defaultBlockState()));
         }
 
         List<List<Boolean>> verdicts = new ArrayList<>();
@@ -2869,7 +2881,7 @@ public final class PlacementSelfTest {
 
     /** 按注册名找目标；找不到（或不是伪装方块）时返回 {@code null}，由调用方跳过。 */
     private static @Nullable MaterialTarget materialTarget(String blockId, @Nullable String slotHint) {
-        ResourceLocation id = new ResourceLocation(blockId);
+        ResourceLocation id = marrydream.marisdecoration.init.ModInfo.location(blockId);
         if (!BuiltInRegistries.BLOCK.containsKey(id)) {
             return null;
         }
@@ -4226,7 +4238,7 @@ public final class PlacementSelfTest {
                 boardEdited, PlacementConfig.fromNbt(boardEdited.toNbt()));
 
         // --- 不影响其它 copycat 方块
-        Block createPanel = BuiltInRegistries.BLOCK.get(new ResourceLocation("create:copycat_panel"));
+        Block createPanel = BuiltInRegistries.BLOCK.get(marrydream.marisdecoration.init.ModInfo.location("create:copycat_panel"));
         if (createPanel != net.minecraft.world.level.block.Blocks.AIR) {
             CopycatPlacementAdapter create = PlacementAdapters.resolve(createPanel).orElseThrow();
             a.isTrue("Create 伪装板没有任何结构项（不受本轮改动影响）",
@@ -4607,5 +4619,24 @@ public final class PlacementSelfTest {
         throwable.printStackTrace(new java.io.PrintWriter(writer));
         writeReportFile(writer.toString());
     }
+    private static void runStackMigration(ServerLevel world, Assertions a) {
+        CompoundTag legacy = new CompoundTag();
+        legacy.putString("id", "minecraft:stone");
+        legacy.putByte("Count", (byte) 3);
+        CompoundTag custom = new CompoundTag();
+        custom.putString("maris_stack_probe", "preserved");
+        legacy.put("tag", custom);
+        ItemStack loaded = marrydream.marisdecoration.platform.StackData.read(legacy, world.registryAccess());
+        a.isTrue("Legacy ItemStack ID preserved", loaded.is(net.minecraft.world.item.Items.STONE));
+        a.equal("Legacy ItemStack Count preserved", 3, loaded.getCount());
+        var saved = marrydream.marisdecoration.platform.StackData.save(loaded, world.registryAccess());
+        var restored = marrydream.marisdecoration.platform.StackData.read((CompoundTag) saved, world.registryAccess());
+        a.isTrue("ItemStack serialization round trip", marrydream.marisdecoration.platform.StackData.same(loaded, restored));
+        a.equal("ItemStack serialization round trip", 3, restored.getCount());
+        //? if >=1.21 {
+        /*a.equal("Legacy tag preserved in custom_data", "preserved", loaded.getOrDefault(net.minecraft.core.component.DataComponents.CUSTOM_DATA,net.minecraft.world.item.component.CustomData.EMPTY).copyTag().getString("maris_stack_probe"));
+        *///?} else {
+        a.equal("Legacy item tag preserved", "preserved", loaded.getTag().getString("maris_stack_probe"));
+        //?}
+    }
 }
-

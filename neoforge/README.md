@@ -1,7 +1,11 @@
-# neoforge scaffold
+# NeoForge 1.21.1 adapter
 
-Platform initializer, registration/event/network and Create rendering adapters belong here.
-No stub entrypoint is provided. Build/run tasks deliberately fail until the real port exists.
-Use the verified dependency coordinates in `versions/*-neoforge/gradle.properties`.
-Future Forge-family loader mod id: `maris_decoration`; registry namespace remains `maris-decoration`.
-Shared data currently targets Minecraft 1.20.1; 1.21.1 schema differences remain for phase two.
+Implemented node: `1.21.1-neoforge`, Java 21, ModDevGradle 2.0.140 / Mojmap.
+
+This directory contains NeoForge registration, lifecycle, payload, wood hooks,
+ModelData and baked-model adapters. Game rules, geometry, materials, payment,
+placement, door rendering and harness assertions remain in `common/`.
+Copycats+ is optional and is loaded only with `-PwithCopycats` in development.
+
+See [MULTILOADER.md](../MULTILOADER.md) for commands and pinned dependencies.
+Minecraft 1.20.1 NeoForge uses the existing Forge jar and has no separate node.

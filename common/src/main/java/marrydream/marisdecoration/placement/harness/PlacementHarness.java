@@ -178,8 +178,7 @@ public final class PlacementHarness {
      */
     public ServerPlayer fakePlayer(double x, double y, double z) {
         String name = "maris-harness-" + (System.nanoTime() % 100000L);
-        ServerPlayer player = new ServerPlayer(world.getServer(), world,
-                new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), name));
+        ServerPlayer player = marrydream.marisdecoration.platform.Platform.createTestPlayer(world, new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), name));
         player.setPos(x, y, z);
         return player;
     }

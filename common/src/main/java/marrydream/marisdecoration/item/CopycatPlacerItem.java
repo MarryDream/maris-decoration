@@ -106,7 +106,11 @@ public class CopycatPlacerItem extends Item {
      * <p>只读物品 NBT，不做世界查询，所以不会因为客户端没加载对应区块而显示不一致。
      */
     @Override
-    public void appendHoverText(ItemStack stack, @Nullable Level world, List<Component> tooltip, TooltipFlag context) {
+    //? if >=1.21 {
+/*public void appendHoverText(ItemStack stack, Item.TooltipContext world, List<Component> tooltip, TooltipFlag context) {
+*///?} else {
+public void appendHoverText(ItemStack stack, @Nullable Level world, List<Component> tooltip, TooltipFlag context) {
+//?}
         PlacementConfig config = PlacementConfigs.read(stack);
         if (config.state() == null) {
             tooltip.add(Component.translatable("item.maris-decoration.copycat_placer.tooltip.empty")

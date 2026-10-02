@@ -34,7 +34,12 @@ public final class PlacementConfigs {
         if (stack == null || stack.isEmpty()) {
             return PlacementConfig.EMPTY;
         }
-        CompoundTag nbt = stack.getTagElement(NBT_KEY);
+        //? if >=1.21 {
+/*CompoundTag custom = stack.getOrDefault(net.minecraft.core.component.DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.EMPTY).copyTag();
+        CompoundTag nbt = custom.contains(NBT_KEY, net.minecraft.nbt.Tag.TAG_COMPOUND) ? custom.getCompound(NBT_KEY) : null;
+*///?} else {
+CompoundTag nbt = stack.getTagElement(NBT_KEY);
+//?}
         if (nbt == null) {
             return PlacementConfig.EMPTY;
         }
@@ -57,16 +62,28 @@ public final class PlacementConfigs {
             return;
         }
         if (config == null || config.equals(PlacementConfig.EMPTY)) {
-            stack.removeTagKey(NBT_KEY);
+            //? if >=1.21 {
+/*net.minecraft.world.item.component.CustomData.update(net.minecraft.core.component.DataComponents.CUSTOM_DATA, stack, tag -> tag.remove(NBT_KEY));
+*///?} else {
+stack.removeTagKey(NBT_KEY);
+//?}
             return;
         }
-        stack.addTagElement(NBT_KEY, config.toNbt());
+        //? if >=1.21 {
+/*net.minecraft.world.item.component.CustomData.update(net.minecraft.core.component.DataComponents.CUSTOM_DATA, stack, tag -> tag.put(NBT_KEY, config.toNbt()));
+*///?} else {
+stack.addTagElement(NBT_KEY, config.toNbt());
+//?}
     }
 
     /** 清掉这把工具的预设。 */
     public static void clear(ItemStack stack) {
         if (stack != null && !stack.isEmpty()) {
-            stack.removeTagKey(NBT_KEY);
+            //? if >=1.21 {
+/*net.minecraft.world.item.component.CustomData.update(net.minecraft.core.component.DataComponents.CUSTOM_DATA, stack, tag -> tag.remove(NBT_KEY));
+*///?} else {
+stack.removeTagKey(NBT_KEY);
+//?}
         }
     }
 

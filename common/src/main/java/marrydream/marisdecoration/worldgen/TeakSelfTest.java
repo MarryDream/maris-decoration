@@ -222,7 +222,11 @@ public final class TeakSelfTest {
         check(world.getMaxLocalRawBrightness(naturalSapling.above()) >= 9, "Natural growth fixture must have daylight");
         RandomSource growthRandom = RandomSource.create(37);
         for (int i = 0; i < 512 && world.getBlockState(naturalSapling).is(ModBlock.TEAK_SAPLING); i++) {
-            ModBlock.TEAK_SAPLING.randomTick(world.getBlockState(naturalSapling), world, naturalSapling, growthRandom);
+            //? if >=1.21 {
+/*world.getBlockState(naturalSapling).randomTick(world, naturalSapling, growthRandom);
+*///?} else {
+ModBlock.TEAK_SAPLING.randomTick(world.getBlockState(naturalSapling), world, naturalSapling, growthRandom);
+//?}
         }
         check(world.getBlockState(naturalSapling).is(ModBlock.TEAK_LOG), "Natural sapling growth");
         clear(world, naturalSapling);
@@ -232,7 +236,11 @@ public final class TeakSelfTest {
         var sheared = Block.getDrops(leaf, world, ORIGIN, null, null, new ItemStack(Items.SHEARS));
         check(sheared.size() == 1 && sheared.get(0).is(ModBlock.TEAK_LEAVES.asItem()), "Shears loot");
         ItemStack silk = new ItemStack(Items.DIAMOND_HOE);
-        silk.enchant(net.minecraft.world.item.enchantment.Enchantments.SILK_TOUCH, 1);
+        //? if >=1.21 {
+/*silk.enchant(world.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT).getOrThrow(net.minecraft.world.item.enchantment.Enchantments.SILK_TOUCH),1);
+*///?} else {
+silk.enchant(net.minecraft.world.item.enchantment.Enchantments.SILK_TOUCH, 1);
+//?}
         check(Block.getDrops(leaf, world, ORIGIN, null, null, silk).stream()
                 .anyMatch(stack -> stack.is(ModBlock.TEAK_LEAVES.asItem())), "Silk touch loot");
         int saplings = 0, sticks = 0;
@@ -243,10 +251,18 @@ public final class TeakSelfTest {
         }
         check(saplings > 0 && sticks > 0, "Missing renewable drops");
         world.setBlockAndUpdate(ORIGIN, leaf.setValue(LeavesBlock.DISTANCE, 7));
-        ModBlock.TEAK_LEAVES.randomTick(world.getBlockState(ORIGIN), world, ORIGIN, RandomSource.create(1));
+        //? if >=1.21 {
+/*world.getBlockState(ORIGIN).randomTick(world, ORIGIN, RandomSource.create(1));
+*///?} else {
+ModBlock.TEAK_LEAVES.randomTick(world.getBlockState(ORIGIN), world, ORIGIN, RandomSource.create(1));
+//?}
         check(world.isEmptyBlock(ORIGIN), "Unsupported leaf decay");
         world.setBlockAndUpdate(ORIGIN, leaf.setValue(LeavesBlock.PERSISTENT, true));
-        ModBlock.TEAK_LEAVES.randomTick(world.getBlockState(ORIGIN), world, ORIGIN, RandomSource.create(1));
+        //? if >=1.21 {
+/*world.getBlockState(ORIGIN).randomTick(world, ORIGIN, RandomSource.create(1));
+*///?} else {
+ModBlock.TEAK_LEAVES.randomTick(world.getBlockState(ORIGIN), world, ORIGIN, RandomSource.create(1));
+//?}
         check(world.getBlockState(ORIGIN).is(ModBlock.TEAK_LEAVES), "Player leaf persistence");
         REPORT.add("PASS: shears, silk touch, saplings/sticks, natural decay and persistent leaves");
 

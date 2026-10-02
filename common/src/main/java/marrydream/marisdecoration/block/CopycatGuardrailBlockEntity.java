@@ -7,6 +7,8 @@ import marrydream.marisdecoration.block.utils.GuardrailParts;
 import marrydream.marisdecoration.init.ModBlockEntity;
 import marrydream.marisdecoration.platform.RenderDataBlockEntity;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import marrydream.marisdecoration.platform.StackData;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -360,8 +362,17 @@ public class CopycatGuardrailBlockEntity extends RenderDataBlockEntity {
     // ---------------------------------------------------------------- 持久化
 
     @Override
-    protected void write(CompoundTag nbt, boolean clientPacket) {
-        super.write(nbt, clientPacket);
+    //? if >=1.21 {
+/*protected void write(CompoundTag nbt, HolderLookup.Provider registries, boolean clientPacket) {
+*///?} else {
+protected void write(CompoundTag nbt, boolean clientPacket) {
+        HolderLookup.Provider registries = null;
+//?}
+        //? if >=1.21 {
+/*super.write(nbt, registries, clientPacket);
+*///?} else {
+super.write(nbt, clientPacket);
+//?}
         CompoundTag data = new CompoundTag();
         for (String key : GuardrailParts.allKeys()) {
             BlockState material = material(key);
@@ -376,7 +387,7 @@ public class CopycatGuardrailBlockEntity extends RenderDataBlockEntity {
             entry.put(KEY_MATERIAL, NbtUtils.writeBlockState(material));
             if (!clientPacket) {
                 // 被消耗的物品只在服务端保存，没必要发给客户端
-                entry.put(KEY_CONSUMED_ITEM, consumed.save(new CompoundTag()));
+                entry.put(KEY_CONSUMED_ITEM, StackData.save(consumed, registries));
             }
             data.put(key, entry);
         }
@@ -390,16 +401,25 @@ public class CopycatGuardrailBlockEntity extends RenderDataBlockEntity {
     }
 
     @Override
-    protected void read(CompoundTag nbt, boolean clientPacket) {
+    //? if >=1.21 {
+/*protected void read(CompoundTag nbt, HolderLookup.Provider registries, boolean clientPacket) {
+*///?} else {
+protected void read(CompoundTag nbt, boolean clientPacket) {
+        HolderLookup.Provider registries = null;
+//?}
         Map<String, BlockState> previous = Map.copyOf(materials);
         Set<String> previousHidden = hiddenColumns();
-        super.read(nbt, clientPacket);
+        //? if >=1.21 {
+/*super.read(nbt, registries, clientPacket);
+*///?} else {
+super.read(nbt, clientPacket);
+//?}
         CompoundTag data = nbt.getCompound(KEY_MATERIAL_DATA);
         for (String key : GuardrailParts.allKeys()) {
             CompoundTag entry = data.getCompound(key);
             materials.put(key, readMaterial(entry, KEY_MATERIAL));
             if (!clientPacket) {
-                consumedItems.put(key, readStack(entry, KEY_CONSUMED_ITEM));
+                consumedItems.put(key, readStack(entry, KEY_CONSUMED_ITEM, registries));
             }
         }
         hiddenColumns.clear();
@@ -423,11 +443,11 @@ public class CopycatGuardrailBlockEntity extends RenderDataBlockEntity {
         return state == null ? NO_MATERIAL : state;
     }
 
-    private static ItemStack readStack(CompoundTag nbt, String key) {
+    private static ItemStack readStack(CompoundTag nbt, String key, HolderLookup.Provider registries) {
         if (!nbt.contains(key)) {
             return ItemStack.EMPTY;
         }
-        return ItemStack.of(nbt.getCompound(key));
+        return StackData.read(nbt.getCompound(key), registries);
     }
 
     // ---------------------------------------------------------------- 渲染数据

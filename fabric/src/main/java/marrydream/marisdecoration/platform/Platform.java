@@ -68,4 +68,5 @@ public final class Platform {
  public static void registerBlockItem(ResourceLocation id, java.util.function.Supplier<net.minecraft.world.item.BlockItem> factory, java.util.List<net.minecraft.world.item.Item> catalog) {
   catalog.add(register(net.minecraft.core.registries.BuiltInRegistries.ITEM,id,factory.get()));
  }
+ public static net.minecraft.server.level.ServerPlayer createTestPlayer(net.minecraft.server.level.ServerLevel world, com.mojang.authlib.GameProfile profile) { return new net.minecraft.server.level.ServerPlayer(world.getServer(), world, profile); }
 }

@@ -36,18 +36,18 @@ public final class ModBlock {
     private static final List<Block> REGISTERED_BLOCKS = new ArrayList<>();
     private static final List<Item> REGISTERED_ITEMS = new ArrayList<>();
     public static final RotatedPillarBlock TEAK_LOG = register("teak_log",
-            new RotatedPillarBlock(BlockBehaviour.Properties.copy(Blocks.OAK_LOG)), true);
+            new RotatedPillarBlock(marrydream.marisdecoration.init.ModInfo.copyProperties(Blocks.OAK_LOG)), true);
     public static final RotatedPillarBlock TEAK_WOOD = register("teak_wood",
-            new RotatedPillarBlock(BlockBehaviour.Properties.copy(Blocks.OAK_WOOD)), true);
+            new RotatedPillarBlock(marrydream.marisdecoration.init.ModInfo.copyProperties(Blocks.OAK_WOOD)), true);
     public static final RotatedPillarBlock STRIPPED_TEAK_LOG = register("stripped_teak_log",
-            new RotatedPillarBlock(BlockBehaviour.Properties.copy(Blocks.STRIPPED_OAK_LOG)), true);
+            new RotatedPillarBlock(marrydream.marisdecoration.init.ModInfo.copyProperties(Blocks.STRIPPED_OAK_LOG)), true);
     public static final RotatedPillarBlock STRIPPED_TEAK_WOOD = register("stripped_teak_wood",
-            new RotatedPillarBlock(BlockBehaviour.Properties.copy(Blocks.STRIPPED_OAK_WOOD)), true);
+            new RotatedPillarBlock(marrydream.marisdecoration.init.ModInfo.copyProperties(Blocks.STRIPPED_OAK_WOOD)), true);
     public static final LeavesBlock TEAK_LEAVES = register("teak_leaves",
-            new LeavesBlock(BlockBehaviour.Properties.copy(Blocks.OAK_LEAVES)), true);
+            new LeavesBlock(marrydream.marisdecoration.init.ModInfo.copyProperties(Blocks.OAK_LEAVES)), true);
     public static final SaplingBlock TEAK_SAPLING = register("teak_sapling",
-            new SaplingBlock(new TeakSaplingGenerator(),
-                    BlockBehaviour.Properties.copy(Blocks.OAK_SAPLING)), true);
+            new SaplingBlock(TeakSaplingGenerator.grower(),
+                    marrydream.marisdecoration.init.ModInfo.copyProperties(Blocks.OAK_SAPLING)), true);
     // ---- 柚木木板家族：方块设置逐项对齐原版木材（对照 net.minecraft.block.Blocks 的 oak_* 系列） ----
     public static final Block TEAK_PLANKS = register(
             "teak_planks",
@@ -57,24 +57,29 @@ public final class ModBlock {
     public static final Block WEATHERED_TEAK_PLANKS = register(
             "weathered_teak_planks",
             // 与原版「同族变体」一样只换贴图：整份复制柚木木板的设置（硬度、抗爆、音效、乐器、可点燃）
-            new Block( BlockBehaviour.Properties.copy( TEAK_PLANKS ) ),
+            new Block( marrydream.marisdecoration.init.ModInfo.copyProperties( TEAK_PLANKS ) ),
             true
     ); // 风化柚木木板
     public static final StairBlock TEAK_STAIRS = register(
             "teak_stairs",
-            new StairBlock( TEAK_PLANKS.defaultBlockState(), BlockBehaviour.Properties.copy( TEAK_PLANKS ) ),
+            new StairBlock( TEAK_PLANKS.defaultBlockState(), marrydream.marisdecoration.init.ModInfo.copyProperties( TEAK_PLANKS ) ),
             true
     ); // 柚木楼梯
     public static final SlabBlock TEAK_SLABS = register(
             "teak_slab",
-            new SlabBlock( BlockBehaviour.Properties.copy( TEAK_PLANKS ) ),
+            new SlabBlock( marrydream.marisdecoration.init.ModInfo.copyProperties( TEAK_PLANKS ) ),
             true
     ); // 柚木台阶
     public static final TrapDoorBlock TEAK_TRAPDOOR = register(
             "teak_trapdoor",
             // 原版木活板门：strength( 3.0F ) + nonOpaque() + allowsSpawning( never ) + burnable()；
             // 音效由 BlockSetType 提供（TrapdoorBlock 构造器会自己写进设置里），所以不写 sounds()。
-            new TrapDoorBlock( BlockBehaviour.Properties.of().mapColor( TEAK_PLANKS.defaultMapColor() ).instrument( NoteBlockInstrument.BASS ).strength( 3.0F ).noOcclusion().isValidSpawn( (state, world, pos, entityType) -> false ).ignitedByLava(), ModWoodType.TEAK_SET_TYPE ),
+            //? if >=1.21 {
+/*new TrapDoorBlock(ModWoodType.TEAK_SET_TYPE, BlockBehaviour.Properties.of().mapColor( TEAK_PLANKS.defaultMapColor() ).instrument( NoteBlockInstrument.BASS ).strength( 3.0F ).noOcclusion().isValidSpawn( (state, world, pos, entityType) -> false ).ignitedByLava())
+*///?} else {
+new TrapDoorBlock( BlockBehaviour.Properties.of().mapColor( TEAK_PLANKS.defaultMapColor() ).instrument( NoteBlockInstrument.BASS ).strength( 3.0F ).noOcclusion().isValidSpawn( (state, world, pos, entityType) -> false ).ignitedByLava(), ModWoodType.TEAK_SET_TYPE )
+//?}
+,
             true
     ); // 柚木活板门
     public static final FenceBlock TEAK_FENCE = register(
@@ -85,22 +90,37 @@ public final class ModBlock {
     public static final FenceGateBlock TEAK_FENCE_GATE = register(
             "teak_fence_gate",
             // 栅栏门的方块音效与开关音效都取自 WoodType
-            new FenceGateBlock( BlockBehaviour.Properties.of().mapColor( TEAK_PLANKS.defaultMapColor() ).forceSolidOn().instrument( NoteBlockInstrument.BASS ).strength( 2.0F, 3.0F ).ignitedByLava(), ModWoodType.TEAK ),
+            //? if >=1.21 {
+/*new FenceGateBlock(ModWoodType.TEAK, BlockBehaviour.Properties.of().mapColor( TEAK_PLANKS.defaultMapColor() ).forceSolidOn().instrument( NoteBlockInstrument.BASS ).strength( 2.0F, 3.0F ).ignitedByLava())
+*///?} else {
+new FenceGateBlock( BlockBehaviour.Properties.of().mapColor( TEAK_PLANKS.defaultMapColor() ).forceSolidOn().instrument( NoteBlockInstrument.BASS ).strength( 2.0F, 3.0F ).ignitedByLava(), ModWoodType.TEAK )
+//?}
+,
             true
     ); // 柚木栅栏门
     public static final PressurePlateBlock TEAK_PRESSURE_PLATE = register(
             "teak_pressure_plate",
             // 原版木压力板：0.5 硬度、无碰撞、可点燃、被活塞破坏，音效与咔哒声取自 BlockSetType
-            new PressurePlateBlock( PressurePlateBlock.Sensitivity.EVERYTHING,
+            //? if >=1.21 {
+/*new PressurePlateBlock(ModWoodType.TEAK_SET_TYPE, BlockBehaviour.Properties.of().mapColor( TEAK_PLANKS.defaultMapColor() ).forceSolidOn().instrument( NoteBlockInstrument.BASS ).noCollission().strength( 0.5F ).ignitedByLava().pushReaction( PushReaction.DESTROY ))
+*///?} else {
+new PressurePlateBlock( PressurePlateBlock.Sensitivity.EVERYTHING,
                     BlockBehaviour.Properties.of().mapColor( TEAK_PLANKS.defaultMapColor() ).forceSolidOn().instrument( NoteBlockInstrument.BASS ).noCollission().strength( 0.5F ).ignitedByLava().pushReaction( PushReaction.DESTROY ),
-                    ModWoodType.TEAK_SET_TYPE ),
+                    ModWoodType.TEAK_SET_TYPE )
+//?}
+,
             true
     ); // 柚木压力板
     public static final ButtonBlock TEAK_BUTTON = register(
             "teak_button",
             // 原版木按钮：0.5 硬度、无碰撞、被活塞破坏，按下保持 30 tick、弹射物可触发；
             // 原版木按钮并不设为可点燃，这里保持一致。
-            new ButtonBlock( BlockBehaviour.Properties.of().noCollission().strength( 0.5F ).pushReaction( PushReaction.DESTROY ), ModWoodType.TEAK_SET_TYPE, 30, true ),
+            //? if >=1.21 {
+/*new ButtonBlock(ModWoodType.TEAK_SET_TYPE, 30, BlockBehaviour.Properties.of().noCollission().strength( 0.5F ).pushReaction( PushReaction.DESTROY ))
+*///?} else {
+new ButtonBlock( BlockBehaviour.Properties.of().noCollission().strength( 0.5F ).pushReaction( PushReaction.DESTROY ), ModWoodType.TEAK_SET_TYPE, 30, true )
+//?}
+,
             true
     ); // 柚木按钮
     public static final Block STEEL_BLOCK = register(
@@ -110,22 +130,22 @@ public final class ModBlock {
     ); // 钢块
     public static final Block CYAN_STEEL_BLOCK = register(
             "cyan_steel_block",
-            new Block( BlockBehaviour.Properties.copy( STEEL_BLOCK ).mapColor( state -> MapColor.TERRACOTTA_CYAN ) ),
+            new Block( marrydream.marisdecoration.init.ModInfo.copyProperties( STEEL_BLOCK ).mapColor( state -> MapColor.TERRACOTTA_CYAN ) ),
             true
     ); // 青色钢块
     public static final Block BLACK_STEEL_BLOCK = register(
             "black_steel_block",
-            new Block( BlockBehaviour.Properties.copy( STEEL_BLOCK ).mapColor( state -> MapColor.COLOR_BLACK ) ),
+            new Block( marrydream.marisdecoration.init.ModInfo.copyProperties( STEEL_BLOCK ).mapColor( state -> MapColor.COLOR_BLACK ) ),
             true
     ); // 黑色钢块
     public static final CopycatSteelFixedLadderBlock COPYCAT_STEEL_FIXED_LADDER = register(
             "copycat_steel_fixed_ladder",
-            new CopycatSteelFixedLadderBlock(BlockBehaviour.Properties.copy(Blocks.LADDER).strength(1.5F)),
+            new CopycatSteelFixedLadderBlock(marrydream.marisdecoration.init.ModInfo.copyProperties(Blocks.LADDER).strength(1.5F)),
             true
     );
     public static final CopycatSteelVerticalLadderBlock COPYCAT_STEEL_VERTICAL_LADDER = register(
             "copycat_steel_vertical_ladder",
-            new CopycatSteelVerticalLadderBlock(BlockBehaviour.Properties.copy(Blocks.LADDER).strength(1.5F)),
+            new CopycatSteelVerticalLadderBlock(marrydream.marisdecoration.init.ModInfo.copyProperties(Blocks.LADDER).strength(1.5F)),
             true
     );
     public static final CopycatGuardrailBlock COPYCAT_GUARDRAIL = register(

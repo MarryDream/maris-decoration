@@ -59,4 +59,5 @@ public final class Platform {
  public static net.minecraft.world.level.block.Block strippedBlock(net.minecraft.world.level.block.Block block) { return net.minecraft.world.item.AxeItem.STRIPPABLES.get(block); }
  public static int burnChance(net.minecraft.world.level.block.Block block) { return ((net.minecraft.world.level.block.FireBlock)net.minecraft.world.level.block.Blocks.FIRE).getIgniteOdds(block.defaultBlockState()); }
  public static int spreadChance(net.minecraft.world.level.block.Block block) { return ((net.minecraft.world.level.block.FireBlock)net.minecraft.world.level.block.Blocks.FIRE).getBurnOdds(block.defaultBlockState()); }
+ public static net.minecraft.server.level.ServerPlayer createTestPlayer(net.minecraft.server.level.ServerLevel world, com.mojang.authlib.GameProfile profile) { return new net.minecraft.server.level.ServerPlayer(world.getServer(), world, profile); }
 }

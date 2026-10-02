@@ -263,7 +263,12 @@ public class MaterialSelectScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+    //? if >=1.21 {
+/*public boolean mouseScrolled(double mouseX, double mouseY, double horizontal, double amount) {
+*///?} else {
+public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+//?}
+
         int step = (int) (-amount * CELL * 2);
         if (step == 0) {
             step = amount > 0 ? CELL : -CELL;

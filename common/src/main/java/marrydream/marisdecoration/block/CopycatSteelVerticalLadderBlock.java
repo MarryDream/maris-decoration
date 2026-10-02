@@ -53,7 +53,9 @@ public class CopycatSteelVerticalLadderBlock extends VerticalLadderBlock impleme
         return CopycatLadderParts.verticalSlotAt(state, hit.subtract(pos.getX(), pos.getY(), pos.getZ()));
     }
 
+    //? if <1.21 {
     @Override
+    //?}
     public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         return CopycatLadderInteraction.use(state, world, pos, player, hand, hit, slotAt(state, pos, hit.getLocation()));
     }
@@ -70,9 +72,17 @@ public class CopycatSteelVerticalLadderBlock extends VerticalLadderBlock impleme
     }
 
     @Override
-    public void playerWillDestroy(Level world, BlockPos pos, BlockState state, Player player) {
+    //? if >=1.21 {
+/*public BlockState playerWillDestroy(Level world, BlockPos pos, BlockState state, Player player) {
+*///?} else {
+public void playerWillDestroy(Level world, BlockPos pos, BlockState state, Player player) {
+//?}
         CopycatLadderInteraction.onBreak(world, pos, player);
-        super.playerWillDestroy(world, pos, state, player);
+        //? if >=1.21 {
+/*return super.playerWillDestroy(world, pos, state, player);
+*///?} else {
+super.playerWillDestroy(world, pos, state, player);
+//?}
     }
 
     @Override
@@ -82,7 +92,11 @@ public class CopycatSteelVerticalLadderBlock extends VerticalLadderBlock impleme
     }
 
     @Override
-    public ItemStack getCloneItemStack(BlockGetter world, BlockPos pos, BlockState state) {
+    //? if >=1.21 {
+/*public ItemStack getCloneItemStack(net.minecraft.world.level.LevelReader world, BlockPos pos, BlockState state) {
+*///?} else {
+public ItemStack getCloneItemStack(BlockGetter world, BlockPos pos, BlockState state) {
+//?}
         if (world.getBlockEntity(pos) instanceof CopycatLadderBlockEntity be) {
             for (String slot : CopycatLadderParts.verticalSlots()) {
                 if (be.hasMaterial(slot)) return new ItemStack(be.material(slot).getBlock());
@@ -90,4 +104,21 @@ public class CopycatSteelVerticalLadderBlock extends VerticalLadderBlock impleme
         }
         return super.getCloneItemStack(world, pos, state);
     }
+    //? if >=1.21 {
+    /*@Override
+    protected net.minecraft.world.ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return switch (use(state,world,pos,player,hand,hit)) {
+            case SUCCESS -> net.minecraft.world.ItemInteractionResult.SUCCESS;
+            case CONSUME -> net.minecraft.world.ItemInteractionResult.CONSUME;
+            case CONSUME_PARTIAL -> net.minecraft.world.ItemInteractionResult.CONSUME_PARTIAL;
+            case FAIL -> net.minecraft.world.ItemInteractionResult.FAIL;
+            case PASS, SUCCESS_NO_ITEM_USED -> net.minecraft.world.ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+        };
+    }
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
+        return use(state,world,pos,player,InteractionHand.MAIN_HAND,hit);
+    }
+
+    *///?}
 }

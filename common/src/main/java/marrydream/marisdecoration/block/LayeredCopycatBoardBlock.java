@@ -84,10 +84,10 @@ public class LayeredCopycatBoardBlock extends Block implements EntityBlock, Simp
 
     /** Create 的伪装允许标签：命中的方块可以无视下面的完整立方体检查。 */
     private static final TagKey<Block> COPYCAT_ALLOW =
-            TagKey.create( Registries.BLOCK, new ResourceLocation( "create", "copycat_allow" ) );
+            TagKey.create( Registries.BLOCK, marrydream.marisdecoration.init.ModInfo.location( "create", "copycat_allow" ) );
     /** Create 的伪装拒绝标签。 */
     private static final TagKey<Block> COPYCAT_DENY =
-            TagKey.create( Registries.BLOCK, new ResourceLocation( "create", "copycat_deny" ) );
+            TagKey.create( Registries.BLOCK, marrydream.marisdecoration.init.ModInfo.location( "create", "copycat_deny" ) );
 
     /** Copycats+ 是否在场（可选兼容，不是依赖）。 */
     private static final boolean COPYCATS_LOADED = Platform.isModLoaded( "copycats" );
@@ -566,7 +566,9 @@ public class LayeredCopycatBoardBlock extends Block implements EntityBlock, Simp
         return InteractionResult.SUCCESS;
     }
 
+    //? if <1.21 {
     @Override
+    //?}
     public InteractionResult use( BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit ) {
         ItemStack stack = player.getItemInHand( hand );
 
@@ -918,7 +920,11 @@ public class LayeredCopycatBoardBlock extends Block implements EntityBlock, Simp
     // ---------------------------------------------------------------- 掉落
 
     @Override
-    public void playerWillDestroy( Level world, BlockPos pos, BlockState state, Player player ) {
+    //? if >=1.21 {
+/*public BlockState playerWillDestroy( Level world, BlockPos pos, BlockState state, Player player ) {
+*///?} else {
+public void playerWillDestroy( Level world, BlockPos pos, BlockState state, Player player ) {
+//?}
         if ( world.getBlockEntity( pos ) instanceof LayeredCopycatBoardBlockEntity board ) {
             if ( player.isCreative() ) {
                 // 创造模式不掉落任何东西，包括伪装材质。
@@ -930,7 +936,11 @@ public class LayeredCopycatBoardBlock extends Block implements EntityBlock, Simp
                 brokenInCreative.set( Boolean.FALSE );
             }
         }
-        super.playerWillDestroy( world, pos, state, player );
+        //? if >=1.21 {
+/*return super.playerWillDestroy( world, pos, state, player );
+*///?} else {
+super.playerWillDestroy( world, pos, state, player );
+//?}
     }
 
     @Override
@@ -963,7 +973,11 @@ public class LayeredCopycatBoardBlock extends Block implements EntityBlock, Simp
 
     /** 中间键取方块：已伪装时给出伪装用的方块，否则给自己。 */
     @Override
-    public ItemStack getCloneItemStack( BlockGetter world, BlockPos pos, BlockState state ) {
+    //? if >=1.21 {
+/*public ItemStack getCloneItemStack(net.minecraft.world.level.LevelReader world, BlockPos pos, BlockState state) {
+*///?} else {
+public ItemStack getCloneItemStack( BlockGetter world, BlockPos pos, BlockState state ) {
+//?}
         if ( world.getBlockEntity( pos ) instanceof LayeredCopycatBoardBlockEntity board ) {
             for ( String key : LayeredBoardSlots.allMaterialKeys() ) {
                 BlockState material = board.material( key );
@@ -974,4 +988,21 @@ public class LayeredCopycatBoardBlock extends Block implements EntityBlock, Simp
         }
         return super.getCloneItemStack( world, pos, state );
     }
+    //? if >=1.21 {
+    /*@Override
+    protected net.minecraft.world.ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return switch (use(state,world,pos,player,hand,hit)) {
+            case SUCCESS -> net.minecraft.world.ItemInteractionResult.SUCCESS;
+            case CONSUME -> net.minecraft.world.ItemInteractionResult.CONSUME;
+            case CONSUME_PARTIAL -> net.minecraft.world.ItemInteractionResult.CONSUME_PARTIAL;
+            case FAIL -> net.minecraft.world.ItemInteractionResult.FAIL;
+            case PASS, SUCCESS_NO_ITEM_USED -> net.minecraft.world.ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+        };
+    }
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
+        return use(state,world,pos,player,InteractionHand.MAIN_HAND,hit);
+    }
+
+    *///?}
 }

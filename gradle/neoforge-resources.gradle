@@ -1,0 +1,81 @@
+import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
+// Canonical business data stays in 1.20.1 format. Only the emitted schema changes.
+def targetData = layout.buildDirectory.dir('generated/target-resources')
+def renameDirs = ['recipes':'recipe', 'advancements':'advancement', 'loot_tables':'loot_table',
+                  'blocks':'block', 'items':'item', 'entity_types':'entity_type', 'fluids':'fluid', 'game_events':'game_event']
+def transform
+transform = { value ->
+ if (value instanceof List) return value.collect { transform(it) }
+ if (!(value instanceof Map)) return value == 'c:zinc_ingots' ? 'c:ingots/zinc' : value
+ def result = value.collectEntries { key, child -> [(key): transform(child)] }
+ // 1.21 IntProvider map codecs no longer nest their fields under value.
+ if (result.type in ['minecraft:uniform','minecraft:biased_to_bottom','minecraft:clamped','minecraft:clamped_normal','minecraft:weighted_list'] && result.value instanceof Map) {
+  def fields = result.remove('value')
+  result.putAll(fields)
+ }
+ // ItemPredicate enchantments moved under component predicates.
+ if (result.containsKey('enchantments') && result.enchantments instanceof List) {
+  def enchantments = result.remove('enchantments').collect { predicate ->
+   def entry = new LinkedHashMap(predicate)
+   if (entry.containsKey('enchantment')) entry.enchantments = entry.remove('enchantment')
+   entry
+  }
+  result.predicates = (result.predicates ?: [:]) + ['minecraft:enchantments': enchantments]
+ }
+ if (result.type in ['minecraft:crafting_shaped','minecraft:crafting_shapeless']) {
+  def stack = new LinkedHashMap(result.result)
+  stack.id = stack.remove('item')
+  result.result = stack
+ }
+ if (result.type == 'minecraft:stonecutting') {
+  result.result = [id: result.result, count: result.remove('count')]
+ }
+ result
+}
+def expectedData = {
+ def expected = [:]
+ [rootProject.file('common/src/main/resources/data'), rootProject.file('common/src/main/generated/data')].each { directory ->
+  fileTree(directory).matching { include '**/*.json' }.files.sort().each { source ->
+   def parts = directory.toPath().relativize(source.toPath()).toString().replace('\\','/').split('/') as List
+   if (parts.size() < 2) return
+   parts[1] = renameDirs[parts[1]] ?: parts[1]
+   if (parts[1] == 'tags' && parts.size() > 2) parts[2] = renameDirs[parts[2]] ?: parts[2]
+   def path = 'data/' + parts.join('/')
+   if (expected.containsKey(path)) throw new GradleException("Duplicate canonical data: ${path}")
+   expected[path] = JsonOutput.prettyPrint(JsonOutput.toJson(transform(new JsonSlurper().parse(source)))) + '\n'
+  }
+ }
+ expected
+}
+def generate = tasks.register('generateTargetResources') {
+ inputs.files(rootProject.fileTree('common/src/main/resources/data'), rootProject.fileTree('common/src/main/generated/data'))
+ inputs.file(rootProject.file('gradle/neoforge-resources.gradle'))
+ outputs.dir(targetData)
+ doLast {
+  def directory = targetData.get().asFile
+  delete directory
+  expectedData().each { path, content -> def file = new File(directory,path); file.parentFile.mkdirs(); file.setText(content,'UTF-8') }
+ }
+}
+// Shared visual resources have identical paths and bytes. Do not package old data folders.
+processResources {
+ exclude { details -> details.file.toPath().startsWith(rootProject.file('common/src/main/resources/data').toPath()) || details.file.toPath().startsWith(rootProject.file('common/src/main/generated/data').toPath()) }
+ from(targetData)
+ dependsOn generate
+}
+tasks.register('runDatagen') {
+ dependsOn ':1.20.1-fabric:runDatagen', generate
+}
+generate.configure { mustRunAfter ':1.20.1-fabric:runDatagen' }
+tasks.register('checkDatagenFresh') {
+ dependsOn ':1.20.1-fabric:checkDatagenFresh', generate
+ doLast {
+  expectedData().each { path, content ->
+   def output = new File(targetData.get().asFile,path)
+   if (!output.exists() || output.getText('UTF-8') != content) throw new GradleException("Stale NeoForge data: ${path}")
+  }
+  if (fileTree(targetData).files.size() != expectedData().size()) throw new GradleException('Unexpected target data files')
+ }
+}
+tasks.named('build') { dependsOn 'checkDatagenFresh' }

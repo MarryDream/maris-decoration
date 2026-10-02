@@ -124,7 +124,11 @@ public class DetailChisel extends Item {
     }
 
     @Override
-    public void appendHoverText( ItemStack stack, Level world, List<Component> tooltip, TooltipFlag context ) {
+    //? if >=1.21 {
+/*public void appendHoverText(ItemStack stack, Item.TooltipContext world, List<Component> tooltip, TooltipFlag context) {
+*///?} else {
+public void appendHoverText( ItemStack stack, Level world, List<Component> tooltip, TooltipFlag context ) {
+//?}
         tooltip.add( Component.translatable( "item.maris-decoration.detail_chisel.tooltip" ) );
         tooltip.add( Component.translatable( "item.maris-decoration.detail_chisel.remark.tooltip" ).withStyle( ChatFormatting.BLUE ) );
     }

@@ -11,6 +11,8 @@ import marrydream.marisdecoration.block.utils.LayeredBoardSlots.FaceDir;
 import marrydream.marisdecoration.init.ModBlockEntity;
 import marrydream.marisdecoration.platform.RenderDataBlockEntity;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import marrydream.marisdecoration.platform.StackData;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -412,8 +414,17 @@ public class LayeredCopycatBoardBlockEntity extends RenderDataBlockEntity {
     // ---------------------------------------------------------------- 持久化
 
     @Override
-    protected void write( CompoundTag nbt, boolean clientPacket ) {
-        super.write( nbt, clientPacket );
+    //? if >=1.21 {
+/*protected void write(CompoundTag nbt, HolderLookup.Provider registries, boolean clientPacket) {
+*///?} else {
+protected void write( CompoundTag nbt, boolean clientPacket ) {
+        HolderLookup.Provider registries = null;
+//?}
+        //? if >=1.21 {
+/*super.write(nbt, registries, clientPacket);
+*///?} else {
+super.write( nbt, clientPacket );
+//?}
         nbt.putInt( KEY_OCCUPANCY, occupancy );
         nbt.putInt( KEY_WINDOWS, windows );
 
@@ -439,19 +450,28 @@ public class LayeredCopycatBoardBlockEntity extends RenderDataBlockEntity {
         if ( !clientPacket ) {
             CompoundTag paid = new CompoundTag();
             paidMaterials.forEach( ( item, stack ) -> paid.put(
-                    BuiltInRegistries.ITEM.getKey( item ).toString(), stack.save( new CompoundTag() ) ) );
+                    BuiltInRegistries.ITEM.getKey( item ).toString(), StackData.save(stack, registries) ) );
             nbt.put( KEY_PAID_MATERIALS, paid );
         }
     }
 
     @Override
-    protected void read( CompoundTag nbt, boolean clientPacket ) {
+    //? if >=1.21 {
+/*protected void read(CompoundTag nbt, HolderLookup.Provider registries, boolean clientPacket) {
+*///?} else {
+protected void read( CompoundTag nbt, boolean clientPacket ) {
+        HolderLookup.Provider registries = null;
+//?}
         int previousOccupancy = occupancy;
         int previousWindows = windows;
         Map<String, String> previousJunctions = Map.copyOf( junctionOwners );
         Map<String, BlockState> previousMaterials = Map.copyOf( materials );
 
-        super.read( nbt, clientPacket );
+        //? if >=1.21 {
+/*super.read(nbt, registries, clientPacket);
+*///?} else {
+super.read( nbt, clientPacket );
+//?}
         occupancy = sanitizeOccupancy( nbt.getInt( KEY_OCCUPANCY ) & LayeredBoardSlots.FULL_OCCUPANCY );
         windows = nbt.getInt( KEY_WINDOWS ) & ( ( 1 << FaceDir.values().length ) - 1 );
         junctionOwners.clear();
@@ -475,7 +495,7 @@ public class LayeredCopycatBoardBlockEntity extends RenderDataBlockEntity {
                 if ( identifier == null ) {
                     continue;
                 }
-                paidMaterials.put( BuiltInRegistries.ITEM.get( identifier ), ItemStack.of( paid.getCompound( id ) ) );
+                paidMaterials.put( BuiltInRegistries.ITEM.get( identifier ), StackData.read(paid.getCompound( id ), registries) );
             }
         }
 
@@ -498,11 +518,11 @@ public class LayeredCopycatBoardBlockEntity extends RenderDataBlockEntity {
         return state == null ? NO_MATERIAL : state;
     }
 
-    private static ItemStack readStack( CompoundTag nbt, String key ) {
+    private static ItemStack readStack(CompoundTag nbt, String key, HolderLookup.Provider registries) {
         if ( !nbt.contains( key ) ) {
             return ItemStack.EMPTY;
         }
-        return ItemStack.of( nbt.getCompound( key ) );
+        return StackData.read(nbt.getCompound( key ), registries);
     }
 
 

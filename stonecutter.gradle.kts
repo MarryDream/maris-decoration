@@ -18,7 +18,7 @@ tasks.register("buildActive") {
 }
 tasks.register("buildAll") {
     group = "build"
-    description = "Build every target; fails explicitly while scaffold nodes remain."
+    description = "Build all three implemented targets."
     dependsOn(stonecutter.tasks.named("build"))
 }
 // Keep the existing root commands focused on the active target.

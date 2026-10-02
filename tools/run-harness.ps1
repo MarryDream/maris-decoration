@@ -4,9 +4,9 @@
 #
 # What it does:
 #   1. writes the self-test command and "stop" into a stdin file;
-#   2. starts a headless dedicated server through loom's own runServer task,
+#   2. starts a headless dedicated server through the selected loader runServer task,
 #      with stdin redirected from that file;
-#   3. prints run/maris-placer-selftest.txt.
+#   3. prints run/<node>/maris-placer-selftest.txt.
 #
 # Why this is a script and not a Gradle JavaExec task: dev-launch-injector needs the
 # inherited working directory plus system properties to install the Knot class loader;
@@ -14,24 +14,26 @@
 # "trying to load FabricLoaderImpl from target class loader". gradlew runServer plus a
 # shell level stdin redirect is stable because that is loom's own launch path.
 #
-# World isolation: runServer uses the run/1.20.1-fabric/ directory. This script rewrites
-# server.properties so that level-name=harness and level-type=flat (every other key is
-# preserved), so the self-test runs in its own superflat world and the development save
-# under world/ is never touched.
+# World isolation: each node uses run/<node>/. This script selects its own superflat
+# harness-no-copycats or harness-with-copycats save; the development world/ is untouched.
+# Separate saves keep optional Copycats registry entries out of no-Copycats tests.
+# NeoForge selects Minecraft 1.21.1; Fabric and Forge select Minecraft 1.20.1.
 #
 # NOTE: this file is deliberately ASCII only. Windows PowerShell 5.1 reads .ps1 files as
 # ANSI unless they carry a BOM, so a UTF-8 file with non-ASCII comments gets mangled and
 # can even fail to parse. Keep every comment in this file in plain ASCII.
 
-param([ValidateSet("fabric","forge")][string]$Loader="fabric", [switch]$WithCopycats, [switch]$Offline)
+param([ValidateSet("fabric","forge","neoforge")][string]$Loader="fabric", [switch]$WithCopycats, [switch]$Offline)
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $root = Split-Path -Parent $root
 Set-Location $root
 
+$minecraft = if ($Loader -eq "neoforge") { "1.21.1" } else { "1.20.1" }
+$node = "$minecraft-$Loader"
 $stdin = Join-Path $root "tools\harness-server-stdin.txt"
-$report = Join-Path $root "run\1.20.1-$Loader\maris-placer-selftest.txt"
+$report = Join-Path $root "run\$node\maris-placer-selftest.txt"
 $console = Join-Path $root "build\harness-$Loader-console.txt"
 
 # 1. The self-test command. "stop" goes last: the self-test runs synchronously, so stop
@@ -44,7 +46,7 @@ $console = Join-Path $root "build\harness-$Loader-console.txt"
 #    backslash escaped). The script has to emit exactly one backslash plus a colon; an
 #    extra backslash makes vanilla fail to recognise "flat" and fall back to a normal
 #    world type.
-$props = Join-Path $root "run\1.20.1-$Loader\server.properties"
+$props = Join-Path $root "run\$node\server.properties"
 New-Item -ItemType Directory -Force (Split-Path -Parent $props) | Out-Null
 $kept = @()
 if (Test-Path $props) {
@@ -52,7 +54,8 @@ if (Test-Path $props) {
             Where-Object { ($_ -split "=", 2)[0] -ne "level-name" -and ($_ -split "=", 2)[0] -ne "level-type" }
 }
 $flat = 'level-type=minecraft\:flat'
-($kept + "level-name=harness", $flat) -join "`n" | Set-Content -Path $props -Encoding ascii
+$worldName = if ($WithCopycats) { "harness-with-copycats" } else { "harness-no-copycats" }
+($kept + "level-name=$worldName", $flat) -join "`n" | Set-Content -Path $props -Encoding ascii
 
 Remove-Item -Force $report -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force (Split-Path -Parent $console) | Out-Null
@@ -61,17 +64,18 @@ New-Item -ItemType Directory -Force (Split-Path -Parent $console) | Out-Null
 $extra = ""
 if ($WithCopycats) { $extra += " -PwithCopycats" }
 if ($Offline) { $extra += " --offline" }
-cmd /c "chcp 65001 > nul && .\gradlew :1.20.1-${Loader}:runServer --no-daemon --console=plain$extra < tools\harness-server-stdin.txt > build\harness-$Loader-console.txt 2>&1"
+cmd /c "chcp 65001 > nul && .\gradlew :${node}:runServer --no-daemon --console=plain$extra < tools\harness-server-stdin.txt > build\harness-$Loader-console.txt 2>&1"
 $gradleExit = $LASTEXITCODE
 
 Write-Output "===== self-test report ====="
 if (Test-Path $report) {
     Get-Content -Encoding UTF8 $report
 } else {
-    Write-Output "no report file; the server console is in build/harness-console.txt"
+    Write-Output "no report file; the server console is in $console"
 }
 
 if ($gradleExit -ne 0 -or !(Test-Path $report) -or
+    (Get-Content -Raw -Encoding UTF8 $report).Contains('!!') -or
     !((Get-Content -Raw -Encoding UTF8 $report) -match '\u7ed3\u679c\uff1a\u5168\u90e8\u901a\u8fc7')) {
     throw "Placement harness failed; see $console"
 }

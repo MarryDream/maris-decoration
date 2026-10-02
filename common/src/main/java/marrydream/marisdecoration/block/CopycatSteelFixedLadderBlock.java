@@ -38,7 +38,9 @@ public class CopycatSteelFixedLadderBlock extends LadderBlock implements EntityB
         CopycatLadderInteraction.applyPlacedMaterial(world, pos, placer, CopycatLadderParts.MATERIAL);
     }
 
+    //? if <1.21 {
     @Override
+    //?}
     public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
         return CopycatLadderInteraction.use(state, world, pos, player, hand, hit, CopycatLadderParts.MATERIAL);
     }
@@ -55,9 +57,17 @@ public class CopycatSteelFixedLadderBlock extends LadderBlock implements EntityB
     }
 
     @Override
-    public void playerWillDestroy(Level world, BlockPos pos, BlockState state, Player player) {
+    //? if >=1.21 {
+/*public BlockState playerWillDestroy(Level world, BlockPos pos, BlockState state, Player player) {
+*///?} else {
+public void playerWillDestroy(Level world, BlockPos pos, BlockState state, Player player) {
+//?}
         CopycatLadderInteraction.onBreak(world, pos, player);
-        super.playerWillDestroy(world, pos, state, player);
+        //? if >=1.21 {
+/*return super.playerWillDestroy(world, pos, state, player);
+*///?} else {
+super.playerWillDestroy(world, pos, state, player);
+//?}
     }
 
     @Override
@@ -67,10 +77,31 @@ public class CopycatSteelFixedLadderBlock extends LadderBlock implements EntityB
     }
 
     @Override
-    public ItemStack getCloneItemStack(BlockGetter world, BlockPos pos, BlockState state) {
+    //? if >=1.21 {
+/*public ItemStack getCloneItemStack(net.minecraft.world.level.LevelReader world, BlockPos pos, BlockState state) {
+*///?} else {
+public ItemStack getCloneItemStack(BlockGetter world, BlockPos pos, BlockState state) {
+//?}
         if (world.getBlockEntity(pos) instanceof CopycatLadderBlockEntity be && be.hasMaterial(CopycatLadderParts.MATERIAL)) {
             return new ItemStack(be.material(CopycatLadderParts.MATERIAL).getBlock());
         }
         return super.getCloneItemStack(world, pos, state);
     }
+    //? if >=1.21 {
+    /*@Override
+    protected net.minecraft.world.ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return switch (use(state,world,pos,player,hand,hit)) {
+            case SUCCESS -> net.minecraft.world.ItemInteractionResult.SUCCESS;
+            case CONSUME -> net.minecraft.world.ItemInteractionResult.CONSUME;
+            case CONSUME_PARTIAL -> net.minecraft.world.ItemInteractionResult.CONSUME_PARTIAL;
+            case FAIL -> net.minecraft.world.ItemInteractionResult.FAIL;
+            case PASS, SUCCESS_NO_ITEM_USED -> net.minecraft.world.ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+        };
+    }
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
+        return use(state,world,pos,player,InteractionHand.MAIN_HAND,hit);
+    }
+
+    *///?}
 }

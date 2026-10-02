@@ -367,7 +367,7 @@ public final class CopycatsMultistateAdapter implements CopycatPlacementAdapter 
         }
         ItemStack probe = new ItemStack(material.getBlock());
         for (ItemStack existing : storage.getAllConsumedItems()) {
-            if (ItemStack.isSameItemSameTags(existing, probe)) {
+            if (marrydream.marisdecoration.platform.StackData.same(existing, probe)) {
                 return true;
             }
         }

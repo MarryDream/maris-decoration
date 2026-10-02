@@ -710,7 +710,12 @@ public class PlacerScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+    //? if >=1.21 {
+/*public boolean mouseScrolled(double mouseX, double mouseY, double horizontal, double amount) {
+*///?} else {
+public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+//?}
+
         int step = (int) (-amount * LINE_HEIGHT * 2);
         if (step == 0) {
             step = amount > 0 ? LINE_HEIGHT : -LINE_HEIGHT;
@@ -731,7 +736,12 @@ public class PlacerScreen extends Screen {
             layoutViewports();
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, amount);
+        //? if >=1.21 {
+/*return super.mouseScrolled(mouseX, mouseY, horizontal, amount);
+*///?} else {
+return super.mouseScrolled(mouseX, mouseY, amount);
+//?}
+
     }
 
     @Override

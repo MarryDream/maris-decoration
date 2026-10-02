@@ -22,10 +22,14 @@ public class BubbleTeaItem extends Item {
         FoodProperties foodComponent = new FoodProperties.Builder()
                 .nutrition( 3 )
                 // 1f = 100%
-                .saturationMod( 0.3f )
-                .alwaysEat()
+                /*? if >=1.21 {*/ /*.saturationModifier( 0.3f ) *//*?} else {*/ .saturationMod( 0.3f ) /*?}*/
+                /*? if >=1.21 {*/ /*.alwaysEdible() *//*?} else {*/ .alwaysEat() /*?}*/
                 // 20 游戏刻为 1 秒
-                .effect( new MobEffectInstance( MobEffects.DIG_SPEED, 20 * 20 ), 1.0f )
+                //? if >=1.21 {
+/*.effect( () -> new MobEffectInstance( MobEffects.DIG_SPEED, 20 * 20 ), 1.0f )
+*///?} else {
+.effect( new MobEffectInstance( MobEffects.DIG_SPEED, 20 * 20 ), 1.0f )
+//?}
                 .build();
         // 返回配置项
         return new Item.Properties().food( foodComponent );
@@ -36,7 +40,11 @@ public class BubbleTeaItem extends Item {
     }
 
     @Override
-    public void appendHoverText( ItemStack stack, Level world, List<Component> tooltip, TooltipFlag context ) {
+    //? if >=1.21 {
+/*public void appendHoverText(ItemStack stack, Item.TooltipContext world, List<Component> tooltip, TooltipFlag context) {
+*///?} else {
+public void appendHoverText( ItemStack stack, Level world, List<Component> tooltip, TooltipFlag context ) {
+//?}
         tooltip.add( Component.translatable( "item.maris-decoration.bubble_tea.tooltip" ) );
         tooltip.add( Component.translatable( "item.maris-decoration.bubble_tea.effect.tooltip" ).withStyle( ChatFormatting.YELLOW ) );
     }

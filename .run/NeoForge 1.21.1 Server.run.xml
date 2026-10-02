@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Minecraft Server (:1.21.1-neoforge)" type="GradleRunConfiguration" factoryName="Gradle">
+    <ExternalSystemSettings>
+      <option name="externalProjectPath" value="$PROJECT_DIR$" />
+      <option name="externalSystemIdString" value="GRADLE" />
+      <option name="taskNames"><list><option value=":1.21.1-neoforge:runServer" /></list></option>
+    </ExternalSystemSettings>
+    <method v="2" />
+  </configuration>
+</component>

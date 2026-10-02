@@ -55,7 +55,11 @@ public class LintelThresholdThinDoorBlock extends DoorBlock implements EntityBlo
     }
 
     public LintelThresholdThinDoorBlock(BlockBehaviour.Properties settings, BlockSetType blockSetType) {
-        super(settings, blockSetType);
+        //? if >=1.21 {
+/*super(blockSetType, settings);
+*///?} else {
+super(settings, blockSetType);
+//?}
     }
 
     @Override
@@ -134,14 +138,21 @@ public class LintelThresholdThinDoorBlock extends DoorBlock implements EntityBlo
                 LayeredCopycatBoardBlock.autoCamoNewLayers(world, pos, roof, player,
                         Direction.orderedByNearest(player)[0]);
             }
-            world.playSound(null, pos, ModBlock.LAYERED_COPYCAT_BOARD.getSoundType(
-                    ModBlock.LAYERED_COPYCAT_BOARD.defaultBlockState()).getPlaceSound(),
+            world.playSound(null, pos, //? if >=1.21 {
+/*ModBlock.LAYERED_COPYCAT_BOARD.defaultBlockState().getSoundType()
+*///?} else {
+ModBlock.LAYERED_COPYCAT_BOARD.getSoundType(
+                    ModBlock.LAYERED_COPYCAT_BOARD.defaultBlockState())
+//?}
+.getPlaceSound(),
                     SoundSource.BLOCKS, 1.0F, 0.75F);
         }
         return InteractionResult.sidedSuccess(world.isClientSide);
     }
 
+    //? if <1.21 {
     @Override
+    //?}
     public InteractionResult use(BlockState state, Level world, BlockPos pos, Player player,
                               InteractionHand hand, BlockHitResult hit) {
         ItemStack stack = player.getItemInHand(hand);
@@ -151,7 +162,11 @@ public class LintelThresholdThinDoorBlock extends DoorBlock implements EntityBlo
         }
         SteelPlugDoorBlockEntity roof = ownerAt(world, pos, state);
         if (roof == null || !roof.hasRoof() || !isRoofHit(state, pos, hit.getLocation())) {
-            return super.use(state, world, pos, player, hand, hit);
+            //? if >=1.21 {
+/*return super.useWithoutItem(state, world, pos, player, hit);
+*///?} else {
+return super.use(state, world, pos, player, hand, hit);
+//?}
         }
         Vec3 canonical = canonicalHit(state, pos, hit.getLocation());
         if (stack.getItem() instanceof DetailChisel) {
@@ -208,10 +223,18 @@ public class LintelThresholdThinDoorBlock extends DoorBlock implements EntityBlo
     }
 
     @Override
-    public void playerWillDestroy(Level world, BlockPos pos, BlockState state, Player player) {
+    //? if >=1.21 {
+/*public BlockState playerWillDestroy(Level world, BlockPos pos, BlockState state, Player player) {
+*///?} else {
+public void playerWillDestroy(Level world, BlockPos pos, BlockState state, Player player) {
+//?}
         SteelPlugDoorBlockEntity roof = ownerAt(world, pos, state);
         if (!world.isClientSide && player.isCreative() && roof != null && roof.hasRoof()) roof.suppressRoofDrops();
-        super.playerWillDestroy(world, pos, state, player);
+        //? if >=1.21 {
+/*return super.playerWillDestroy(world, pos, state, player);
+*///?} else {
+super.playerWillDestroy(world, pos, state, player);
+//?}
     }
 
     @Override
@@ -227,4 +250,21 @@ public class LintelThresholdThinDoorBlock extends DoorBlock implements EntityBlo
         }
         super.onRemove(state, world, pos, newState, moved);
     }
+    //? if >=1.21 {
+    /*@Override
+    protected net.minecraft.world.ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level world, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        return switch (use(state,world,pos,player,hand,hit)) {
+            case SUCCESS -> net.minecraft.world.ItemInteractionResult.SUCCESS;
+            case CONSUME -> net.minecraft.world.ItemInteractionResult.CONSUME;
+            case CONSUME_PARTIAL -> net.minecraft.world.ItemInteractionResult.CONSUME_PARTIAL;
+            case FAIL -> net.minecraft.world.ItemInteractionResult.FAIL;
+            case PASS, SUCCESS_NO_ITEM_USED -> net.minecraft.world.ItemInteractionResult.SKIP_DEFAULT_BLOCK_INTERACTION;
+        };
+    }
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
+        return use(state,world,pos,player,InteractionHand.MAIN_HAND,hit);
+    }
+
+    *///?}
 }

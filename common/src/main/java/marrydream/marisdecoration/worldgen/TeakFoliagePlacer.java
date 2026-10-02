@@ -11,7 +11,11 @@ import net.minecraft.world.level.levelgen.feature.foliageplacers.FoliagePlacerTy
 
 /** Overlapping rounded lobes; every lobe stays within six leaf steps of its branch. */
 public final class TeakFoliagePlacer extends FoliagePlacer {
-    public static final Codec<TeakFoliagePlacer> CODEC = RecordCodecBuilder.create(instance ->
+    //? if >=1.21 {
+/*public static final com.mojang.serialization.MapCodec<TeakFoliagePlacer> CODEC = RecordCodecBuilder.mapCodec(instance ->
+*///?} else {
+public static final Codec<TeakFoliagePlacer> CODEC = RecordCodecBuilder.create(instance ->
+//?}
             foliagePlacerParts(instance).apply(instance, TeakFoliagePlacer::new));
 
     public TeakFoliagePlacer(IntProvider radius, IntProvider offset) { super(radius, offset); }

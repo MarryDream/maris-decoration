@@ -8,6 +8,8 @@ import marrydream.marisdecoration.init.ModBlock;
 import marrydream.marisdecoration.init.ModBlockEntity;
 import marrydream.marisdecoration.platform.RenderDataBlockEntity;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import marrydream.marisdecoration.platform.StackData;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
@@ -147,8 +149,17 @@ public class CopycatLadderBlockEntity extends RenderDataBlockEntity {
     }
 
     @Override
-    protected void write(CompoundTag nbt, boolean clientPacket) {
-        super.write(nbt, clientPacket);
+    //? if >=1.21 {
+/*protected void write(CompoundTag nbt, HolderLookup.Provider registries, boolean clientPacket) {
+*///?} else {
+protected void write(CompoundTag nbt, boolean clientPacket) {
+        HolderLookup.Provider registries = null;
+//?}
+        //? if >=1.21 {
+/*super.write(nbt, registries, clientPacket);
+*///?} else {
+super.write(nbt, clientPacket);
+//?}
         CompoundTag data = new CompoundTag();
         for (String slot : slots()) {
             BlockState material = material(slot);
@@ -156,16 +167,25 @@ public class CopycatLadderBlockEntity extends RenderDataBlockEntity {
             if (material.isAir() && consumed.isEmpty()) continue;
             CompoundTag entry = new CompoundTag();
             entry.put(MATERIAL, NbtUtils.writeBlockState(material));
-            if (!clientPacket) entry.put(CONSUMED, consumed.save(new CompoundTag()));
+            if (!clientPacket) entry.put(CONSUMED, StackData.save(consumed, registries));
             data.put(slot, entry);
         }
         nbt.put(MATERIAL_DATA, data);
     }
 
     @Override
-    protected void read(CompoundTag nbt, boolean clientPacket) {
+    //? if >=1.21 {
+/*protected void read(CompoundTag nbt, HolderLookup.Provider registries, boolean clientPacket) {
+*///?} else {
+protected void read(CompoundTag nbt, boolean clientPacket) {
+        HolderLookup.Provider registries = null;
+//?}
         Map<String, BlockState> before = Map.copyOf(materials);
-        super.read(nbt, clientPacket);
+        //? if >=1.21 {
+/*super.read(nbt, registries, clientPacket);
+*///?} else {
+super.read(nbt, clientPacket);
+//?}
         CompoundTag data = nbt.getCompound(MATERIAL_DATA);
         for (String slot : slots()) {
             CompoundTag entry = data.getCompound(slot);
@@ -174,7 +194,7 @@ public class CopycatLadderBlockEntity extends RenderDataBlockEntity {
                     : NO_MATERIAL);
             if (!clientPacket) {
                 consumedItems.put(slot, entry.contains(CONSUMED)
-                        ? ItemStack.of(entry.getCompound(CONSUMED)) : ItemStack.EMPTY);
+                        ? StackData.read(entry.getCompound(CONSUMED), registries) : ItemStack.EMPTY);
             }
         }
         renderData = null;

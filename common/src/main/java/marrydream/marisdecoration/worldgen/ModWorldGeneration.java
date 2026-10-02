@@ -7,7 +7,11 @@ import net.minecraft.core.Holder.Reference;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+//? if >=1.21 {
+/*import net.minecraft.data.worldgen.BootstrapContext;
+*///?} else {
 import net.minecraft.data.worldgen.BootstapContext;
+//?}
 import net.minecraft.data.worldgen.placement.PlacementUtils;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
@@ -47,7 +51,7 @@ public final class ModWorldGeneration {
         Platform.initBiomes();
     }
 
-    public static void bootstrapConfigured(BootstapContext<ConfiguredFeature<?, ?>> registry) {
+    public static void bootstrapConfigured(/*? if >=1.21 {*/ /*BootstrapContext< *//*?} else {*/ BootstapContext< /*?}*/ConfiguredFeature<?, ?>> registry) {
         registry.register(TEAK, new ConfiguredFeature<>(Feature.TREE, new TreeConfiguration.TreeConfigurationBuilder(
                 BlockStateProvider.simple(ModBlock.TEAK_LOG), new TeakTrunkPlacer(9, 3, 2),
                 BlockStateProvider.simple(ModBlock.TEAK_LEAVES),
@@ -56,7 +60,7 @@ public final class ModWorldGeneration {
                 new TwoLayersFeatureSize(5, 0, 6)).ignoreVines().build()));
     }
 
-    public static void bootstrapPlaced(BootstapContext<PlacedFeature> registry) {
+    public static void bootstrapPlaced(/*? if >=1.21 {*/ /*BootstrapContext< *//*?} else {*/ BootstapContext< /*?}*/PlacedFeature> registry) {
         var tree = registry.lookup(Registries.CONFIGURED_FEATURE).getOrThrow(TEAK);
         PlacementUtils.register(registry, TEAK_SPARSE_JUNGLE, tree, CountPlacement.of(1),
                 InSquarePlacement.spread(), PlacementUtils.HEIGHTMAP_OCEAN_FLOOR,

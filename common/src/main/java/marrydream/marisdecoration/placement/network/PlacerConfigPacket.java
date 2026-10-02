@@ -33,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
 public final class PlacerConfigPacket {
 
     /** 频道名。改它等于改协议版本。 */
-    public static final ResourceLocation ID = new ResourceLocation("maris-decoration", "placer_config");
+    public static final ResourceLocation ID = marrydream.marisdecoration.init.ModInfo.location("maris-decoration", "placer_config");
 
     private PlacerConfigPacket() {
     }

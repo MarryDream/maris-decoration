@@ -1,5 +1,86 @@
 plugins { id 'net.neoforged.moddev' version '2.0.140' }
-// The toolkit entry is ready; do not enable Minecraft artifact generation until the port exists.
-// Enable with: neoForge { version = project.loader_version; mods { ... }; runs { ... } }
-// Link createMinecraftArtifacts to stonecutterGenerate before enabling the port.
-apply from: rootProject.file('gradle/scaffold.gradle')
+apply from: rootProject.file('gradle/stonecutter-sources.gradle')
+version = project.mod_version
+group = project.maven_group
+base { archivesName = "${project.archives_base_name}-1.21.1-neoforge" }
+java { toolchain.languageVersion = JavaLanguageVersion.of(21); withSourcesJar() }
+tasks.withType(JavaCompile).configureEach { options.release = 21; options.encoding = 'UTF-8' }
+repositories {
+ mavenCentral()
+ maven { url = 'https://maven.createmod.net'; content { includeGroup 'com.simibubi.create'; includeGroup 'dev.engine-room.flywheel'; includeGroup 'net.createmod.ponder' } }
+ maven { url = 'https://maven.ithundxr.dev/snapshots'; content { includeGroup 'com.tterrag.registrate' } }
+ maven { url = 'https://api.modrinth.com/maven'; content { includeGroup 'maven.modrinth' } }
+}
+sourceSets {
+ client {
+  java.srcDirs = [rootProject.file('common/src/client/java'), rootProject.file('neoforge/src/client/java')]
+  compileClasspath += sourceSets.main.output
+  compileClasspath += sourceSets.main.compileClasspath
+  runtimeClasspath += sourceSets.main.output
+  runtimeClasspath += sourceSets.main.runtimeClasspath
+ }
+}
+configurations {
+ clientImplementation.extendsFrom implementation
+ clientCompileOnly.extendsFrom compileOnly
+ clientRuntimeOnly.extendsFrom runtimeOnly
+}
+neoForge {
+ version = project.loader_version
+ accessTransformers.from(rootProject.file('neoforge/src/main/resources/META-INF/accesstransformer.cfg'))
+ addModdingDependenciesTo sourceSets.client
+ mods { maris_decoration { sourceSet sourceSets.main; sourceSet sourceSets.client } }
+ runs {
+  client { client(); sourceSet = sourceSets.client; gameDirectory = rootProject.file('run/1.21.1-neoforge') }
+  server { server(); gameDirectory = rootProject.file('run/1.21.1-neoforge'); programArgument '--nogui' }
+  teakTest { server(); gameDirectory = layout.buildDirectory.dir('teak-test').get().asFile; systemProperty 'maris.teak.selftest','true'; programArgument '--nogui' }
+  teakClientCheck { client(); sourceSet = sourceSets.client; gameDirectory = layout.buildDirectory.dir('teak-client').get().asFile; systemProperty 'maris.teak.clientcheck','true'; programArguments.addAll('--quickPlaySingleplayer','teak-validation','--width','1280','--height','800') }
+ }
+}
+dependencies {
+ implementation(project.create_coordinate + ':slim') { transitive = false }
+ implementation("com.tterrag.registrate:Registrate:${project.registrate_version}") { transitive = false }
+ implementation("net.createmod.ponder:ponder-neoforge:${project.ponder_version}") { transitive = false }
+ compileOnly("dev.engine-room.flywheel:flywheel-neoforge-api-1.21.1:${project.flywheel_version}") { transitive = false }
+ runtimeOnly("dev.engine-room.flywheel:flywheel-neoforge-1.21.1:${project.flywheel_version}") { transitive = false }
+ compileOnly(project.copycats_coordinate) { transitive = false }
+ if (providers.gradleProperty('withCopycats').isPresent()) runtimeOnly(project.copycats_coordinate) { transitive = false }
+}
+processResources {
+ inputs.property 'version', project.version
+ exclude '**/.cache/**'
+ filesMatching('META-INF/neoforge.mods.toml') { expand version: project.version }
+}
+jar { from sourceSets.client.output; from(rootProject.file('LICENSE')) }
+tasks.named('sourcesJar') { from sourceSets.client.allSource }
+apply from: rootProject.file('gradle/stonecutter-client-sources.gradle')
+tasks.named('runServer') { standardInput = System.in }
+
+apply from: rootProject.file('gradle/neoforge-resources.gradle')
+
+['runTeakTest':'teak-test/teak-selftest.txt', 'runTeakClientCheck':'teak-client/teak-client-check.txt'].each { taskName, reportPath ->
+ tasks.named(taskName) {
+  doFirst { layout.buildDirectory.file(reportPath).get().asFile.delete() }
+  doLast {
+   def report=layout.buildDirectory.file(reportPath).get().asFile
+   if (!report.exists() || !report.getText('UTF-8').contains('PASS:') || report.getText('UTF-8').contains('FAIL:')) throw new GradleException("Verification failed: ${report}")
+  }
+ }
+}
+if (providers.gradleProperty('neoforgeClientCheck').isPresent()) {
+ neoForge.runs.client.systemProperty 'maris.neoforge.clientcheck','true'
+ tasks.named('runClient') {
+  doFirst { rootProject.file('run/1.21.1-neoforge/neoforge-client-check.txt').delete() }
+  doLast {
+   def report=rootProject.file('run/1.21.1-neoforge/neoforge-client-check.txt')
+   if (!report.exists() || !report.getText('UTF-8').startsWith('PASS:')) throw new GradleException("Client check failed: ${report}")
+  }
+ }
+}
+tasks.named('runTeakClientCheck') {
+ doFirst { layout.buildDirectory.file('teak-client/neoforge-world-check.txt').get().asFile.delete() }
+ doLast {
+  def report=layout.buildDirectory.file('teak-client/neoforge-world-check.txt').get().asFile
+  if (!report.exists() || !report.getText('UTF-8').startsWith('PASS:')) throw new GradleException("World check failed: ${report}")
+ }
+}

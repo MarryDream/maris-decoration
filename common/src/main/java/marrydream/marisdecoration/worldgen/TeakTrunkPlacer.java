@@ -18,7 +18,11 @@ import net.minecraft.world.level.levelgen.feature.trunkplacers.TrunkPlacerType;
 
 /** Tall clear bole, with short, face-connected branches supporting a broad crown. */
 public final class TeakTrunkPlacer extends TrunkPlacer {
-    public static final Codec<TeakTrunkPlacer> CODEC = RecordCodecBuilder.create(instance ->
+    //? if >=1.21 {
+/*public static final com.mojang.serialization.MapCodec<TeakTrunkPlacer> CODEC = RecordCodecBuilder.mapCodec(instance ->
+*///?} else {
+public static final Codec<TeakTrunkPlacer> CODEC = RecordCodecBuilder.create(instance ->
+//?}
             trunkPlacerParts(instance).apply(instance, TeakTrunkPlacer::new));
 
     public TeakTrunkPlacer(int baseHeight, int firstRandomHeight, int secondRandomHeight) {
