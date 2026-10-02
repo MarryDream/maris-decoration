@@ -177,6 +177,15 @@ public class MaterialSelectScreen extends Screen {
 
     // ---------------------------------------------------------------- 渲染
 
+    //? if >=1.21 {
+    /*@Override
+    public void renderBackground(GuiGraphics context, int mouseX, int mouseY, float delta) {
+        // This screen draws its own translucent background. Since 1.21, super.render()
+        // calls this method before widgets, after our custom foreground has been drawn.
+        // Keep that foreground out of the default background blur pass.
+    }
+    *///?}
+
     @Override
     public void render(GuiGraphics context, int mouseX, int mouseY, float delta) {
         // 半透明压暗：不调用 super.renderBackground 是为了避开默认的模糊背景
