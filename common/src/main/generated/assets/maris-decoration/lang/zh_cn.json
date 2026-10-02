@@ -108,7 +108,6 @@
   "item.maris-decoration.copycat_placer.tooltip.materials": "已配置 %s 个材质槽",
   "item.maris-decoration.copycat_placer.tooltip.vertex": "切换这个顶点使用哪条边的材质",
   "item.maris-decoration.detail_chisel": "细工凿",
-  "item.maris-decoration.detail_chisel.remark.tooltip": "——“凿掉的材料还能再贴回来，这太魔法了”",
   "item.maris-decoration.detail_chisel.tooltip": "对伪装护栏、分层伪装薄板或钢内嵌门屋顶使用右键，可以调整部件状态",
   "itemGroup.maris-decoration.maris_decoration": "茉莉的装饰",
   "maris-decoration.characteristic.adjustable_state.prefix": "可使用_细工凿_调整状态：",

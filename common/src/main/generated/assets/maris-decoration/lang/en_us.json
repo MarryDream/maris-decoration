@@ -108,7 +108,6 @@
   "item.maris-decoration.copycat_placer.tooltip.materials": "%s material slots configured",
   "item.maris-decoration.copycat_placer.tooltip.vertex": "Switch which edge's material this vertex uses",
   "item.maris-decoration.detail_chisel": "Detail Chisel",
-  "item.maris-decoration.detail_chisel.remark.tooltip": "— \"The materials that are chiseled off can be put back on. This is magic.\"",
   "item.maris-decoration.detail_chisel.tooltip": "Right-click a Copycat Guardrail, Layered Copycat Board, or Steel Plug Door roof to adjust its parts",
   "itemGroup.maris-decoration.maris_decoration": "Maris' Decoration",
   "maris-decoration.characteristic.adjustable_state.prefix": "Use the _Detail Chisel_ to adjust the state: ",

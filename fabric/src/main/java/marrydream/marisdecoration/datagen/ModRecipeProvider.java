@@ -54,6 +54,11 @@ public final class ModRecipeProvider extends FabricRecipeProvider {
                         ModBlock.COPYCAT_GUARDRAIL, 4)
                 .unlockedBy("has_zinc_ingot", has(ZINC_INGOTS))
                 .save(exporter, ModInfo.id("copycat_guardrail_from_zinc_ingots_stonecutting"));
+        SingleItemRecipeBuilder
+                .stonecutting(Ingredient.of(ZINC_INGOTS), RecipeCategory.BUILDING_BLOCKS,
+                        ModBlock.LAYERED_COPYCAT_BOARD, 8)
+                .unlockedBy("has_zinc_ingot", has(ZINC_INGOTS))
+                .save(exporter, ModInfo.id("layered_copycat_board_from_zinc_ingots_stonecutting"));
         offerCopycatLadder(exporter, ModBlock.COPYCAT_STEEL_FIXED_LADDER,
                 "copycat_steel_fixed_ladder_from_zinc_ingots_stonecutting");
         offerCopycatLadder(exporter, ModBlock.COPYCAT_STEEL_VERTICAL_LADDER,

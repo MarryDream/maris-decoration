@@ -13,7 +13,7 @@ public final class ModItemGroup {
             ModInfo.id("maris_decoration"),
             CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.maris-decoration.maris_decoration"))
-                    .icon(() -> new ItemStack(ModBlock.STEEL_BLOCK))
+                    .icon(() -> new ItemStack(ModItem.BUBBLE_TEA))
                     .displayItems((context, entries) -> {
                         ModBlock.registeredItems().forEach(entries::accept);
                         ModItem.registeredItems().forEach(entries::accept);

@@ -5,7 +5,6 @@ import marrydream.marisdecoration.block.CopycatGuardrailBlockEntity;
 import marrydream.marisdecoration.block.LayeredCopycatBoardBlock;
 import marrydream.marisdecoration.block.LintelThresholdThinDoorBlock;
 import marrydream.marisdecoration.block.utils.GuardrailParts;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
@@ -130,6 +129,5 @@ public class DetailChisel extends Item {
 public void appendHoverText( ItemStack stack, Level world, List<Component> tooltip, TooltipFlag context ) {
 //?}
         tooltip.add( Component.translatable( "item.maris-decoration.detail_chisel.tooltip" ) );
-        tooltip.add( Component.translatable( "item.maris-decoration.detail_chisel.remark.tooltip" ).withStyle( ChatFormatting.BLUE ) );
     }
 }
