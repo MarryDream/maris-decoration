@@ -31,3 +31,6 @@ type="optional"
 versionRange="[3.0.9,3.1)"
 ordering="AFTER"
 side="BOTH"
+
+[[mixins]]
+config="maris-decoration-neoforge.mixins.json"
