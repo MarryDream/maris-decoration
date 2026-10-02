@@ -15,7 +15,7 @@ import { writeFileSync, mkdirSync, readFileSync, existsSync, rmSync } from 'node
 import { dirname, join } from 'node:path';
 
 const NS = 'maris-decoration';
-const ASSETS = join(process.cwd(), 'src/main/resources/assets', NS);
+const ASSETS = join(process.cwd(), 'common/src/main/resources/assets', NS);
 const BLOCK_DIR = join(ASSETS, 'models/block/copycat_guardrail');
 const BLOCKSTATE = join(ASSETS, 'blockstates/copycat_guardrail.json');
 const ITEM_MODEL = join(ASSETS, 'models/item/copycat_guardrail.json');
@@ -214,7 +214,7 @@ for (const { present, name } of combos) {
 
 // ---- 校验：Java 几何表必须与本脚本算出的旋转结果逐位一致 ----
 
-const javaPath = join(process.cwd(), 'src/main/java/marrydream/marisdecoration/block/utils/GuardrailParts.java');
+const javaPath = join(process.cwd(), 'common/src/main/java/marrydream/marisdecoration/block/utils/GuardrailParts.java');
 const javaSource = readFileSync(javaPath, 'utf8');
 const ENUM = { north: 'NORTH', east: 'EAST', south: 'SOUTH', west: 'WEST' };
 

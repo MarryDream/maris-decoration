@@ -15,7 +15,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 const NS = 'maris-decoration';
-const ASSETS = join(process.cwd(), 'src/main/resources/assets', NS);
+const ASSETS = join(process.cwd(), 'common/src/main/resources/assets', NS);
 const BLOCK_DIR = join(ASSETS, 'models/block/layered_copycat_board');
 const BLOCKSTATE = join(ASSETS, 'blockstates/layered_copycat_board.json');
 const ITEM_MODEL = join(ASSETS, 'models/item/layered_copycat_board.json');

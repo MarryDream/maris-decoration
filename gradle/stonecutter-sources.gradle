@@ -1,0 +1,21 @@
+def shared = rootProject.file('common/src/main')
+tasks.named('stonecutterPrepare') {
+    root.set(shared)
+    source.setFrom(fileTree(shared) { include '**/*.java' })
+}
+tasks.named('stonecutterGenerate') {
+    // Java comes exclusively from prepare; copying originals would override conditionals.
+    from(shared) { exclude '**/*.java' }
+}
+tasks.named('stonecutterMerge') { into(shared) }
+
+def generated = stonecutter.tasks.generatedSourcesDir
+sourceSets.main.java.setSrcDirs(stonecutter.current.isActive
+        ? [rootProject.file('common/src/main/java')]
+        : [files(generated.dir('main/java')).builtBy('stonecutterGenerate')])
+sourceSets.main.resources.setSrcDirs([
+        rootProject.file('common/src/main/resources'),
+        rootProject.file('common/src/main/generated')])
+// Loader-specific files are not encoded as Stonecutter loader conditionals.
+sourceSets.main.java.srcDir(rootProject.file("${project.loader}/src/main/java"))
+sourceSets.main.resources.srcDir(rootProject.file("${project.loader}/src/main/resources"))

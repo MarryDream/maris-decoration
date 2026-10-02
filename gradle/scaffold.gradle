@@ -1,0 +1,29 @@
+// Scaffold tasks must never produce a success-looking empty mod jar.
+apply from: rootProject.file('gradle/stonecutter-sources.gradle')
+// No business source is indexed/compiled for an unfinished port. The shared source
+// stays intact, and Stonecutter's prepare/merge tasks still support node switching.
+sourceSets.main.java.setSrcDirs([])
+version = project.mod_version
+group = project.maven_group
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(Integer.parseInt(project.java_version))
+}
+tasks.withType(JavaCompile).configureEach {
+    options.release = Integer.parseInt(project.java_version)
+    options.encoding = 'UTF-8'
+}
+def blocked = tasks.register('requirePort') {
+    group = 'verification'
+    doLast { throw new GradleException("${project.name} is scaffold: ${project.scaffold_reason}") }
+}
+['compileJava', 'processResources', 'jar', 'assemble', 'check', 'build'].each { name ->
+    tasks.named(name) { dependsOn blocked }
+}
+['compileClientJava', 'runClient', 'runServer', 'runDatagen', 'checkDatagenFresh',
+ 'runTeakTest', 'runTeakClientCheck'].each { name ->
+    if (!tasks.names.contains(name)) tasks.register(name) { dependsOn blocked }
+}
+tasks.register('scaffoldStatus') {
+    group = 'help'
+    doLast { println "${project.name}: ${project.node_status}, Java ${project.java_version}, ${project.dependency_status}. ${project.scaffold_reason}" }
+}

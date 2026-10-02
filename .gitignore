@@ -49,10 +49,13 @@ dump-config-before.txt
 dump-config-after.txt
 
 # data generation cache
-src/main/generated/.cache/
+common/src/main/generated/.cache/
 
 # harness stdin, rewritten by tools/run-harness.ps1 on every run
 tools/harness-server-stdin.txt
 
 # 开发期从依赖 jar 里抽出来的参考源码，随时可以重新生成，不进版本库
 .devref/
+
+# Stonecutter generated sources and node-local artifacts are inside **/build/.
+# Keep versions/*/gradle.properties tracked.

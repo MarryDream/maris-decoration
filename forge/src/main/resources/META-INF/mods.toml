@@ -1,0 +1,10 @@
+# Scaffold metadata; no runnable mod entrypoint is supplied in phase one.
+# Forge-family mod ids require underscores; registry namespace stays maris-decoration.
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+[[mods]]
+modId="maris_decoration"
+version="${version}"
+displayName="Maris' Decoration"
+description="""Phase-one scaffold. See MULTILOADER.md."""
