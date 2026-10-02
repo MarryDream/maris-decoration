@@ -1,7 +1,7 @@
 # 多版本开发
 
 Canonical implementation / 默认 active target：**1.20.1-fabric**。
-1.20.1 Fabric 与 Forge 已实现；1.21.1 两个节点仍未完成，不发布空壳 jar。
+1.20.1 Fabric 与 Forge / NeoForge 已实现；1.21.1 NeoForge 仍为 scaffold，不发布空壳 jar。
 
 ## 支持矩阵与依赖
 
@@ -11,8 +11,7 @@ Canonical implementation / 默认 active target：**1.20.1-fabric**。
 | 节点 | Java | Loader | Create | Copycats+ | 当前状态 |
 | --- | --- | --- | --- | --- | --- |
 | 1.20.1-fabric | 17 | Fabric 0.17.2 / API 0.92.12+1.20.1 | Fabric 6.0.8.1+build.1744-mc1.20.1 | 3.0.10+mc.1.20.1-fabric | implemented / canonical |
-| 1.20.1-forge | 17 | Forge 47.4.10 | 6.0.8-291 (Maven slim) | 3.0.10+mc.1.20.1-forge | implemented |
-| 1.21.1-forge | 21 | Forge 52.1.0 | unavailable | unavailable | blocked / unavailable dependency |
+| 1.20.1-forge | 17 | Forge 47.4.10 / NeoForge 47.1.106（同一 jar） | 6.0.8-291 (Maven slim) | 3.0.10+mc.1.20.1-forge | implemented / 两个 Loader 普通实例实测通过 |
 | 1.21.1-neoforge | 21 | NeoForge 21.1.252 | 6.0.11-312 (Maven jar) | 3.0.9+mc.1.21.1-neoforge | scaffold，业务未移植 |
 
 2026-10-02 核实来源：[Forge](https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json)、
@@ -20,8 +19,8 @@ Canonical implementation / 默认 active target：**1.20.1-fabric**。
 [Create Maven](https://maven.createmod.net/com/simibubi/create/)、
 [Create 发布](https://api.modrinth.com/v2/project/create/version)、
 [Copycats+ 发布](https://api.modrinth.com/v2/project/copycats/version)。
-两个项目的发布 API 都没有 Forge 1.21.1 artifact，所以四节点是计划矩阵，不能宣称四目标已经可用。
-Fabric 1.21.1 不在矩阵中。
+Forge 1.21.1 明确不开发；Fabric 1.21.1 当前没有开发目标。
+1.20.1 NeoForge 使用 Forge 节点的正式产物，不设独立节点或源码。
 
 Fabric 保留 `fuzs.forgeconfigapiport:forgeconfigapiport-fabric:8.0.0`。
 Create 是必需依赖；Copycats+ 保持 `modCompileOnly` 可选兼容，不嵌入 jar。
@@ -34,7 +33,6 @@ MixinExtras 0.4.1，均与 Create 6.0.8-291 发布提交一致。普通实例使
 
 Stonecutter 0.9.8 / Gradle 9.7.1；Fabric Loom 1.17.21；Forge 1.20.1 与 NeoForge 的
 toolkit 入口为 ModDevGradle 2.0.140。不使用 Architectury runtime 或 Architectury Loom。
-LegacyForge 不支持 Forge 1.21.1，该节点未套用错误的插件。
 
 `common/` 放共享业务、注册目录、测试、客户端计算/屏幕/门 renderer 和资源；`fabric/`、`forge/`
 提供入口、注册生命周期、网络、事件和模型接口。datagen providers 保留 Fabric bootstrap。
@@ -71,11 +69,12 @@ gradlew.bat buildAll
 这些配置通过 Gradle 启动，使用节点的 Java launcher，避免 IDEA 模块名转换引起 classpath 错误。
 提交/交付前切回 canonical；不要手改 controller 的 active 字符串。
 根目录 `build`、`runClient`、`runServer` 等兼容命令仅委托给 active 节点。
-scaffold 的 build/run 明确失败；`buildAll` 严格包含全部节点，因此本阶段也会失败。
+scaffold 的 build/run 明确失败；`buildAll` 包含三个节点，目前因未实现的 1.21.1 NeoForge 明确失败。
 不需要旧版 `chiseledBuild` 任务。
 
 Fabric jar 在 `versions/1.20.1-fabric/build/libs/`，游戏目录在 `run/1.20.1-fabric/`。
 正式 Forge jar：`versions/1.20.1-forge/build/libs/maris-decoration-1.20.1-forge-1.0.6.jar`。
+同一文件用于 Forge 1.20.1-47.4.10 和 NeoForge 1.20.1-47.1.106；metadata 的 Forge 范围为 `[47.1.106,48)`。
 Forge 的 `build/devlibs/` 是未重混淆开发产物；普通实例使用 `build/libs/` 的正式 jar。
 Forge 游戏目录为 `run/1.20.1-forge/`，metadata 与共享资源直接打包，不含 Fabric metadata。
 原有 `run/` 的世界和配置没有迁移或覆盖；新服务器首次启动需要接受 Minecraft EULA。

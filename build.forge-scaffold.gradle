@@ -1,4 +1,0 @@
-plugins { id 'java' }
-// Forge 1.21.1 is not supported by LegacyForge. Do not resolve unavailable Create/Copycats coordinates.
-// The correct modern Forge toolkit will be wired when the required dependencies exist.
-apply from: rootProject.file('gradle/scaffold.gradle')
