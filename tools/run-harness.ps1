@@ -23,7 +23,7 @@
 # ANSI unless they carry a BOM, so a UTF-8 file with non-ASCII comments gets mangled and
 # can even fail to parse. Keep every comment in this file in plain ASCII.
 
-param([switch]$WithCopycats, [switch]$Offline)
+param([ValidateSet("fabric","forge")][string]$Loader="fabric", [switch]$WithCopycats, [switch]$Offline)
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -31,8 +31,8 @@ $root = Split-Path -Parent $root
 Set-Location $root
 
 $stdin = Join-Path $root "tools\harness-server-stdin.txt"
-$report = Join-Path $root "run\1.20.1-fabric\maris-placer-selftest.txt"
-$console = Join-Path $root "build\harness-console.txt"
+$report = Join-Path $root "run\1.20.1-$Loader\maris-placer-selftest.txt"
+$console = Join-Path $root "build\harness-$Loader-console.txt"
 
 # 1. The self-test command. "stop" goes last: the self-test runs synchronously, so stop
 #    is only reached after it finished.
@@ -44,7 +44,7 @@ $console = Join-Path $root "build\harness-console.txt"
 #    backslash escaped). The script has to emit exactly one backslash plus a colon; an
 #    extra backslash makes vanilla fail to recognise "flat" and fall back to a normal
 #    world type.
-$props = Join-Path $root "run\1.20.1-fabric\server.properties"
+$props = Join-Path $root "run\1.20.1-$Loader\server.properties"
 New-Item -ItemType Directory -Force (Split-Path -Parent $props) | Out-Null
 $kept = @()
 if (Test-Path $props) {
@@ -61,7 +61,7 @@ New-Item -ItemType Directory -Force (Split-Path -Parent $console) | Out-Null
 $extra = ""
 if ($WithCopycats) { $extra += " -PwithCopycats" }
 if ($Offline) { $extra += " --offline" }
-cmd /c "chcp 65001 > nul && .\gradlew :1.20.1-fabric:runServer --no-daemon --console=plain$extra < tools\harness-server-stdin.txt > build\harness-console.txt 2>&1"
+cmd /c "chcp 65001 > nul && .\gradlew :1.20.1-${Loader}:runServer --no-daemon --console=plain$extra < tools\harness-server-stdin.txt > build\harness-$Loader-console.txt 2>&1"
 $gradleExit = $LASTEXITCODE
 
 Write-Output "===== self-test report ====="

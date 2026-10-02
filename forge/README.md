@@ -1,7 +1,7 @@
-# forge scaffold
+# Forge 1.20.1
 
 Platform initializer, registration/event/network and Create rendering adapters belong here.
-No stub entrypoint is provided. Build/run tasks deliberately fail until the real port exists.
+Minecraft 1.20.1 is implemented with ModDevGradle LegacyForge 2.0.140 and shared common code.
 Use the verified dependency coordinates in `versions/*-forge/gradle.properties`.
-Future Forge-family loader mod id: `maris_decoration`; registry namespace remains `maris-decoration`.
-Shared data currently targets Minecraft 1.20.1; 1.21.1 schema differences remain for phase two.
+Forge loader mod id: `maris_decoration`; registry namespace remains `maris-decoration`.
+Forge 1.21.1 remains blocked by unavailable Create / Copycats+ dependencies; no business port exists.

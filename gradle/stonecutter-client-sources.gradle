@@ -1,0 +1,20 @@
+// Shared client code follows the same active/inactive ownership as shared main code.
+def sharedClient = rootProject.file('common/src/client')
+tasks.matching { it.name == 'stonecutterPrepareClient' }.configureEach {
+    root.set(sharedClient)
+    source.setFrom(fileTree(sharedClient) { include '**/*.java' })
+}
+tasks.matching { it.name == 'stonecutterGenerateClient' }.configureEach {
+    from(sharedClient) {
+        exclude { element ->
+            element.file.name.endsWith('.java') &&
+                    layout.buildDirectory.file("stonecutter-cache/sources/client/${element.path}").get().asFile.exists()
+        }
+    }
+}
+tasks.matching { it.name == 'stonecutterMergeClient' }.configureEach { into(sharedClient) }
+sourceSets.client.java.setSrcDirs(stonecutter.current.isActive
+        ? [rootProject.file('common/src/client/java')]
+        : [files(stonecutter.tasks.generatedSourcesDir.dir('client/java')).builtBy('stonecutterGenerateClient')])
+sourceSets.client.java.srcDir(rootProject.file("${project.loader}/src/client/java"))
+sourceSets.client.resources.setSrcDirs([rootProject.file("${project.loader}/src/client/resources")])

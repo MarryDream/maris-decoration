@@ -4,8 +4,15 @@ tasks.named('stonecutterPrepare') {
     source.setFrom(fileTree(shared) { include '**/*.java' })
 }
 tasks.named('stonecutterGenerate') {
-    // Java comes exclusively from prepare; copying originals would override conditionals.
-    from(shared) { exclude '**/*.java' }
+    // Prepare only emits files containing Stonecutter directives. Unconditional Java
+    // must also be copied, but may never overwrite a processed conditional file.
+    from(shared) {
+        exclude '**/.cache/**'
+        exclude { element ->
+            element.file.name.endsWith('.java') &&
+                    layout.buildDirectory.file("stonecutter-cache/sources/main/${element.path}").get().asFile.exists()
+        }
+    }
 }
 tasks.named('stonecutterMerge') { into(shared) }
 

@@ -190,8 +190,7 @@ publishing {
 	}
 }
 
-sourceSets.client.java.setSrcDirs([rootProject.file('fabric/src/client/java')])
-sourceSets.client.resources.setSrcDirs([rootProject.file('fabric/src/client/resources')])
+apply from: rootProject.file('gradle/stonecutter-client-sources.gradle')
 tasks.withType(JavaExec).configureEach {
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(17) }
 }
@@ -209,6 +208,10 @@ tasks.matching { it.name == 'runDatagen' }.configureEach {
 	inputs.dir(rootProject.file("common/src/datagen"))
 	outputs.dir(rootProject.file("common/src/main/generated"))
 }
+
+// When generation and packaging are requested together, archive the completed
+// generated resources. Do not force datagen to run on ordinary builds.
+tasks.named('sourcesJar') { mustRunAfter 'runDatagen' }
 
 /*
  * 检查 datagen 产物是否过期。挂在 build 上，过期就直接构建失败。

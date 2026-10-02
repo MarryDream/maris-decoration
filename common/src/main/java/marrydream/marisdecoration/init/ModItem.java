@@ -26,7 +26,7 @@ public final class ModItem {
     }
 
     public static <T extends Item> T register(String id, T item) {
-        T registered = Registry.register(BuiltInRegistries.ITEM, ModInfo.id(id), item);
+        T registered = marrydream.marisdecoration.platform.Platform.register(BuiltInRegistries.ITEM, ModInfo.id(id), item);
         REGISTERED_ITEMS.add(registered);
         return registered;
     }

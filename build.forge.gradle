@@ -1,5 +1,95 @@
 plugins { id 'net.neoforged.moddev.legacyforge' version '2.0.140' }
-// The toolkit entry is ready; do not enable Minecraft artifact generation until the port exists.
-// Enable with: legacyForge { version = project.loader_version; mods { ... }; runs { ... } }
-// Mod dependencies use modImplementation / modCompileOnly, then require their actual transitives.
-apply from: rootProject.file('gradle/scaffold.gradle')
+apply from: rootProject.file('gradle/stonecutter-sources.gradle')
+version = project.mod_version
+group = project.maven_group
+base { archivesName = "${project.archives_base_name}-1.20.1-forge" }
+java { toolchain.languageVersion = JavaLanguageVersion.of(17); withSourcesJar() }
+tasks.withType(JavaCompile).configureEach { options.release = 17; options.encoding = 'UTF-8' }
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.createmod.net'; content { includeGroup 'com.simibubi.create'; includeGroup 'dev.engine-room.flywheel'; includeGroup 'net.createmod.ponder' } }
+    maven { url = 'https://maven.ithundxr.dev/mirror'; content { includeGroup 'com.tterrag.registrate' } }
+    maven { url = 'https://api.modrinth.com/maven'; content { includeGroup 'maven.modrinth' } }
+}
+sourceSets {
+    client {
+        java.srcDirs = [rootProject.file('common/src/client/java'), rootProject.file('forge/src/client/java')]
+        compileClasspath += sourceSets.main.output
+        compileClasspath += sourceSets.main.compileClasspath
+        runtimeClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.runtimeClasspath
+    }
+}
+configurations {
+    clientImplementation.extendsFrom implementation
+    clientCompileOnly.extendsFrom compileOnly
+    clientRuntimeOnly.extendsFrom runtimeOnly
+}
+legacyForge {
+    accessTransformers.from(rootProject.file("forge/src/main/resources/META-INF/accesstransformer.cfg"))
+    version = project.loader_version
+    mods { maris_decoration { sourceSet sourceSets.main; sourceSet sourceSets.client } }
+    runs {
+        client { client(); sourceSet = sourceSets.client; gameDirectory = rootProject.file('run/1.20.1-forge') }
+        server { server(); gameDirectory = rootProject.file('run/1.20.1-forge'); programArgument '--nogui' }
+        teakTest { server(); gameDirectory = layout.buildDirectory.dir('teak-test').get().asFile; systemProperty 'maris.teak.selftest','true'; programArgument '--nogui' }
+        teakClientCheck { client(); sourceSet = sourceSets.client; gameDirectory = layout.buildDirectory.dir('teak-client').get().asFile; systemProperty 'maris.teak.clientcheck','true'; programArguments.addAll('--quickPlaySingleplayer','teak-validation','--width','1280','--height','800') }
+    }
+}
+dependencies {
+    modImplementation project.create_coordinate
+    modImplementation "com.tterrag.registrate:Registrate:${project.registrate_version}"
+    modImplementation "net.createmod.ponder:Ponder-Forge-1.20.1:${project.ponder_version}"
+    modCompileOnly "dev.engine-room.flywheel:flywheel-forge-api-1.20.1:${project.flywheel_version}"
+    modRuntimeOnly "dev.engine-room.flywheel:flywheel-forge-1.20.1:${project.flywheel_version}"
+    modRuntimeOnly "io.github.llamalad7:mixinextras-forge:${project.mixinextras_version}"
+    modCompileOnly project.copycats_coordinate
+    if (providers.gradleProperty('withCopycats').isPresent()) { modRuntimeOnly project.copycats_coordinate }
+}
+processResources {
+    inputs.property 'version', project.version
+    exclude '**/.cache/**'
+    filesMatching('META-INF/mods.toml') { expand version: project.version }
+}
+jar { from sourceSets.client.output; from(rootProject.file('LICENSE')) }
+tasks.named('sourcesJar') { from sourceSets.client.allSource }
+tasks.register('runDatagen') { dependsOn ':1.20.1-fabric:runDatagen' }
+tasks.register('checkDatagenFresh') { dependsOn ':1.20.1-fabric:checkDatagenFresh' }
+tasks.named('build') { dependsOn 'checkDatagenFresh' }
+// Datagen remains canonical. If explicitly requested in the same invocation,
+// consume its completed shared output without running datagen on every build.
+['processResources', 'stonecutterPrepare', 'stonecutterGenerate', 'sourcesJar'].each { taskName ->
+    tasks.named(taskName) { mustRunAfter ':1.20.1-fabric:runDatagen' }
+}
+apply from: rootProject.file('gradle/stonecutter-client-sources.gradle')
+
+['runTeakTest':'teak-test/teak-selftest.txt', 'runTeakClientCheck':'teak-client/teak-client-check.txt'].each { taskName,reportPath ->
+ tasks.named(taskName) {
+  doFirst { layout.buildDirectory.file(reportPath).get().asFile.delete() }
+  doLast {
+   def report=layout.buildDirectory.file(reportPath).get().asFile
+   if (!report.exists() || report.text.contains('FAIL:') || !report.text.contains('PASS:')) throw new GradleException("Verification failed: ${report}")
+  }
+ }
+}
+
+tasks.named("runServer") { standardInput = System.in }
+
+tasks.named('runTeakClientCheck') {
+ doFirst { layout.buildDirectory.file('teak-client/forge-world-check.txt').get().asFile.delete() }
+ doLast {
+  def report=layout.buildDirectory.file('teak-client/forge-world-check.txt').get().asFile
+  if(!report.exists() || !report.text.startsWith('PASS:')) throw new GradleException('Forge world check failed: '+report)
+ }
+}
+
+if (providers.gradleProperty('forgeClientCheck').isPresent()) {
+ legacyForge.runs.client.systemProperty 'maris.forge.clientcheck','true'
+ tasks.named('runClient') {
+  doFirst { rootProject.file('run/1.20.1-forge/forge-client-check.txt').delete() }
+  doLast {
+   def report=rootProject.file('run/1.20.1-forge/forge-client-check.txt')
+   if(!report.exists() || !report.text.startsWith('PASS:')) throw new GradleException('Forge client check failed: '+report)
+  }
+ }
+}

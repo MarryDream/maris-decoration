@@ -1,5 +1,3 @@
-# Scaffold metadata; no runnable mod entrypoint is supplied in phase one.
-# Forge-family mod ids require underscores; registry namespace stays maris-decoration.
 modLoader="javafml"
 loaderVersion="[47,)"
 license="MIT"
@@ -7,4 +5,29 @@ license="MIT"
 modId="maris_decoration"
 version="${version}"
 displayName="Maris' Decoration"
-description="""Phase-one scaffold. See MULTILOADER.md."""
+authors="MarryDream"
+description='''Contains some decorative blocks I need'''
+[[dependencies.maris_decoration]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.10,48)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.maris_decoration]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1]"
+ordering="NONE"
+side="BOTH"
+[[dependencies.maris_decoration]]
+modId="create"
+mandatory=true
+versionRange="[6.0.8,6.1)"
+ordering="AFTER"
+side="BOTH"
+[[dependencies.maris_decoration]]
+modId="copycats"
+mandatory=false
+versionRange="[3.0.10,3.1)"
+ordering="AFTER"
+side="BOTH"

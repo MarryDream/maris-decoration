@@ -84,7 +84,7 @@ public class MarisDecorationClient implements ClientModInitializer {
                 ModelModifier.WRAP_PHASE,
                 ( model, ctx ) -> {
                     ResourceLocation id = ctx.id();
-                    if ( id == null || !ModInfo.MOD_ID.equals( id.getNamespace() ) ) {
+                    if ( id == null || !ModInfo.NAMESPACE.equals( id.getNamespace() ) ) {
                         return model;
                     }
                     String path = id.getPath();
@@ -121,7 +121,7 @@ public class MarisDecorationClient implements ClientModInitializer {
                 ModelModifier.WRAP_PHASE,
                 ( model, ctx ) -> {
                     ResourceLocation id = ctx.id();
-                    if ( id == null || !ModInfo.MOD_ID.equals( id.getNamespace() ) ) {
+                    if ( id == null || !ModInfo.NAMESPACE.equals( id.getNamespace() ) ) {
                         return model;
                     }
                     if ( !LayeredCopycatBoardBlock.ID_PATH.equals( id.getPath() ) ) {
@@ -148,7 +148,7 @@ public class MarisDecorationClient implements ClientModInitializer {
                 ModelModifier.WRAP_PHASE,
                 (model, ctx) -> {
                     ResourceLocation id = ctx.id();
-                    if (id == null || !ModInfo.MOD_ID.equals(id.getNamespace())
+                    if (id == null || !ModInfo.NAMESPACE.equals(id.getNamespace())
                             || !"steel_plug_door".equals(id.getPath())) {
                         return model;
                     }
@@ -166,7 +166,7 @@ public class MarisDecorationClient implements ClientModInitializer {
         ModelLoadingPlugin.register(context -> context.modifyModelAfterBake().register(
                 ModelModifier.WRAP_PHASE, (model, ctx) -> {
                     ResourceLocation id = ctx.id();
-                    if (id == null || !ModInfo.MOD_ID.equals(id.getNamespace())) return model;
+                    if (id == null || !ModInfo.NAMESPACE.equals(id.getNamespace())) return model;
                     String path = id.getPath();
                     if (!CopycatSteelFixedLadderBlock.ID_PATH.equals(path)
                             && !CopycatSteelVerticalLadderBlock.ID_PATH.equals(path)) return model;

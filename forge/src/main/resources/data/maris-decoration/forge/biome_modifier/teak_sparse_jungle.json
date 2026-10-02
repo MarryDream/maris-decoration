@@ -1,0 +1,8 @@
+{
+  "type": "forge:add_features",
+  "biomes": [
+    "minecraft:sparse_jungle"
+  ],
+  "features": "maris-decoration:teak_sparse_jungle",
+  "step": "vegetal_decoration"
+}
