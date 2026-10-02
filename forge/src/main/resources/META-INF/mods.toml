@@ -10,7 +10,7 @@ description='''Contains some decorative blocks I need'''
 [[dependencies.maris_decoration]]
 modId="forge"
 mandatory=true
-versionRange="[47.4.10,48)"
+versionRange="[47.1.106,48)"
 ordering="NONE"
 side="BOTH"
 [[dependencies.maris_decoration]]
